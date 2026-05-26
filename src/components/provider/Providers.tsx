@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import ThemeProvider from "./ThemeProvider";
-import { clearAuthUser } from "@/lib/auth";
+import { clearNnakSession } from "@/lib/nnak/auth-storage";
 
 export default function Providers({
   children,
@@ -25,16 +25,13 @@ export default function Providers({
 
   useEffect(() => {
     const handler = () => {
-      if (typeof window !== "undefined") {
-        if (!window.location.pathname.includes("/login")) {
-          // Clear the client-controlled auth cookie so middleware blocks re-entry
-          clearAuthUser();
-          window.location.href = "/login";
-        }
-      }
+      if (typeof window === "undefined") return;
+      if (window.location.pathname.includes("/login")) return;
+      clearNnakSession();
+      window.location.href = "/nnak/login";
     };
-    window.addEventListener("auth:expired", handler);
-    return () => window.removeEventListener("auth:expired", handler);
+    window.addEventListener("nnak:auth-expired", handler);
+    return () => window.removeEventListener("nnak:auth-expired", handler);
   }, []);
 
   return (
