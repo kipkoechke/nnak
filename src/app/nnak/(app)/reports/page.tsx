@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useKpis } from "@/hooks/nnak/use-reports";
-import { useMembers } from "@/hooks/nnak/use-members";
-import { usePayments } from "@/hooks/nnak/use-payments";
+import { useKpis } from "@/hooks/use-reports";
+import { useMembers } from "@/hooks/use-members";
+import { usePayments } from "@/hooks/use-payments";
 
 function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";

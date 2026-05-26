@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useCategories, useCreateCategory, useDeleteCategory, useUpdateCategory } from "@/hooks/nnak/use-categories";
+import { useCategories, useCreateCategory, useDeleteCategory, useUpdateCategory } from "@/hooks/use-categories";
 import type { BillingFrequency, MemberCategory, NnakMembershipCategory } from "@/types/nnak";
 
 const empty = {

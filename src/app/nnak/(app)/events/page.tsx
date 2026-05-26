@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { MdAdd } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
-import { useEvents } from "@/hooks/nnak/use-events";
+import { useEvents } from "@/hooks/use-events";
 
 const STATUS: Record<string, string> = {
   draft: "bg-slate-50 text-slate-700",

@@ -2,10 +2,10 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useMember, useSetMemberStatus } from "@/hooks/nnak/use-members";
-import { useCategories } from "@/hooks/nnak/use-categories";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
-import { useStkPush } from "@/hooks/nnak/use-payments";
+import { useMember, useSetMemberStatus } from "@/hooks/use-members";
+import { useCategories } from "@/hooks/use-categories";
+import { useNnakBranches } from "@/hooks/use-branches";
+import { useStkPush } from "@/hooks/use-payments";
 import DigitalIdCard from "./DigitalIdCard";
 
 export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {

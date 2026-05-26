@@ -2,9 +2,9 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useEvent, useEventRegistrants, useIssueCertificate, useRegisterForEvent } from "@/hooks/nnak/use-events";
-import { useMembers } from "@/hooks/nnak/use-members";
-import { useStkPush } from "@/hooks/nnak/use-payments";
+import { useEvent, useEventRegistrants, useIssueCertificate, useRegisterForEvent } from "@/hooks/use-events";
+import { useMembers } from "@/hooks/use-members";
+import { useStkPush } from "@/hooks/use-payments";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

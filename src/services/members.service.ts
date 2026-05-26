@@ -3,7 +3,7 @@
  * Real backend (/api/v1/users + /api/v1/user-profiles) supports CRUD + listing.
  * Approval/status/category-upgrade flows are MOCK until the backend exposes them.
  */
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 import type { NnakProfile, MemberStatus } from "@/types/nnak";
 
 export const membersService = {

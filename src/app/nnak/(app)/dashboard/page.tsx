@@ -1,7 +1,7 @@
 "use client";
-import { useKpis } from "@/hooks/nnak/use-reports";
-import { useNnakMe } from "@/hooks/nnak/use-auth";
-import { nnakCan } from "@/lib/nnak/rbac";
+import { useKpis } from "@/hooks/use-reports";
+import { useNnakMe } from "@/hooks/use-auth";
+import { nnakCan } from "@/lib/rbac";
 import PageHeader from "@/components/common/PageHeader";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,

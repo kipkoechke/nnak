@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useCategories } from "@/hooks/nnak/use-categories";
+import { useCategories } from "@/hooks/use-categories";
 import type { EventPricingTier, EventType, NnakEvent } from "@/types/nnak";
 
 interface Props {

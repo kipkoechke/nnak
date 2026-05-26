@@ -8,7 +8,7 @@ export default function Home() {
 
   useEffect(() => {
     // Redirect to home page on load
-    router.replace("/dashboard");
+    router.replace("/nnak/dashboard");
   }, [router]);
 
   return (

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { MdAdd, MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useMembers, useSetMemberStatus } from "@/hooks/nnak/use-members";
-import { useCategories } from "@/hooks/nnak/use-categories";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
+import { useMembers, useSetMemberStatus } from "@/hooks/use-members";
+import { useCategories } from "@/hooks/use-categories";
+import { useNnakBranches } from "@/hooks/use-branches";
 
 const STATUS_COLOR: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",

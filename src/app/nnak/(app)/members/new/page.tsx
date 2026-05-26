@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useCreateMember } from "@/hooks/nnak/use-members";
-import { useCategories } from "@/hooks/nnak/use-categories";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
+import { useCreateMember } from "@/hooks/use-members";
+import { useCategories } from "@/hooks/use-categories";
+import { useNnakBranches } from "@/hooks/use-branches";
 
 export default function NewMemberPage() {
   const router = useRouter();

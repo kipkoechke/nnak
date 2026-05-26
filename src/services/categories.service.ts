@@ -1,5 +1,5 @@
 // MOCK — backend endpoint TBD. Suggested contract: GET/POST/PATCH/DELETE /member-categories
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 import type { MemberCategory } from "@/types/nnak";
 
 export const categoriesService = {

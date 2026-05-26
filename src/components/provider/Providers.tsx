@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import ThemeProvider from "./ThemeProvider";
-import { clearNnakSession } from "@/lib/nnak/auth-storage";
+import { clearNnakSession } from "@/lib/auth";
 
 export default function Providers({
   children,

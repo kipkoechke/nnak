@@ -1,7 +1,7 @@
 /**
  * NNAK authentication — backed by /api/v1 (Laravel Sanctum + OTP).
  */
-import { nnakApi } from "@/lib/nnak/api";
+import { nnakApi } from "@/lib/api";
 import type { NnakLoginResponse, NnakUser } from "@/types/nnak";
 
 interface OtpVerifyResponse {

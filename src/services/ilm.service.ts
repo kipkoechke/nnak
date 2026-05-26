@@ -4,7 +4,7 @@
 //   POST /data-export-requests/{id}/approve|reject
 //   GET/POST /erasure-requests
 //   POST /erasure-requests/{id}/complete
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 
 export const ilmService = {
   audit: async (p?: { page?: number; per_page?: number }) => mockStore.listAudit(p),

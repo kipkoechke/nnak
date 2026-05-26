@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useVerifyOtp } from "@/hooks/nnak/use-auth";
+import { useVerifyOtp } from "@/hooks/use-auth";
 
 export default function VerifyOtpPage() {
   const router = useRouter();

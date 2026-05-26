@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useNnakLogin } from "@/hooks/nnak/use-auth";
+import { useNnakLogin } from "@/hooks/use-auth";
 
 export default function NnakLoginPage() {
   const router = useRouter();

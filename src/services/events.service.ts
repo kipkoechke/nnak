@@ -7,7 +7,7 @@
 //   POST   /events/{id}/register
 //   POST   /event-registrations/{token}/checkin
 //   POST   /event-registrations/{id}/certificate
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 import type { NnakEvent } from "@/types/nnak";
 
 export const eventsService = {

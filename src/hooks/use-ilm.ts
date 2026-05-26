@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { ilmService } from "@/services/nnak/ilm.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { ilmService } from "@/services/ilm.service";
+import { nqk } from "@/lib/query-keys";
 
 export const useAuditLog = (p: { page?: number; per_page?: number } = {}) =>
   useQuery({ queryKey: nqk.ilm.audit(p), queryFn: () => ilmService.audit(p), placeholderData: (prev) => prev });

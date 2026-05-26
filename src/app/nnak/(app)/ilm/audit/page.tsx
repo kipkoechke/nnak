@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useAuditLog } from "@/hooks/nnak/use-ilm";
+import { useAuditLog } from "@/hooks/use-ilm";
 
 export default function AuditLogPage() {
   const [page, setPage] = useState(1);

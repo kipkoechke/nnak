@@ -2,7 +2,7 @@
 //   GET  /payments
 //   POST /payments/mpesa/stk-push   { user_id, amount, purpose, related_id, phone }
 //   POST /payments/mpesa/callback   (server-side)
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 import type { Payment } from "@/types/nnak";
 
 export const paymentsService = {

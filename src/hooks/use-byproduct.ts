@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { byProductService } from "@/services/nnak/byproduct.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { byProductService } from "@/services/byproduct.service";
+import { nqk } from "@/lib/query-keys";
 
 export const useByProductUploads = () =>
   useQuery({ queryKey: nqk.byProduct.list(), queryFn: byProductService.list });

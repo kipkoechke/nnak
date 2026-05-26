@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useCompleteErasure, useErasures, useRequestErasure } from "@/hooks/nnak/use-ilm";
-import { useMembers } from "@/hooks/nnak/use-members";
+import { useCompleteErasure, useErasures, useRequestErasure } from "@/hooks/use-ilm";
+import { useMembers } from "@/hooks/use-members";
 
 export default function ErasurePage() {
   const { data: members } = useMembers({ per_page: 1000 });

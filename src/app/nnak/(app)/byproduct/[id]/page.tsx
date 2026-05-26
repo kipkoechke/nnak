@@ -2,7 +2,7 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductLines } from "@/hooks/nnak/use-byproduct";
+import { useByProductLines } from "@/hooks/use-byproduct";
 
 export default function ByProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { categoriesService } from "@/services/nnak/categories.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { categoriesService } from "@/services/categories.service";
+import { nqk } from "@/lib/query-keys";
 import type { MemberCategory } from "@/types/nnak";
 
 export const useCategories = () =>

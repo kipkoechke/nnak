@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import EventForm from "../EventForm";
-import { useUpsertEvent } from "@/hooks/nnak/use-events";
+import { useUpsertEvent } from "@/hooks/use-events";
 import PageHeader from "@/components/common/PageHeader";
 
 export default function NewEventPage() {

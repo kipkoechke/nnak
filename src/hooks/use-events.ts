@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { eventsService } from "@/services/nnak/events.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { eventsService } from "@/services/events.service";
+import { nqk } from "@/lib/query-keys";
 import type { NnakEvent } from "@/types/nnak";
 
 export const useEvents = (p: { page?: number; per_page?: number; status?: string } = {}) =>

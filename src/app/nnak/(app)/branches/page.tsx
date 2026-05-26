@@ -1,7 +1,7 @@
 "use client";
 import PageHeader from "@/components/common/PageHeader";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
-import { useMembers } from "@/hooks/nnak/use-members";
+import { useNnakBranches } from "@/hooks/use-branches";
+import { useMembers } from "@/hooks/use-members";
 
 export default function NnakBranchesPage() {
   const { data: branches = [] } = useNnakBranches();

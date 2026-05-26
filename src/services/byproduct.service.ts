@@ -2,7 +2,7 @@
 //   POST /byproduct-uploads  { branch_id, period_month, lines: [...] }
 //   GET  /byproduct-uploads
 //   GET  /byproduct-uploads/{id}/lines
-import { mockStore } from "@/lib/nnak/mock-store";
+import { mockStore } from "@/lib/mock-store";
 
 export const byProductService = {
   list: async () => mockStore.listByProductUploads(),

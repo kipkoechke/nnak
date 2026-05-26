@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useNnakResetPassword } from "@/hooks/nnak/use-auth";
+import { useNnakResetPassword } from "@/hooks/use-auth";
 
 export default function NnakResetPasswordPage() {
   const router = useRouter();

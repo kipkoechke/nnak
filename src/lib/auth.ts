@@ -39,3 +39,15 @@ export const clearNnakSession = () => {
   localStorage.removeItem(NNAK_TOKEN_KEY);
   removeCookie(NNAK_USER_COOKIE);
 };
+
+// ---------------------------------------------------------------------------
+// Legacy-named re-exports kept so older callers (Header, Sidebar, AppLayout,
+// Providers, /api/logout route) keep working after the project converged onto
+// the single NNAK auth scheme.
+// ---------------------------------------------------------------------------
+export const USER_COOKIE = NNAK_USER_COOKIE;
+export const setAuthUser = (user: NnakUser, token?: string) =>
+  setNnakSession(user, token ?? localStorage.getItem(NNAK_TOKEN_KEY) ?? "");
+export const getAuthUser = getNnakUser;
+export const clearAuthUser = clearNnakSession;
+export const isAuthenticated = (): boolean => !!getNnakUser();

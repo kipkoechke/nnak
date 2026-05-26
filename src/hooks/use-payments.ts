@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { paymentsService } from "@/services/nnak/payments.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { paymentsService } from "@/services/payments.service";
+import { nqk } from "@/lib/query-keys";
 
 export const usePayments = (p: { page?: number; per_page?: number; purpose?: string; status?: string } = {}) =>
   useQuery({ queryKey: nqk.payments.list(p), queryFn: () => paymentsService.list(p), placeholderData: (prev) => prev });

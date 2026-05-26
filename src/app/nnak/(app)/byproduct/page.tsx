@@ -2,9 +2,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductUploads, useUploadByProduct } from "@/hooks/nnak/use-byproduct";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
-import { useNnakMe } from "@/hooks/nnak/use-auth";
+import { useByProductUploads, useUploadByProduct } from "@/hooks/use-byproduct";
+import { useNnakBranches } from "@/hooks/use-branches";
+import { useNnakMe } from "@/hooks/use-auth";
 
 /** Parse simple CSV: national_id,name,amount */
 function parseCsv(text: string) {

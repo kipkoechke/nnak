@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useCheckIn } from "@/hooks/nnak/use-events";
+import { useCheckIn } from "@/hooks/use-events";
 
 export default function CheckInPage() {
   const [token, setToken] = useState("");

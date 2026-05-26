@@ -1,10 +1,10 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { nnakAuth } from "@/services/nnak/auth.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { nnakAuth } from "@/services/auth.service";
+import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import { clearNnakSession, getNnakUser, setNnakSession } from "@/lib/nnak/auth-storage";
+import { clearNnakSession, getNnakUser, setNnakSession } from "@/lib/auth";
 
 export const useNnakMe = () =>
   useQuery({
@@ -87,3 +87,12 @@ export const useNnakLogout = () => {
     },
   });
 };
+
+// Legacy-named aliases so restored layout components keep their import shape.
+export const useMe = useNnakMe;
+export const useLogin = useNnakLogin;
+export const useLogout = useNnakLogout;
+export const useSignup = useNnakRegister;
+export const useForgotPassword = useNnakForgotPassword;
+export const useResetPassword = useNnakResetPassword;
+export const useUpdateMyPassword = useNnakChangePassword;

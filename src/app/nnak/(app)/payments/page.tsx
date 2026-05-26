@@ -2,7 +2,7 @@
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { usePayments } from "@/hooks/nnak/use-payments";
+import { usePayments } from "@/hooks/use-payments";
 
 export default function PaymentsPage() {
   const [page, setPage] = useState(1);

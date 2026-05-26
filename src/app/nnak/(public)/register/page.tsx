@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useNnakRegister } from "@/hooks/nnak/use-auth";
-import { useCategories } from "@/hooks/nnak/use-categories";
-import { useNnakBranches } from "@/hooks/nnak/use-branches";
+import { useNnakRegister } from "@/hooks/use-auth";
+import { useCategories } from "@/hooks/use-categories";
+import { useNnakBranches } from "@/hooks/use-branches";
 
 export default function NnakRegisterPage() {
   const router = useRouter();

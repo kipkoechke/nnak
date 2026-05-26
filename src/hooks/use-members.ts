@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { membersService } from "@/services/nnak/members.service";
-import { nqk } from "@/lib/nnak/query-keys";
+import { membersService } from "@/services/members.service";
+import { nqk } from "@/lib/query-keys";
 import type { MemberStatus, NnakProfile } from "@/types/nnak";
 
 export interface MemberListParams {

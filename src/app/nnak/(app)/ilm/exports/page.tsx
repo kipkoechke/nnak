@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useDataExports, useDecideExport, useRequestExport } from "@/hooks/nnak/use-ilm";
-import { useNnakMe } from "@/hooks/nnak/use-auth";
+import { useDataExports, useDecideExport, useRequestExport } from "@/hooks/use-ilm";
+import { useNnakMe } from "@/hooks/use-auth";
 
 export default function ExportsPage() {
   const { data: me } = useNnakMe();
