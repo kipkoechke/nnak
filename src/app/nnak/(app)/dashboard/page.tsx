@@ -49,7 +49,7 @@ export default function NnakDashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <div className="text-sm font-semibold text-slate-700 mb-3">Membership Growth (6m)</div>
+              <div className="text-sm font-semibold text-slate-700 mb-3">Membership Growth (last 6 months)</div>
               <div style={{ width: "100%", height: 220 }}>
                 <ResponsiveContainer>
                   <LineChart data={k.membership_growth}>
@@ -64,7 +64,7 @@ export default function NnakDashboardPage() {
             </div>
             {showFinance && (
               <div className="bg-white rounded-lg border border-slate-200 p-4">
-                <div className="text-sm font-semibold text-slate-700 mb-3">Revenue (6m)</div>
+                <div className="text-sm font-semibold text-slate-700 mb-3">Revenue (last 6 months)</div>
                 <div style={{ width: "100%", height: 220 }}>
                   <ResponsiveContainer>
                     <BarChart data={k.revenue_trend}>

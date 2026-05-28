@@ -17,10 +17,18 @@ export default function DigitalIdCard({ member, category }: Props) {
 
   const downloadPdf = async () => {
     if (!ref.current) return;
-    const canvas = await html2canvas(ref.current, { scale: 2 });
+    const canvas = await html2canvas(ref.current, { scale: 2, backgroundColor: "#f1f5f9" });
     const img = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
-    pdf.addImage(img, "PNG", 0, 0, 86, 54);
+    // A6 landscape page (148 x 105 mm) with the card centred and a
+    // comfortable margin around it instead of bleeding edge-to-edge.
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a6" });
+    const pageW = 148;
+    const pageH = 105;
+    const cardW = 100; // mm
+    const cardH = cardW * (216 / 344); // preserve 344x216 aspect
+    const x = (pageW - cardW) / 2;
+    const y = (pageH - cardH) / 2;
+    pdf.addImage(img, "PNG", x, y, cardW, cardH);
     pdf.save(`NNAK-${member.profile.account_number}.pdf`);
   };
 
@@ -77,15 +85,27 @@ export default function DigitalIdCard({ member, category }: Props) {
 
         {/* Content */}
         <div style={{ position: "relative", padding: "14px 16px 0 16px", height: "100%" }}>
-          {/* Header row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoSrc}
-              alt="NNAK"
-              crossOrigin="anonymous"
-              style={{ height: 56, width: "auto", objectFit: "contain", display: "block" }}
-            />
+          {/* Header row — logo bounded inside a fixed box so a wide/tall
+              source PNG can't overflow into the body row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 52 }}>
+            <div
+              style={{
+                width: 170,
+                height: 48,
+                display: "flex",
+                alignItems: "center",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoSrc}
+                alt="NNAK"
+                crossOrigin="anonymous"
+                style={{ maxHeight: 48, maxWidth: 170, height: "auto", width: "auto", objectFit: "contain", display: "block" }}
+              />
+            </div>
             <div
               style={{
                 fontSize: 10,
@@ -96,18 +116,20 @@ export default function DigitalIdCard({ member, category }: Props) {
                 borderRadius: 999,
                 textTransform: "uppercase",
                 letterSpacing: 0.8,
+                flexShrink: 0,
               }}
             >
               {category || "Member"}
             </div>
           </div>
 
-          {/* Body: photo + member info */}
-          <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center" }}>
+          {/* Body: photo + member info — extra top padding ensures the
+              name's ascenders aren't clipped by the header band */}
+          <div style={{ marginTop: 14, display: "flex", gap: 12, alignItems: "flex-start" }}>
             <div
               style={{
-                width: 76,
-                height: 76,
+                width: 72,
+                height: 72,
                 borderRadius: 10,
                 background: "#f1f5f9",
                 border: `2px solid ${BRAND_GREEN}`,
@@ -127,15 +149,15 @@ export default function DigitalIdCard({ member, category }: Props) {
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               ) : (
-                <MdPerson style={{ width: 44, height: 44, color: "#94a3b8" }} />
+                <MdPerson style={{ width: 40, height: 40, color: "#94a3b8" }} />
               )}
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ minWidth: 0, flex: 1, paddingTop: 2 }}>
               <div
                 style={{
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: 700,
-                  lineHeight: 1.15,
+                  lineHeight: 1.2,
                   color: TEXT,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -144,16 +166,16 @@ export default function DigitalIdCard({ member, category }: Props) {
               >
                 {member.name}
               </div>
-              <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 6 }}>
+              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 5 }}>
                 Member ID
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, letterSpacing: 0.4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: TEXT, letterSpacing: 0.3 }}>
                 {member.profile.account_number}
               </div>
-              <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 4 }}>
+              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 3 }}>
                 NCK Number
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, letterSpacing: 0.4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: TEXT, letterSpacing: 0.3 }}>
                 {member.profile.nck_number || "—"}
               </div>
             </div>
