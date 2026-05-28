@@ -320,12 +320,128 @@ export const mockStore = {
   },
 
   // ---- payments ----
-  listPayments: (params: { page?: number; per_page?: number; purpose?: string; status?: string } = {}) => {
+  listPayments: (params: { page?: number; per_page?: number; purpose?: string; status?: string; user_id?: string } = {}) => {
     const s = read();
     let items = [...s.payments].sort((a, b) => b.paid_at.localeCompare(a.paid_at));
     if (params.purpose) items = items.filter((p) => p.purpose === params.purpose);
     if (params.status) items = items.filter((p) => p.status === params.status);
+    if (params.user_id) items = items.filter((p) => p.user_id === params.user_id);
     return paginate(items, params.page, params.per_page);
+  },
+
+  listMyRegistrations: (userId: string) => {
+    const s = read();
+    return s.registrations
+      .filter((r) => r.user_id === userId)
+      .map((r) => ({ ...r, event: s.events.find((e) => e.id === r.event_id) ?? null }))
+      .sort((a, b) => (b.event?.starts_at || "").localeCompare(a.event?.starts_at || ""));
+  },
+
+  // Ensure a demo user exists as a real member record so the portal has
+  // data to show. Idempotent — safe to call on every sign-in.
+  ensureDemoMember: (input: {
+    id: string;
+    name: string;
+    email: string;
+    role: "member" | "student";
+  }) => {
+    const s = read();
+    if (s.members.some((m) => m.id === input.id)) return s.members.find((m) => m.id === input.id)!;
+
+    const cat =
+      s.categories.find((c) => c.code === (input.role === "student" ? "student" : "individual")) ||
+      s.categories[0];
+    const branch = s.branches[0];
+    const exp = new Date();
+    exp.setFullYear(exp.getFullYear() + 1);
+
+    const profile: NnakProfile = {
+      id: uid(),
+      user_id: input.id,
+      account_number: "ACC" + input.id.slice(-4).toUpperCase(),
+      phone: "+254700000000",
+      nck_number: input.role === "student" ? null : "NCK" + Math.floor(10000 + Math.random() * 89999),
+      license_number: null,
+      identification_type: "national_id",
+      identification_number: "3" + Math.floor(1000000 + Math.random() * 8999999),
+      professional_qualification: input.role === "student" ? "Diploma in Nursing (in progress)" : "BScN, Kenya Medical Training College",
+      date_of_birth: "1992-04-12",
+      gender: "female",
+      employer_type: input.role === "student" ? null : "employee",
+      employer_name: input.role === "student" ? null : "Kenyatta National Hospital",
+      county: "Nairobi",
+      photo_url: null,
+      member_category_id: cat?.id ?? null,
+      branch_id: branch?.id ?? null,
+      status: "active",
+      joined_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
+      subscription_expires_at: exp.toISOString(),
+      created_at: now(),
+      updated_at: now(),
+    };
+    const user: NnakUser & { profile: NnakProfile } = {
+      id: input.id,
+      name: input.name,
+      email: input.email,
+      role: input.role,
+      email_verified_at: new Date().toISOString(),
+      profile,
+    };
+    s.members.push(user);
+
+    // Seed a few historical payments so the payments page has rows.
+    const subAmount = cat?.annual_fee ?? 2000;
+    const lastYear = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 8).toISOString();
+    s.payments.unshift({
+      id: uid(),
+      user_id: input.id,
+      amount: subAmount,
+      currency: "KES",
+      method: "mpesa",
+      purpose: "subscription",
+      reference: "MPE" + Math.random().toString(36).slice(2, 10).toUpperCase(),
+      status: "successful",
+      paid_at: lastYear,
+      created_at: lastYear,
+      receipt_url: `/api/mock/receipt/${uid()}`,
+    });
+
+    // Seed one past event registration the member already paid for + attended.
+    const pastEvent = s.events.find((e) => new Date(e.starts_at) < new Date());
+    if (pastEvent) {
+      const fee = pastEvent.pricing.find((p) => p.category_code === (cat?.code || "individual"))?.fee ?? 500;
+      const reg: EventRegistration = {
+        id: uid(),
+        event_id: pastEvent.id,
+        user_id: input.id,
+        fee,
+        payment_status: "successful",
+        qr_token: uid(),
+        attended: true,
+        attended_at: pastEvent.starts_at,
+        certificate_issued: true,
+        certificate_url: `/api/mock/certificate/${uid()}`,
+        created_at: new Date(new Date(pastEvent.starts_at).getTime() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+      };
+      s.registrations.push(reg);
+      s.payments.unshift({
+        id: uid(),
+        user_id: input.id,
+        amount: fee,
+        currency: "KES",
+        method: "mpesa",
+        purpose: "event",
+        related_id: pastEvent.id,
+        reference: "MPE" + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        status: "successful",
+        paid_at: reg.created_at,
+        created_at: reg.created_at,
+        receipt_url: `/api/mock/receipt/${uid()}`,
+      });
+    }
+
+    write(s);
+    return user;
   },
   recordPayment: (input: Omit<Payment, "id" | "created_at" | "paid_at" | "currency"> & { paid_at?: string }) => {
     const s = read();

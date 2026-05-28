@@ -8,7 +8,11 @@ import {
   MdEvent,
   MdPayments,
   MdReceipt,
+  MdBadge,
+  MdEventAvailable,
 } from "react-icons/md";
+import { useMe } from "@/hooks/use-auth";
+import { isMemberRole } from "@/lib/rbac";
 
 interface NavItem {
   name: string;
@@ -16,7 +20,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const STAFF_NAV: NavItem[] = [
   { name: "Dashboard", href: "/nnak/dashboard", icon: MdInsertChart },
   { name: "Members", href: "/nnak/members", icon: MdPeople },
   { name: "Events", href: "/nnak/events", icon: MdEvent },
@@ -24,14 +28,23 @@ const NAV_ITEMS: NavItem[] = [
   { name: "Reports", href: "/nnak/reports", icon: MdReceipt },
 ];
 
+const MEMBER_NAV: NavItem[] = [
+  { name: "Portal", href: "/nnak/dashboard", icon: MdInsertChart },
+  { name: "Membership", href: "/nnak/me/membership", icon: MdBadge },
+  { name: "Events", href: "/nnak/me/events", icon: MdEventAvailable },
+  { name: "Payments", href: "/nnak/me/payments", icon: MdReceipt },
+];
+
 const MobileFooterNav: React.FC = () => {
   const pathname = usePathname();
+  const { data: user } = useMe();
+  const items = isMemberRole(user) ? MEMBER_NAV : STAFF_NAV;
   const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30">
       <div className="flex items-center justify-around h-16">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isActive(item.href);
           return (
             <Link

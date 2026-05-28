@@ -26,6 +26,13 @@ export const useEventRegistrants = (id: string) =>
     enabled: !!id,
   });
 
+export const useMyRegistrations = (userId: string | undefined) =>
+  useQuery({
+    queryKey: [...nqk.events.all, "mine", userId ?? ""],
+    queryFn: () => eventsService.myRegistrations(userId!),
+    enabled: !!userId,
+  });
+
 export const useUpsertEvent = () => {
   const qc = useQueryClient();
   return useMutation({

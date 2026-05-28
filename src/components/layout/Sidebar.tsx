@@ -15,7 +15,10 @@ import {
   MdCategory,
   MdFolderShared,
   MdHowToReg,
+  MdBadge,
+  MdEventAvailable,
 } from "react-icons/md";
+import { isMemberRole } from "@/lib/rbac";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useMemo } from "react";
@@ -35,7 +38,7 @@ interface MenuItem {
   show?: (u: NnakUser | null | undefined) => boolean;
 }
 
-const NNAK_ITEMS: MenuItem[] = [
+const STAFF_ITEMS: MenuItem[] = [
   { name: "Dashboard", icon: MdInsertChart, href: "/nnak/dashboard", show: nnakCan.viewDashboard },
   { name: "Members", icon: MdPeople, href: "/nnak/members", show: nnakCan.manageMembers },
   { name: "Categories", icon: MdCategory, href: "/nnak/categories", show: nnakCan.upgradeCategory },
@@ -50,19 +53,24 @@ const NNAK_ITEMS: MenuItem[] = [
   { name: "Erasure", icon: MdShield, href: "/nnak/ilm/erasure", show: nnakCan.manageILM },
 ];
 
+const MEMBER_ITEMS: MenuItem[] = [
+  { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
+  { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
+  { name: "Events", icon: MdEventAvailable, href: "/nnak/me/events", show: nnakCan.viewMyEvents },
+  { name: "Payments", icon: MdReceipt, href: "/nnak/me/payments", show: nnakCan.viewMyPayments },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
   const pathname = usePathname();
   const { data: user } = useMe();
   const logoutMutation = useLogout();
 
-  const menuItems = useMemo(
-    () =>
-      NNAK_ITEMS.filter((i) => (i.show ? i.show(user) : true)).map((i) => ({
-        ...i,
-        active: pathname.startsWith(i.href),
-      })),
-    [pathname, user],
-  );
+  const menuItems = useMemo(() => {
+    const source = isMemberRole(user) ? MEMBER_ITEMS : STAFF_ITEMS;
+    return source
+      .filter((i) => (i.show ? i.show(user) : true))
+      .map((i) => ({ ...i, active: pathname.startsWith(i.href) }));
+  }, [pathname, user]);
 
   return (
     <div

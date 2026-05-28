@@ -12,6 +12,7 @@
 import type { NnakUser, NnakRole } from "@/types/nnak";
 import { NNAK_ROLES } from "@/lib/rbac";
 import { setNnakSession } from "@/lib/auth";
+import { mockStore } from "@/lib/mock-store";
 
 export const DEMO_TOKEN = "demo-token";
 
@@ -96,6 +97,21 @@ export const demoUserLabel = (role: NnakRole): string =>
 export const signInAsDemoUser = (role: NnakRole): NnakUser | null => {
   const seed = DEMO_USERS.find((u) => u.role === role);
   if (!seed) return null;
+
+  // For member / student personas, materialise a real member record in the
+  // mock store so the portal pages (membership, events, payments) have
+  // data to render. Seeded user object includes the profile.
+  if (seed.role === "member" || seed.role === "student") {
+    const seeded = mockStore.ensureDemoMember({
+      id: seed.id,
+      name: seed.name,
+      email: seed.email,
+      role: seed.role,
+    });
+    setNnakSession(seeded, DEMO_TOKEN);
+    return seeded;
+  }
+
   const user: NnakUser = {
     id: seed.id,
     name: seed.name,

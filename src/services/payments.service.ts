@@ -6,8 +6,10 @@ import { mockStore } from "@/lib/mock-store";
 import type { Payment } from "@/types/nnak";
 
 export const paymentsService = {
-  list: async (params?: { page?: number; per_page?: number; purpose?: string; status?: string }) =>
+  list: async (params?: { page?: number; per_page?: number; purpose?: string; status?: string; user_id?: string }) =>
     mockStore.listPayments(params),
+  listMine: async (userId: string, params?: { page?: number; per_page?: number; purpose?: string; status?: string }) =>
+    mockStore.listPayments({ ...(params ?? {}), user_id: userId }),
   record: async (input: Omit<Payment, "id" | "created_at" | "paid_at" | "currency"> & { paid_at?: string }) =>
     mockStore.recordPayment(input),
   // simulate STK push success after small delay

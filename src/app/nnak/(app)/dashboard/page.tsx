@@ -1,8 +1,9 @@
 "use client";
 import { useKpis } from "@/hooks/use-reports";
 import { useNnakMe } from "@/hooks/use-auth";
-import { nnakCan } from "@/lib/rbac";
+import { nnakCan, isMemberRole } from "@/lib/rbac";
 import PageHeader from "@/components/common/PageHeader";
+import MemberDashboard from "./MemberDashboard";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid,
@@ -20,6 +21,15 @@ export default function NnakDashboardPage() {
   const { data: user } = useNnakMe();
   const { data: k, isLoading } = useKpis();
   const showFinance = nnakCan.viewExecutiveKpis(user);
+
+  if (isMemberRole(user)) {
+    return (
+      <div className="px-4 py-4 flex flex-col gap-3">
+        <PageHeader title="Member Portal" description="Your membership at a glance" />
+        <MemberDashboard />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">

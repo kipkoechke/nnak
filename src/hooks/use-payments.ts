@@ -4,8 +4,15 @@ import toast from "react-hot-toast";
 import { paymentsService } from "@/services/payments.service";
 import { nqk } from "@/lib/query-keys";
 
-export const usePayments = (p: { page?: number; per_page?: number; purpose?: string; status?: string } = {}) =>
+export const usePayments = (p: { page?: number; per_page?: number; purpose?: string; status?: string; user_id?: string } = {}) =>
   useQuery({ queryKey: nqk.payments.list(p), queryFn: () => paymentsService.list(p), placeholderData: (prev) => prev });
+
+export const useMyPayments = (userId: string | undefined) =>
+  useQuery({
+    queryKey: nqk.payments.list({ user_id: userId ?? "" }),
+    queryFn: () => paymentsService.listMine(userId!),
+    enabled: !!userId,
+  });
 
 export const useStkPush = () => {
   const qc = useQueryClient();

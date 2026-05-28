@@ -22,4 +22,5 @@ export const eventsService = {
     mockStore.registerForEvent(eventId, userId, fee),
   checkIn: async (qrToken: string) => mockStore.checkInRegistration(qrToken),
   issueCertificate: async (regId: string) => mockStore.issueCertificate(regId),
+  myRegistrations: async (userId: string) => mockStore.listMyRegistrations(userId),
 };
