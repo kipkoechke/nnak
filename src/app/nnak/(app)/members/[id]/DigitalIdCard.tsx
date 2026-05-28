@@ -28,6 +28,12 @@ export default function DigitalIdCard({ member, category }: Props) {
     ? new Date(member.profile.subscription_expires_at).toLocaleDateString()
     : "—";
 
+  const BRAND_GREEN = "#80cc28";
+  const BRAND_GREEN_DARK = "#5fa01d";
+  const ACCENT_GOLD = "#d8913f";
+  const TEXT = "#0f172a";
+  const MUTED = "#475569";
+
   return (
     <div className="space-y-2">
       <div
@@ -35,113 +41,145 @@ export default function DigitalIdCard({ member, category }: Props) {
         style={{
           width: 344,
           height: 216,
-          background: "linear-gradient(135deg,#0f3460,#1e6091)",
-          color: "white",
+          background: "#ffffff",
+          color: TEXT,
           borderRadius: 12,
-          padding: 16,
           fontFamily: "sans-serif",
           position: "relative",
+          overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(15,23,42,.06)",
         }}
       >
-        {/* Header: logo on a white plate so the crest + tagline stay legible
-            against the dark gradient + category chip */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div
-            style={{
-              background: "white",
-              borderRadius: 8,
-              padding: "4px 8px",
-              display: "inline-flex",
-              alignItems: "center",
-              boxShadow: "0 1px 2px rgba(0,0,0,.15)",
-            }}
-          >
+        {/* Top brand bar */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 6,
+            background: `linear-gradient(90deg, ${BRAND_GREEN} 0%, ${BRAND_GREEN_DARK} 70%, ${ACCENT_GOLD} 100%)`,
+          }}
+        />
+
+        {/* Decorative corner curve */}
+        <div
+          style={{
+            position: "absolute",
+            right: -40,
+            bottom: -40,
+            width: 160,
+            height: 160,
+            borderRadius: "50%",
+            background: `radial-gradient(circle at 30% 30%, ${BRAND_GREEN}1a, transparent 70%)`,
+          }}
+        />
+
+        {/* Content */}
+        <div style={{ position: "relative", padding: "14px 16px 0 16px", height: "100%" }}>
+          {/* Header row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logoSrc}
               alt="NNAK"
               crossOrigin="anonymous"
-              style={{ height: 32, width: "auto", objectFit: "contain", display: "block" }}
+              style={{ height: 56, width: "auto", objectFit: "contain", display: "block" }}
             />
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              background: "rgba(255,255,255,.18)",
-              padding: "2px 6px",
-              borderRadius: 4,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            {category || "Member"}
-          </div>
-        </div>
-
-        {/* Body: photo + member info */}
-        <div style={{ marginTop: 14, display: "flex", gap: 12, alignItems: "center" }}>
-          <div
-            style={{
-              width: 68,
-              height: 68,
-              borderRadius: 8,
-              background: "rgba(255,255,255,.12)",
-              border: "1.5px solid rgba(255,255,255,.35)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
-          >
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={photo}
-                alt={member.name}
-                crossOrigin="anonymous"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            ) : (
-              <MdPerson style={{ width: 36, height: 36, opacity: 0.7 }} />
-            )}
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
-                fontSize: 16,
+                fontSize: 10,
                 fontWeight: 700,
-                lineHeight: 1.15,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                background: BRAND_GREEN,
+                color: "white",
+                padding: "3px 10px",
+                borderRadius: 999,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
               }}
             >
-              {member.name}
+              {category || "Member"}
             </div>
-            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 4 }}>
-              Member ID: {member.profile.account_number}
+          </div>
+
+          {/* Body: photo + member info */}
+          <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center" }}>
+            <div
+              style={{
+                width: 76,
+                height: 76,
+                borderRadius: 10,
+                background: "#f1f5f9",
+                border: `2px solid ${BRAND_GREEN}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}
+            >
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo}
+                  alt={member.name}
+                  crossOrigin="anonymous"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <MdPerson style={{ width: 44, height: 44, color: "#94a3b8" }} />
+              )}
             </div>
-            <div style={{ fontSize: 11, opacity: 0.9 }}>
-              NCK: {member.profile.nck_number || "—"}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 700,
+                  lineHeight: 1.15,
+                  color: TEXT,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {member.name}
+              </div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 6 }}>
+                Member ID
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, letterSpacing: 0.4 }}>
+                {member.profile.account_number}
+              </div>
+              <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 4 }}>
+                NCK Number
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, letterSpacing: 0.4 }}>
+                {member.profile.nck_number || "—"}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer band */}
         <div
           style={{
             position: "absolute",
-            left: 16,
-            right: 16,
-            bottom: 12,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 26,
+            background: BRAND_GREEN_DARK,
+            color: "white",
+            padding: "0 16px",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "end",
+            alignItems: "center",
+            fontSize: 10,
+            letterSpacing: 0.4,
           }}
         >
-          <div style={{ fontSize: 10, opacity: 0.8 }}>Valid until {validUntil}</div>
-          <div style={{ fontSize: 9, opacity: 0.7 }}>nnak.or.ke</div>
+          <span style={{ fontWeight: 600 }}>Valid until {validUntil}</span>
+          <span style={{ opacity: 0.9 }}>nnak.or.ke</span>
         </div>
       </div>
       <button onClick={downloadPdf} className="w-full bg-primary text-white text-xs px-3 py-1.5 rounded">
