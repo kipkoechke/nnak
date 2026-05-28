@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/provider/Providers";
-import { appName } from "../utils/logo";
+import { appName, orgName } from "../utils/logo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +19,43 @@ export const metadata: Metadata = {
     default: appName,
     template: `%s | ${appName}`,
   },
-  description: "EHL Solicitors admin dashboard",
+  description:
+    `${orgName} Member Portal and Event Management System — self-service ` +
+    "membership, subscription payments, event registration, attendance, " +
+    "and CPD certificates for nurses across Kenya.",
+  applicationName: appName,
+  authors: [{ name: "Data Systems Engineering Ltd" }],
+  keywords: [
+    "NNAK",
+    "National Nurses Association of Kenya",
+    "nursing",
+    "membership portal",
+    "CPD",
+    "M-Pesa",
+    "event management",
+  ],
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/assets/nnak_logo.png", type: "image/png" },
+    ],
+    apple: "/assets/nnak_logo.png",
+  },
+  openGraph: {
+    title: appName,
+    description: `${orgName} — Member Portal & Event Management`,
+    siteName: appName,
+    type: "website",
+    locale: "en_KE",
+    images: [{ url: "/assets/nnak_logo.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: appName,
+    description: `${orgName} — Member Portal & Event Management`,
+    images: ["/assets/nnak_logo.png"],
+  },
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {

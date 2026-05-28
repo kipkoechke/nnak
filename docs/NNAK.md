@@ -1,8 +1,7 @@
 # NNAK Digital Platform — Frontend
 
-Built on top of the existing admin-ehlsolicitors codebase per SRS
-[NNAK-DSE-SRS-001](../Software%20Requirements%20Specification%20v2%20NNAK-DSE-SRS-001.docx).
-Legacy modules are untouched; NNAK lives under `/nnak/*`.
+Implements SRS [NNAK-DSE-SRS-001](../Software%20Requirements%20Specification%20v2%20NNAK-DSE-SRS-001.docx).
+All application routes live under `/nnak/*`.
 
 ## Routes
 
@@ -56,7 +55,7 @@ flows, profile, logout, refresh), users CRUD, user-profiles CRUD, branches.
 
 ## Auth storage
 
-NNAK auth state is kept separate from the legacy `ehl_user` session:
+NNAK auth state is stored client-side as:
 - `localStorage["nnak_user"]` — full user object
 - `localStorage["nnak_token"]` — Sanctum bearer token
 - Cookie `nnak_user` (non-HTTP-only) — middleware-readable mini user

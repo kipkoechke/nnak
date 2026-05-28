@@ -5,7 +5,7 @@ import webpush from "web-push";
 // VAPID keys should be generated once and stored in environment variables
 // Generate with: npx web-push generate-vapid-keys
 webpush.setVapidDetails(
-  "mailto:support@admin-ehlsolicitors.com",
+  "mailto:support@nnak.or.ke",
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!,
 );
