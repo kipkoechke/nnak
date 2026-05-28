@@ -47,7 +47,7 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
     if (!next) return;
     qc.setQueryData(nqk.auth.me, next);
     setIsDemoOpen(false);
-    router.refresh();
+    router.push("/nnak/dashboard");
   };
 
   return (
@@ -64,7 +64,10 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
             <HiBars3 className="w-6 h-6" />
           )}
         </button>
-        <Link href="/nnak/dashboard" className="flex items-center gap-2 min-w-0">
+        <Link
+          href="/nnak/dashboard"
+          className="flex items-center gap-2 min-w-0"
+        >
           <Image
             src={logoSrc}
             alt={appName}
@@ -102,7 +105,9 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
                           type="button"
                           onClick={() => switchDemoRole(u.role)}
                           className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${
-                            active ? "bg-primary/5 text-primary font-semibold" : "text-slate-700"
+                            active
+                              ? "bg-primary/5 text-primary font-semibold"
+                              : "text-slate-700"
                           }`}
                         >
                           <div className="flex items-center justify-between">
