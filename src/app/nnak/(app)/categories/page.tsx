@@ -67,7 +67,7 @@ export default function CategoriesPage() {
               {data.map((c) => (
                 <tr key={c.id}>
                   <td className="px-3 py-2 font-medium">{c.name}</td>
-                  <td className="px-3 py-2">{c.code}</td>
+                  <td className="px-3 py-2 capitalize">{c.code}</td>
                   <td className="px-3 py-2 capitalize">{c.billing_frequency}</td>
                   <td className="px-3 py-2">KES {c.billing_frequency === "monthly" ? c.monthly_fee : c.annual_fee}</td>
                   <td className="px-3 py-2 text-right">

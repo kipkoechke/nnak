@@ -20,7 +20,7 @@ export default function NnakRegisterPage() {
     identification_type: "national_id" as const,
     identification_number: "",
     license_number: "",
-    gender: "other" as "male" | "female" | "other",
+    gender: "female" as "male" | "female",
     member_category_id: "",
     branch_id: "",
   });
@@ -75,9 +75,8 @@ export default function NnakRegisterPage() {
             onChange={(e) => set("gender", e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
-            <option value="male">Male</option>
             <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="male">Male</option>
           </select>
         </div>
         <div>

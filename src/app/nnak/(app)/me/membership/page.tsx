@@ -95,7 +95,7 @@ export default function MyMembershipPage() {
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <Item label="Account number" value={member.profile.account_number} />
-              <Item label="NCK number" value={member.profile.nck_number || "—"} />
+              <Item label="Licence number" value={member.profile.license_number || "—"} />
               <Item label="National ID" value={member.profile.identification_number || "—"} />
               <Item label="Phone" value={member.profile.phone || "—"} />
               <Item label="Category" value={cat?.name || "—"} />

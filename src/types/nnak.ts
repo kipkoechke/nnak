@@ -62,7 +62,7 @@ export interface NnakProfile {
   identification_number: string | null;
   professional_qualification: string | null;
   date_of_birth: string | null;
-  gender: "male" | "female" | "other";
+  gender: "male" | "female";
   employer_type: "employee" | "self_employed" | "unemployed" | null;
   employer_name?: string | null;
   county?: string | null;

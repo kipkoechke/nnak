@@ -12,9 +12,9 @@ export default function NewMemberPage() {
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", nck_number: "",
+    name: "", email: "", phone: "",
     identification_number: "", license_number: "",
-    gender: "other" as "male" | "female" | "other",
+    gender: "female" as "male" | "female",
     member_category_id: "", branch_id: "",
     employer_name: "", county: "",
   });
@@ -27,7 +27,6 @@ export default function NewMemberPage() {
       email: form.email,
       profile: {
         phone: form.phone || null,
-        nck_number: form.nck_number || null,
         identification_number: form.identification_number || null,
         license_number: form.license_number || null,
         gender: form.gender,
@@ -48,9 +47,8 @@ export default function NewMemberPage() {
           ["name","Full Name", true],
           ["email","Email", true],
           ["phone","Phone", false],
-          ["nck_number","NCK Number", false],
           ["identification_number","National ID", false],
-          ["license_number","Licence #", false],
+          ["license_number","Licence Number", false],
           ["employer_name","Employer", false],
           ["county","County", false],
         ] as const).map(([k, l, req]) => (
@@ -67,7 +65,7 @@ export default function NewMemberPage() {
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Gender</label>
           <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+            <option value="female">Female</option><option value="male">Male</option>
           </select>
         </div>
         <div>

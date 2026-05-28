@@ -45,7 +45,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-2 gap-2">
             <Field label="Email" value={member.email} />
             <Field label="Phone" value={member.profile.phone} />
-            <Field label="NCK #" value={member.profile.nck_number} />
+            <Field label="Licence #" value={member.profile.license_number} />
             <Field label="National ID" value={member.profile.identification_number} />
             <Field label="Category" value={category?.name} />
             <Field label="Branch" value={branch?.name} />
