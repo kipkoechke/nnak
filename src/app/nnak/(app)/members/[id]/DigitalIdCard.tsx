@@ -43,15 +43,27 @@ export default function DigitalIdCard({ member, category }: Props) {
           position: "relative",
         }}
       >
-        {/* Header: logo + category chip */}
+        {/* Header: logo on a white plate so the crest + tagline stay legible
+            against the dark gradient + category chip */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logoSrc}
-            alt="NNAK"
-            crossOrigin="anonymous"
-            style={{ height: 36, width: "auto", objectFit: "contain" }}
-          />
+          <div
+            style={{
+              background: "white",
+              borderRadius: 8,
+              padding: "4px 8px",
+              display: "inline-flex",
+              alignItems: "center",
+              boxShadow: "0 1px 2px rgba(0,0,0,.15)",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoSrc}
+              alt="NNAK"
+              crossOrigin="anonymous"
+              style={{ height: 32, width: "auto", objectFit: "contain", display: "block" }}
+            />
+          </div>
           <div
             style={{
               fontSize: 10,
