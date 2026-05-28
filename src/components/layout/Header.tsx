@@ -11,10 +11,14 @@ import {
   MdSettings,
   MdKeyboardArrowDown,
 } from "react-icons/md";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { useOutsideClick } from "@/hooks/useOutsideClick";
 import { logoSrc, appName } from "@/utils/logo";
 import { NNAK_ROLES } from "@/lib/rbac";
+import { DEMO_USERS, signInAsDemoUser } from "@/lib/demo-users";
+import { nqk } from "@/lib/query-keys";
+import type { NnakRole } from "@/types/nnak";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -23,15 +27,27 @@ interface HeaderProps {
 
 const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
   const router = useRouter();
+  const qc = useQueryClient();
   const { data: user } = useMe();
   const logoutMutation = useLogout();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
   const profileRef = useOutsideClick(() => setIsProfileOpen(false));
+  const demoRef = useOutsideClick(() => setIsDemoOpen(false));
+
+  const isDemoSession = user?.id?.startsWith("demo-") ?? false;
 
   const handleLogout = () => logoutMutation.mutate();
   const handleProfileClick = () => {
     setIsProfileOpen(false);
     router.push("/nnak/profile");
+  };
+  const switchDemoRole = (role: NnakRole) => {
+    const next = signInAsDemoUser(role);
+    if (!next) return;
+    qc.setQueryData(nqk.auth.me, next);
+    setIsDemoOpen(false);
+    router.refresh();
   };
 
   return (
@@ -61,6 +77,52 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
       </div>
 
       <div className="flex items-center gap-2">
+        {isDemoSession && (
+          <div className="relative" ref={demoRef}>
+            <button
+              type="button"
+              onClick={() => setIsDemoOpen((v) => !v)}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-amber-400/95 hover:bg-amber-300 text-amber-950 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1"
+              title="Switch demo role"
+            >
+              Demo · {user?.role.replace("_", " ")}
+              <MdKeyboardArrowDown className="w-3.5 h-3.5" />
+            </button>
+            {isDemoOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-xl border border-slate-200 bg-white z-50 overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500 font-semibold">
+                  Switch demo role
+                </div>
+                <ul className="max-h-80 overflow-y-auto">
+                  {DEMO_USERS.map((u) => {
+                    const active = u.role === user?.role;
+                    return (
+                      <li key={u.role}>
+                        <button
+                          type="button"
+                          onClick={() => switchDemoRole(u.role)}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${
+                            active ? "bg-primary/5 text-primary font-semibold" : "text-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>{u.name}</span>
+                            <span className="text-[10px] uppercase text-slate-400 tracking-wide">
+                              {u.role.replace("_", " ")}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            {u.description}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
         {user && (
           <div className="relative" ref={profileRef}>
             <button
