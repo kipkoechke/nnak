@@ -83,102 +83,151 @@ export default function DigitalIdCard({ member, category }: Props) {
           }}
         />
 
-        {/* Content */}
-        <div style={{ position: "relative", padding: "14px 16px 0 16px", height: "100%" }}>
-          {/* Header row — logo bounded inside a fixed box so a wide/tall
-              source PNG can't overflow into the body row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 52 }}>
-            <div
-              style={{
-                width: 170,
-                height: 48,
-                display: "flex",
-                alignItems: "center",
-                overflow: "hidden",
-                flexShrink: 0,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoSrc}
-                alt="NNAK"
-                crossOrigin="anonymous"
-                style={{ maxHeight: 48, maxWidth: 170, height: "auto", width: "auto", objectFit: "contain", display: "block" }}
-              />
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                background: BRAND_GREEN,
-                color: "white",
-                padding: "3px 10px",
-                borderRadius: 999,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                flexShrink: 0,
-              }}
-            >
-              {category || "Member"}
-            </div>
-          </div>
+        {/* Logo (absolutely positioned so it can never push other sections) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            width: 170,
+            height: 56,
+            overflow: "hidden",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            alt="NNAK"
+            crossOrigin="anonymous"
+            style={{
+              maxHeight: 56,
+              maxWidth: 170,
+              height: "auto",
+              width: "auto",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
+        </div>
 
-          {/* Body: photo + member info — extra top padding ensures the
-              name's ascenders aren't clipped by the header band */}
-          <div style={{ marginTop: 14, display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 10,
-                background: "#f1f5f9",
-                border: `2px solid ${BRAND_GREEN}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-                flexShrink: 0,
-              }}
-            >
-              {photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photo}
-                  alt={member.name}
-                  crossOrigin="anonymous"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              ) : (
-                <MdPerson style={{ width: 40, height: 40, color: "#94a3b8" }} />
-              )}
-            </div>
-            <div style={{ minWidth: 0, flex: 1, paddingTop: 2 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  lineHeight: 1.2,
-                  color: TEXT,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {member.name}
-              </div>
-              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 5 }}>
-                Member ID
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: TEXT, letterSpacing: 0.3 }}>
-                {member.profile.account_number}
-              </div>
-              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 3 }}>
-                NCK Number
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: TEXT, letterSpacing: 0.3 }}>
-                {member.profile.nck_number || "—"}
-              </div>
-            </div>
+        {/* Category chip */}
+        <div
+          style={{
+            position: "absolute",
+            top: 24,
+            right: 16,
+            fontSize: 10,
+            fontWeight: 700,
+            background: BRAND_GREEN,
+            color: "white",
+            padding: "4px 12px",
+            borderRadius: 999,
+            textTransform: "uppercase",
+            letterSpacing: 0.8,
+            lineHeight: 1,
+          }}
+        >
+          {category || "Member"}
+        </div>
+
+        {/* Photo (fixed position so name area is guaranteed to be free) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 92,
+            left: 16,
+            width: 72,
+            height: 72,
+            borderRadius: 10,
+            background: "#f1f5f9",
+            border: `2px solid ${BRAND_GREEN}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+          }}
+        >
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photo}
+              alt={member.name}
+              crossOrigin="anonymous"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <MdPerson style={{ width: 40, height: 40, color: "#94a3b8" }} />
+          )}
+        </div>
+
+        {/* Member info column (fixed Y so the name renders well below logo) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 92,
+            left: 100,
+            right: 16,
+            lineHeight: 1,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              lineHeight: 1.25,
+              color: TEXT,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              marginBottom: 6,
+            }}
+          >
+            {member.name}
+          </div>
+          <div
+            style={{
+              fontSize: 9,
+              color: MUTED,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              lineHeight: 1.4,
+            }}
+          >
+            Member ID
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: TEXT,
+              letterSpacing: 0.4,
+              lineHeight: 1.2,
+            }}
+          >
+            {member.profile.account_number}
+          </div>
+          <div
+            style={{
+              fontSize: 9,
+              color: MUTED,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              lineHeight: 1.4,
+              marginTop: 4,
+            }}
+          >
+            NCK Number
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: TEXT,
+              letterSpacing: 0.4,
+              lineHeight: 1.2,
+            }}
+          >
+            {member.profile.nck_number || "—"}
           </div>
         </div>
 
