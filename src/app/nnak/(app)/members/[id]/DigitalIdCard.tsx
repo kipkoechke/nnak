@@ -2,6 +2,8 @@
 import { useRef } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { MdPerson } from "react-icons/md";
+import { logoSrc } from "@/utils/logo";
 import type { NnakProfile, NnakUser } from "@/types/nnak";
 
 interface Props {
@@ -11,6 +13,7 @@ interface Props {
 
 export default function DigitalIdCard({ member, category }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const photo = member.profile.photo_url;
 
   const downloadPdf = async () => {
     if (!ref.current) return;
@@ -37,27 +40,94 @@ export default function DigitalIdCard({ member, category }: Props) {
           borderRadius: 12,
           padding: 16,
           fontFamily: "sans-serif",
+          position: "relative",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-          <div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>NATIONAL NURSES</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>ASSOCIATION OF KENYA</div>
-          </div>
-          <div style={{ fontSize: 10, background: "rgba(255,255,255,.18)", padding: "2px 6px", borderRadius: 4 }}>
+        {/* Header: logo + category chip */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoSrc}
+            alt="NNAK"
+            crossOrigin="anonymous"
+            style={{ height: 36, width: "auto", objectFit: "contain" }}
+          />
+          <div
+            style={{
+              fontSize: 10,
+              background: "rgba(255,255,255,.18)",
+              padding: "2px 6px",
+              borderRadius: 4,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
             {category || "Member"}
           </div>
         </div>
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{member.name}</div>
-          <div style={{ fontSize: 11, opacity: 0.9 }}>
-            ID: {member.profile.account_number}
+
+        {/* Body: photo + member info */}
+        <div style={{ marginTop: 14, display: "flex", gap: 12, alignItems: "center" }}>
+          <div
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: 8,
+              background: "rgba(255,255,255,.12)",
+              border: "1.5px solid rgba(255,255,255,.35)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo}
+                alt={member.name}
+                crossOrigin="anonymous"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <MdPerson style={{ width: 36, height: 36, opacity: 0.7 }} />
+            )}
           </div>
-          <div style={{ fontSize: 11, opacity: 0.9 }}>
-            NCK: {member.profile.nck_number || "—"}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                lineHeight: 1.15,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {member.name}
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 4 }}>
+              Member ID: {member.profile.account_number}
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9 }}>
+              NCK: {member.profile.nck_number || "—"}
+            </div>
           </div>
         </div>
-        <div style={{ position: "relative", marginTop: 22, display: "flex", justifyContent: "space-between", alignItems: "end" }}>
+
+        {/* Footer */}
+        <div
+          style={{
+            position: "absolute",
+            left: 16,
+            right: 16,
+            bottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "end",
+          }}
+        >
           <div style={{ fontSize: 10, opacity: 0.8 }}>Valid until {validUntil}</div>
           <div style={{ fontSize: 9, opacity: 0.7 }}>nnak.or.ke</div>
         </div>
