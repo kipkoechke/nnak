@@ -21,7 +21,9 @@ import type {
   Payment,
 } from "@/types/nnak";
 
-const STORE_KEY = "nnak_mock_store_v1";
+// Bump the suffix any time the seed shape changes so existing browsers
+// drop their stale cached store and re-seed from the new defaults.
+const STORE_KEY = "nnak_mock_store_v2";
 
 interface Store {
   categories: MemberCategory[];
@@ -41,19 +43,156 @@ const now = () => new Date().toISOString();
 const uid = () => crypto.randomUUID();
 
 const seed = (): Store => {
+  // Categories per the official "NNAK Branch List & Categories" handout.
   const categories: MemberCategory[] = [
-    { id: uid(), name: "Individual", code: "individual", billing_frequency: "annual", annual_fee: 3000, monthly_fee: null, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Student Nurse", code: "student", billing_frequency: "annual", annual_fee: 500, monthly_fee: null, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Ministry of Health", code: "moh", billing_frequency: "monthly", annual_fee: 6000, monthly_fee: 500, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Counties", code: "county", billing_frequency: "monthly", annual_fee: 6000, monthly_fee: 500, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Parastatal", code: "parastatal", billing_frequency: "annual", annual_fee: 5000, monthly_fee: null, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Private Institutions", code: "private", billing_frequency: "annual", annual_fee: 5000, monthly_fee: null, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Faith-Based Hospital", code: "fbo", billing_frequency: "annual", annual_fee: 4000, monthly_fee: null, created_at: now(), updated_at: now() },
+    {
+      id: uid(),
+      name: "Individuals",
+      code: "individual",
+      billing_frequency: "annual",
+      annual_fee: 3000,
+      monthly_fee: null,
+      description: "All members paying via M-Pesa.",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Student Nurse",
+      code: "student",
+      billing_frequency: "annual",
+      annual_fee: 500,
+      monthly_fee: null,
+      description: "Student nurses, registered by the HQ secretariat.",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Counties Remittance",
+      code: "county",
+      billing_frequency: "monthly",
+      annual_fee: 6000,
+      monthly_fee: 500,
+      description: "47 Counties NNAK branches paying via monthly check-off.",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Parastatals Institutions",
+      code: "parastatal",
+      billing_frequency: "monthly",
+      annual_fee: 6000,
+      monthly_fee: 500,
+      description: "KNH, KMTC, KEMRI, KEMSA, MTRH, KU and UON Clinic.",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Private Institutions",
+      code: "private",
+      billing_frequency: "monthly",
+      annual_fee: 6000,
+      monthly_fee: 500,
+      description:
+        "Nairobi Hospital, Aga Khan Nairobi & Kisumu, Gertrude's Children's, PNP, Mombasa Private Institutions Branch (MPIB), Avenue Group of Hospitals.",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Ministry of Health",
+      code: "moh",
+      billing_frequency: "monthly",
+      annual_fee: 6000,
+      monthly_fee: 500,
+      description:
+        "MOH — State Department for Medical Services and Public Health (national facilities, Afya House Blood Bank, Spinal Injury, Mathare Hospital).",
+      created_at: now(),
+      updated_at: now(),
+    },
+    {
+      id: uid(),
+      name: "Faith Based Hospitals",
+      code: "fbo",
+      billing_frequency: "monthly",
+      annual_fee: 6000,
+      monthly_fee: 500,
+      description: "Mater, AIC Kijabe, PCEA Kikuyu and PCEA TumuTumu.",
+      created_at: now(),
+      updated_at: now(),
+    },
   ];
+
+  // Full branch list per the official handout: 47 counties + 7 private
+  // hospital branches + 7 parastatal branches + 4 faith-based + 2 MOH.
+  const mkCounty = (name: string): Branch => ({
+    id: uid(),
+    name: `${name} Branch`,
+    county: name,
+    member_count: 0,
+    created_at: now(),
+    updated_at: now(),
+  });
+  const mkBranch = (name: string): Branch => ({
+    id: uid(),
+    name,
+    member_count: 0,
+    created_at: now(),
+    updated_at: now(),
+  });
+
+  const counties = [
+    "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
+    "Garissa", "Homabay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
+    "Kiambu", "Kilifi", "Mombasa", "Kirinyaga", "Kisii", "Kisumu",
+    "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni",
+    "Mandera", "Marsabit", "Meru", "Migori", "Muranga", "Nairobi County",
+    "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri",
+    "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi",
+    "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+  ];
+
+  const privateHospitals = [
+    "Aga Khan Kisumu Branch",
+    "Aga Khan Nairobi Branch",
+    "Avenue Group of Hospitals Branch",
+    "Gertrude's Children's Hospital Branch",
+    "Mombasa Private Branch",
+    "Nairobi Hospital Branch",
+    "Nairobi Women Branch",
+  ];
+
+  const parastatals = [
+    "KEMRI Branch",
+    "KEMSA Branch",
+    "KMTC Branch",
+    "KNH Branch",
+    "KU Branch",
+    "UON Clinic Branch",
+    "MTRH Branch",
+  ];
+
+  const faithBased = [
+    "Mater Misericordiae Hospital Branch",
+    "AIC Kijabe Branch",
+    "PCEA Kikuyu Branch",
+    "PCEA Tumutumu Branch",
+  ];
+
+  const government = [
+    "MOH - Medical Services Branch",
+    "MOH - Public Health Branch",
+  ];
+
   const branches: Branch[] = [
-    { id: uid(), name: "Nairobi Branch", county: "Nairobi", member_count: 0, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Mombasa Branch", county: "Mombasa", member_count: 0, created_at: now(), updated_at: now() },
-    { id: uid(), name: "Kisumu Branch", county: "Kisumu", member_count: 0, created_at: now(), updated_at: now() },
+    ...counties.map(mkCounty),
+    ...privateHospitals.map(mkBranch),
+    ...parastatals.map(mkBranch),
+    ...faithBased.map(mkBranch),
+    ...government.map(mkBranch),
   ];
   return {
     categories,
