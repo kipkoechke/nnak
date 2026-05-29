@@ -486,18 +486,34 @@ export const mockStore = {
     email: string;
     role: "member" | "student";
     categoryCode?: "individual" | "student" | "county";
+    /** Drives seeded subscription status / expiry. */
+    state?: "active" | "overdue";
   }) => {
     const s = read();
+    const state = input.state ?? "active";
+
+    // Subscription expiry derived from state — active = +1 year,
+    // overdue = -45 days (past the 30-day FR-MP-017 restriction line).
+    const expDate = new Date();
+    if (state === "overdue") {
+      expDate.setDate(expDate.getDate() - 45);
+    } else {
+      expDate.setFullYear(expDate.getFullYear() + 1);
+    }
+    const status: NnakProfile["status"] = state === "overdue" ? "inactive" : "active";
+
     const existing = s.members.find((m) => m.id === input.id);
     if (existing) {
-      // Backfill license_number on a stale cached record so the digital
-      // ID and membership page don't render an empty value.
+      // Backfill license + sync status/expiry with the requested persona
+      // state so switching between personas always reflects the demo.
       if (existing.role !== "student" && !existing.profile.license_number) {
         existing.profile.license_number =
           "LIC" + Math.floor(10000 + Math.random() * 89999);
-        existing.profile.updated_at = now();
-        write(s);
       }
+      existing.profile.status = status;
+      existing.profile.subscription_expires_at = expDate.toISOString();
+      existing.profile.updated_at = now();
+      write(s);
       return existing;
     }
 
@@ -509,8 +525,7 @@ export const mockStore = {
       wantedCode === "county"
         ? s.branches.find((b) => b.county && b.county.length > 0) ?? s.branches[0]
         : null;
-    const exp = new Date();
-    exp.setFullYear(exp.getFullYear() + 1);
+    const exp = expDate;
 
     const profile: NnakProfile = {
       id: uid(),
@@ -533,7 +548,7 @@ export const mockStore = {
       // override county for branch members so the dashboard says Nakuru etc.
       // (county field above is "Nairobi" by default but the branch wins).
       ...(branch?.county ? { county: branch.county } : {}),
-      status: "active",
+      status,
       joined_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
       subscription_expires_at: exp.toISOString(),
       created_at: now(),

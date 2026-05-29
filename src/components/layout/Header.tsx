@@ -18,7 +18,6 @@ import { logoSrc, appName } from "@/utils/logo";
 import { NNAK_ROLES } from "@/lib/rbac";
 import { DEMO_USERS, signInAsDemoUser } from "@/lib/demo-users";
 import { nqk } from "@/lib/query-keys";
-import type { NnakRole } from "@/types/nnak";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -42,8 +41,10 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
     setIsProfileOpen(false);
     router.push("/nnak/profile");
   };
-  const switchDemoRole = (role: NnakRole) => {
-    const next = signInAsDemoUser(role);
+  // Accepts a persona id so personas that share a role (e.g. John Otieno
+  // and Mary Wanjiku are both `member`) can be selected distinctly.
+  const switchDemoPersona = (personaId: string) => {
+    const next = signInAsDemoUser(personaId);
     if (!next) return;
     qc.setQueryData(nqk.auth.me, next);
     setIsDemoOpen(false);
@@ -98,12 +99,12 @@ const Header = ({ onMenuToggle, isMobileMenuOpen }: HeaderProps) => {
                 </div>
                 <ul className="max-h-80 overflow-y-auto">
                   {DEMO_USERS.map((u) => {
-                    const active = u.role === user?.role;
+                    const active = u.id === user?.id;
                     return (
-                      <li key={u.role}>
+                      <li key={u.id}>
                         <button
                           type="button"
-                          onClick={() => switchDemoRole(u.role)}
+                          onClick={() => switchDemoPersona(u.id)}
                           className={`w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${
                             active
                               ? "bg-primary/5 text-primary font-semibold"

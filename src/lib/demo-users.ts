@@ -18,6 +18,8 @@ export const DEMO_TOKEN = "demo-token";
 
 type DemoSeed = Pick<NnakUser, "id" | "name" | "email" | "role"> & {
   description: string;
+  /** For member/student personas: drives the seeded subscription state. */
+  state?: "active" | "overdue";
 };
 
 export const DEMO_USERS: readonly DemoSeed[] = [
@@ -75,13 +77,15 @@ export const DEMO_USERS: readonly DemoSeed[] = [
     name: "John Otieno",
     email: "member@nnak.demo",
     role: "member",
-    description: "Registered Nurse · Individual (M-Pesa) — active",
+    state: "overdue",
+    description: "Registered Nurse · Individual (M-Pesa) — OVERDUE (renewal demo)",
   },
   {
     id: "demo-member-branch",
     name: "Mary Wanjiku",
     email: "mary.wanjiku@nnak.demo",
     role: "member",
+    state: "active",
     description: "Registered Nurse · Counties branch (check-off) — active",
   },
   {
@@ -100,17 +104,18 @@ export const demoUserLabel = (role: NnakRole): string =>
  * Sign in as a demo user. Mirrors the side effects of a real
  * `useNnakLogin().mutateAsync()` success: persists user + token to
  * localStorage and sets the nnak_user cookie the middleware reads.
+ *
+ * Accepts either a persona id (preferred — disambiguates personas that
+ * share a role) or, for back-compat, a role.
  */
-export const signInAsDemoUser = (role: NnakRole): NnakUser | null => {
-  const seed = DEMO_USERS.find((u) => u.role === role);
+export const signInAsDemoUser = (key: NnakRole | string): NnakUser | null => {
+  // Try id first, then role, so the dropdown can pass either.
+  const seed =
+    DEMO_USERS.find((u) => u.id === key) ||
+    DEMO_USERS.find((u) => u.role === (key as NnakRole));
   if (!seed) return null;
 
-  // For member / student personas, materialise a real member record in the
-  // mock store so the portal pages (membership, events, payments) have
-  // data to render. Seeded user object includes the profile.
   if (seed.role === "member" || seed.role === "student") {
-    // Pick the category that best suits the persona so demos cover both
-    // the individual (M-Pesa) and branch (check-off) flows.
     const categoryCode: "individual" | "student" | "county" =
       seed.role === "student"
         ? "student"
@@ -123,6 +128,7 @@ export const signInAsDemoUser = (role: NnakRole): NnakUser | null => {
       email: seed.email,
       role: seed.role,
       categoryCode,
+      state: seed.state ?? "active",
     });
     setNnakSession(seeded, DEMO_TOKEN);
     return seeded;
