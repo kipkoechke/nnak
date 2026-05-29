@@ -16,7 +16,14 @@ import type { NnakProfile, NnakUser } from "@/types/nnak";
 interface Props {
   member: NnakUser & { profile: NnakProfile };
   category?: string;
+  /** Hide the download button when the host page renders its own CTA. */
+  showDownload?: boolean;
 }
+
+const initialsOf = (name: string): string => {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "M";
+};
 
 const BRAND_GREEN = "#80cc28";
 const BRAND_GREEN_DARK = "#5fa01d";
@@ -79,22 +86,6 @@ const pdfStyles = StyleSheet.create({
     height: 56,
     objectFit: "contain",
   },
-  categoryChip: {
-    position: "absolute",
-    top: 26,
-    right: 18,
-    backgroundColor: BRAND_GREEN,
-    color: "white",
-    fontSize: 9,
-    fontWeight: 700,
-    paddingTop: 4,
-    paddingBottom: 4,
-    paddingLeft: 12,
-    paddingRight: 12,
-    borderRadius: 999,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
   photo: {
     position: "absolute",
     top: 94,
@@ -118,7 +109,9 @@ const pdfStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  photoFallbackGlyph: { fontSize: 38, color: "#94a3b8" },
+  // Initials avoid the missing-glyph "=d" problem react-pdf's default
+  // font has with emoji codepoints.
+  photoFallbackGlyph: { fontSize: 30, fontWeight: 700, color: BRAND_GREEN_DARK, letterSpacing: 1 },
   info: {
     position: "absolute",
     top: 94,
@@ -165,7 +158,7 @@ const pdfStyles = StyleSheet.create({
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-function DigitalIdPdf({ member, category }: Props) {
+function DigitalIdPdf({ member }: Props) {
   const valid = fmtDate(member.profile.subscription_expires_at);
   // react-pdf renders relative URLs against the runtime origin — convert
   // logoSrc (e.g. "/assets/nnak_logo.png") into an absolute URL.
@@ -186,14 +179,12 @@ function DigitalIdPdf({ member, category }: Props) {
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={logoUrl} style={pdfStyles.logo} />
 
-          <Text style={pdfStyles.categoryChip}>{category || "Member"}</Text>
-
           {photoUrl ? (
             // eslint-disable-next-line jsx-a11y/alt-text
             <Image src={photoUrl} style={pdfStyles.photo} />
           ) : (
             <View style={pdfStyles.photoFallback}>
-              <Text style={pdfStyles.photoFallbackGlyph}>👤</Text>
+              <Text style={pdfStyles.photoFallbackGlyph}>{initialsOf(member.name)}</Text>
             </View>
           )}
 
@@ -215,7 +206,7 @@ function DigitalIdPdf({ member, category }: Props) {
   );
 }
 
-export default function DigitalIdCard({ member, category }: Props) {
+export default function DigitalIdCard({ member, showDownload = true }: Props) {
   const [downloading, setDownloading] = useState(false);
   const photo = member.profile.photo_url;
   const validUntil = fmtDate(member.profile.subscription_expires_at);
@@ -223,7 +214,7 @@ export default function DigitalIdCard({ member, category }: Props) {
   const downloadPdf = async () => {
     try {
       setDownloading(true);
-      const blob = await pdf(<DigitalIdPdf member={member} category={category} />).toBlob();
+      const blob = await pdf(<DigitalIdPdf member={member} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -258,13 +249,9 @@ export default function DigitalIdCard({ member, category }: Props) {
         <div style={{ position: "absolute", right: -40, bottom: -40, width: 160, height: 160, borderRadius: "50%",
           background: `radial-gradient(circle at 30% 30%, ${BRAND_GREEN}1a, transparent 70%)` }} />
 
-        <div style={{ position: "absolute", top: 16, left: 16, width: 170, height: 56, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 16, left: 16, right: 16, height: 56, overflow: "hidden", display: "flex", alignItems: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoSrc} alt="NNAK" style={{ maxHeight: 56, maxWidth: 170, height: "auto", width: "auto", objectFit: "contain", display: "block" }} />
-        </div>
-
-        <div style={{ position: "absolute", top: 24, right: 16, fontSize: 10, fontWeight: 700, background: BRAND_GREEN, color: "white", padding: "4px 12px", borderRadius: 999, textTransform: "uppercase", letterSpacing: 0.8, lineHeight: 1 }}>
-          {category || "Member"}
+          <img src={logoSrc} alt="NNAK" style={{ maxHeight: 56, maxWidth: "100%", height: "auto", width: "auto", objectFit: "contain", display: "block" }} />
         </div>
 
         <div style={{ position: "absolute", top: 92, left: 16, width: 72, height: 72, borderRadius: 10, background: SURFACE, border: `2px solid ${BRAND_GREEN}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -272,7 +259,9 @@ export default function DigitalIdCard({ member, category }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photo} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            <MdPerson style={{ width: 40, height: 40, color: "#94a3b8" }} />
+            <span style={{ fontSize: 24, fontWeight: 700, color: BRAND_GREEN_DARK, letterSpacing: 1 }}>
+              {initialsOf(member.name)}
+            </span>
           )}
         </div>
 
@@ -291,13 +280,31 @@ export default function DigitalIdCard({ member, category }: Props) {
           <span style={{ opacity: 0.9 }}>nnak.or.ke</span>
         </div>
       </div>
-      <button
-        onClick={downloadPdf}
-        disabled={downloading}
-        className="w-full bg-primary text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
-      >
-        {downloading ? "Preparing…" : "Download Digital ID (PDF)"}
-      </button>
+      {showDownload && (
+        <button
+          onClick={downloadPdf}
+          disabled={downloading}
+          className="w-full bg-primary text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
+        >
+          {downloading ? "Preparing…" : "Download Digital ID (PDF)"}
+        </button>
+      )}
     </div>
   );
+}
+
+/** Expose the download trigger so host pages (e.g. /me/membership) can
+ *  render their own button. */
+export async function downloadDigitalIdPdf(
+  member: NnakUser & { profile: NnakProfile },
+) {
+  const blob = await pdf(<DigitalIdPdf member={member} />).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `NNAK-${member.profile.account_number}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

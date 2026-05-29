@@ -49,9 +49,19 @@ export default function MemberDashboard() {
             Member #{member.profile.account_number} · {cat?.name || "—"}
           </div>
         </div>
-        <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}>
-          {status}
-        </span>
+        <div className="flex flex-col items-start sm:items-end gap-2">
+          <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}>
+            {status}
+          </span>
+          {(status !== "active" || (expiresIn !== null && expiresIn < 30)) && (
+            <Link
+              href="/nnak/me/membership"
+              className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
+            >
+              Renew My Membership <MdArrowForward className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

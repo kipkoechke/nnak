@@ -23,7 +23,7 @@ import type {
 
 // Bump the suffix any time the seed shape changes so existing browsers
 // drop their stale cached store and re-seed from the new defaults.
-const STORE_KEY = "nnak_mock_store_v2";
+const STORE_KEY = "nnak_mock_store_v3";
 
 interface Store {
   categories: MemberCategory[];
@@ -477,20 +477,38 @@ export const mockStore = {
   },
 
   // Ensure a demo user exists as a real member record so the portal has
-  // data to show. Idempotent — safe to call on every sign-in.
+  // data to show. Idempotent — safe to call on every sign-in. Will also
+  // backfill license_number on a pre-existing record if it was created
+  // before that field was seeded for member personas.
   ensureDemoMember: (input: {
     id: string;
     name: string;
     email: string;
     role: "member" | "student";
+    categoryCode?: "individual" | "student" | "county";
   }) => {
     const s = read();
-    if (s.members.some((m) => m.id === input.id)) return s.members.find((m) => m.id === input.id)!;
+    const existing = s.members.find((m) => m.id === input.id);
+    if (existing) {
+      // Backfill license_number on a stale cached record so the digital
+      // ID and membership page don't render an empty value.
+      if (existing.role !== "student" && !existing.profile.license_number) {
+        existing.profile.license_number =
+          "LIC" + Math.floor(10000 + Math.random() * 89999);
+        existing.profile.updated_at = now();
+        write(s);
+      }
+      return existing;
+    }
 
-    const cat =
-      s.categories.find((c) => c.code === (input.role === "student" ? "student" : "individual")) ||
-      s.categories[0];
-    const branch = s.branches[0];
+    const wantedCode = input.categoryCode || (input.role === "student" ? "student" : "individual");
+    const cat = s.categories.find((c) => c.code === wantedCode) || s.categories[0];
+    // Branch-based members get the first Counties branch for realism;
+    // M-Pesa individuals don't need a branch.
+    const branch =
+      wantedCode === "county"
+        ? s.branches.find((b) => b.county && b.county.length > 0) ?? s.branches[0]
+        : null;
     const exp = new Date();
     exp.setFullYear(exp.getFullYear() + 1);
 
@@ -512,6 +530,9 @@ export const mockStore = {
       photo_url: null,
       member_category_id: cat?.id ?? null,
       branch_id: branch?.id ?? null,
+      // override county for branch members so the dashboard says Nakuru etc.
+      // (county field above is "Nairobi" by default but the branch wins).
+      ...(branch?.county ? { county: branch.county } : {}),
       status: "active",
       joined_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 200).toISOString(),
       subscription_expires_at: exp.toISOString(),

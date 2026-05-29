@@ -6,7 +6,8 @@ import { useMember } from "@/hooks/use-members";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
 import { useStkPush } from "@/hooks/use-payments";
-import DigitalIdCard from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
+import DigitalIdCard, { downloadDigitalIdPdf } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
+import { MdDownload } from "react-icons/md";
 import type { MemberStatus } from "@/types/nnak";
 
 const STATUS_TONE: Record<MemberStatus, string> = {
@@ -75,7 +76,36 @@ export default function MyMembershipPage() {
               </div>
             </div>
           ) : (
-            <DigitalIdCard member={member} category={cat?.name} />
+            <DigitalIdCard member={member} category={cat?.name} showDownload={false} />
+          )}
+
+          {!restricted && !isStudent && (
+            <div className="space-y-2 w-[344px]">
+              <button
+                onClick={pay}
+                disabled={!phone || !fee || stk.isPending}
+                className="w-full bg-primary text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+              >
+                {stk.isPending ? "Sending STK…" : "Renew Membership"}
+              </button>
+              <button
+                onClick={() => downloadDigitalIdPdf(member)}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-primary"
+              >
+                <MdDownload className="w-3.5 h-3.5" />
+                Download digital ID (PDF)
+              </button>
+            </div>
+          )}
+          {restricted && (
+            <button
+              onClick={() => downloadDigitalIdPdf(member)}
+              className="w-[344px] inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-500 hover:text-primary opacity-60 cursor-not-allowed"
+              disabled
+              title="Renew to restore your digital ID"
+            >
+              Digital ID download restricted
+            </button>
           )}
         </div>
 

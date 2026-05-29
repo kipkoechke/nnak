@@ -75,7 +75,14 @@ export const DEMO_USERS: readonly DemoSeed[] = [
     name: "John Otieno",
     email: "member@nnak.demo",
     role: "member",
-    description: "Registered Nurse — self-service portal",
+    description: "Registered Nurse · Individual (M-Pesa) — active",
+  },
+  {
+    id: "demo-member-branch",
+    name: "Mary Wanjiku",
+    email: "mary.wanjiku@nnak.demo",
+    role: "member",
+    description: "Registered Nurse · Counties branch (check-off) — active",
   },
   {
     id: "demo-student",
@@ -102,11 +109,20 @@ export const signInAsDemoUser = (role: NnakRole): NnakUser | null => {
   // mock store so the portal pages (membership, events, payments) have
   // data to render. Seeded user object includes the profile.
   if (seed.role === "member" || seed.role === "student") {
+    // Pick the category that best suits the persona so demos cover both
+    // the individual (M-Pesa) and branch (check-off) flows.
+    const categoryCode: "individual" | "student" | "county" =
+      seed.role === "student"
+        ? "student"
+        : seed.id === "demo-member-branch"
+          ? "county"
+          : "individual";
     const seeded = mockStore.ensureDemoMember({
       id: seed.id,
       name: seed.name,
       email: seed.email,
       role: seed.role,
+      categoryCode,
     });
     setNnakSession(seeded, DEMO_TOKEN);
     return seeded;
