@@ -13,8 +13,9 @@ import type { NnakUser, NnakRole } from "@/types/nnak";
 import { NNAK_ROLES } from "@/lib/rbac";
 import { setNnakSession } from "@/lib/auth";
 import { mockStore } from "@/lib/mock-store";
+import { DEMO_TOKEN } from "@/lib/demo-token";
 
-export const DEMO_TOKEN = "demo-token";
+export { DEMO_TOKEN };
 
 type DemoSeed = Pick<NnakUser, "id" | "name" | "email" | "role"> & {
   description: string;

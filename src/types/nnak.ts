@@ -90,9 +90,15 @@ export interface MemberCategory {
   updated_at: string;
 }
 
+/** From GET /api/v1/employer-types. */
+export type EmployerType = "MOH" | "Parastatal" | "Private" | "FBO" | "Other";
+
 export interface Branch {
   id: string;
   name: string;
+  /** Matches the /api/v1/branches response. */
+  employer_type?: EmployerType | string;
+  /** Legacy / mock-only field, retained for backward-compat. */
   county?: string;
   chair_user_id?: string | null;
   secretariat_user_id?: string | null;

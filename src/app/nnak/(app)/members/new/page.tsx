@@ -5,12 +5,14 @@ import PageHeader from "@/components/common/PageHeader";
 import { useCreateMember } from "@/hooks/use-members";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
+import { useGenders } from "@/hooks/use-enums";
 
 export default function NewMemberPage() {
   const router = useRouter();
   const create = useCreateMember();
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
+  const { data: genders = ["male", "female"] } = useGenders();
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
     identification_number: "", license_number: "",
@@ -65,7 +67,9 @@ export default function NewMemberPage() {
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Gender</label>
           <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="female">Female</option><option value="male">Male</option>
+            {genders.map((g) => (
+              <option key={g} value={g} className="capitalize">{g.charAt(0).toUpperCase() + g.slice(1)}</option>
+            ))}
           </select>
         </div>
         <div>

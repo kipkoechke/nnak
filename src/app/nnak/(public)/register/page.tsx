@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useNnakRegister } from "@/hooks/use-auth";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
+import { useGenders } from "@/hooks/use-enums";
 
 export default function NnakRegisterPage() {
   const router = useRouter();
   const reg = useNnakRegister();
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
+  const { data: genders = ["male", "female"] } = useGenders();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -75,8 +77,11 @@ export default function NnakRegisterPage() {
             onChange={(e) => set("gender", e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
-            <option value="female">Female</option>
-            <option value="male">Male</option>
+            {genders.map((g) => (
+              <option key={g} value={g}>
+                {g.charAt(0).toUpperCase() + g.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
         <div>

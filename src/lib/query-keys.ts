@@ -1,5 +1,9 @@
 export const nqk = {
   auth: { me: ["nnak", "auth", "me"] as const },
+  enums: {
+    genders: ["nnak", "enums", "genders"] as const,
+    employerTypes: ["nnak", "enums", "employer-types"] as const,
+  },
   categories: {
     all: ["nnak", "categories"] as const,
     list: () => ["nnak", "categories", "list"] as const,

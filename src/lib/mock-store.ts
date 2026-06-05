@@ -23,7 +23,7 @@ import type {
 
 // Bump the suffix any time the seed shape changes so existing browsers
 // drop their stale cached store and re-seed from the new defaults.
-const STORE_KEY = "nnak_mock_store_v3";
+const STORE_KEY = "nnak_mock_store_v4";
 
 interface Store {
   categories: MemberCategory[];
@@ -128,17 +128,21 @@ const seed = (): Store => {
 
   // Full branch list per the official handout: 47 counties + 7 private
   // hospital branches + 7 parastatal branches + 4 faith-based + 2 MOH.
+  // employer_type values match GET /api/v1/employer-types:
+  // ["MOH", "Parastatal", "Private", "FBO", "Other"]
   const mkCounty = (name: string): Branch => ({
     id: uid(),
     name: `${name} Branch`,
     county: name,
+    employer_type: "Other",
     member_count: 0,
     created_at: now(),
     updated_at: now(),
   });
-  const mkBranch = (name: string): Branch => ({
+  const mkBranch = (name: string, employer_type: Branch["employer_type"]): Branch => ({
     id: uid(),
     name,
+    employer_type,
     member_count: 0,
     created_at: now(),
     updated_at: now(),
@@ -189,10 +193,10 @@ const seed = (): Store => {
 
   const branches: Branch[] = [
     ...counties.map(mkCounty),
-    ...privateHospitals.map(mkBranch),
-    ...parastatals.map(mkBranch),
-    ...faithBased.map(mkBranch),
-    ...government.map(mkBranch),
+    ...privateHospitals.map((n) => mkBranch(n, "Private")),
+    ...parastatals.map((n) => mkBranch(n, "Parastatal")),
+    ...faithBased.map((n) => mkBranch(n, "FBO")),
+    ...government.map((n) => mkBranch(n, "MOH")),
   ];
   return {
     categories,

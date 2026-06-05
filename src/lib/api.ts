@@ -6,7 +6,7 @@ import axios, { AxiosError } from "axios";
 
 const baseURL =
   process.env.NEXT_PUBLIC_NNAK_API_URL ||
-  "http://localhost:8000/api/v1";
+  "https://api.nnak.or.ke/api/v1";
 
 export const NNAK_TOKEN_KEY = "nnak_token";
 export const NNAK_USER_COOKIE = "nnak_user";
