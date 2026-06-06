@@ -10,7 +10,10 @@ export default function NnakForgotPasswordPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = await m.mutateAsync({ email }).catch(() => null);
-    if (r) router.push(`/nnak/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(r.token)}`);
+    if (!r) return;
+    const params = new URLSearchParams({ email });
+    if (r.token) params.set("token", r.token);
+    router.push(`/nnak/reset-password?${params.toString()}`);
   };
   return (
     <form onSubmit={submit} className="space-y-4">

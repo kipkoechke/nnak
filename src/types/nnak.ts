@@ -263,11 +263,116 @@ export interface NnakPaginated<T> {
   };
 }
 
+/** Final response of POST /verify-otp (issues the Sanctum token). */
 export interface NnakLoginResponse {
   user: NnakUser;
   token: string;
   type: "Bearer";
   expires_in: number;
   expires_at: string;
-  otp?: string;
+  otp?: string | null;
+}
+
+/** First-leg response of POST /login and POST /register.
+ *  The frontend must follow up with POST /verify-otp { pending_token, otp }
+ *  to actually receive a Sanctum token. */
+export interface PendingOtpResponse {
+  pending_token: string;
+  expires_in: number;
+  /** OTP returned in dev for testing; production hides it. */
+  otp?: string | null;
+  user?: { id: string; name: string; email: string };
+}
+
+/** Standard backend envelope: { success, message?, data, pagination? }. */
+export interface ApiEnvelope<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  pagination?: NnakPagination;
+}
+
+export interface NnakPagination {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+  from: number;
+  to: number;
+}
+
+// ── Workstations (GET/POST/PATCH /member/workstations) ─────────────
+export interface Workstation {
+  id: string;
+  name: string;
+  country: string;
+  city: string;
+  start_date: string; // ISO
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+export interface WorkstationInput {
+  name: string;
+  country: string;
+  city: string;
+  start_date: string; // YYYY-MM-DD
+}
+
+// ── Subscriptions & Invoices (GET/POST /member/subscriptions) ──────
+export type SubscriptionStatusKey =
+  | "pending_payment"
+  | "active"
+  | "expired"
+  | "cancelled";
+
+export interface SubscriptionInvoice {
+  id: string;
+  invoice_number: string;
+  amount: string | number;
+  status: boolean;
+  issue_date: string;
+  due_date: string;
+  paid_at: string | null;
+  payments: SubscriptionPayment[];
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  amount: string | number;
+  reference?: string | null;
+  method?: string | null;
+  status?: string | null;
+  paid_at?: string | null;
+}
+
+export interface MemberSubscription {
+  id: string;
+  amount: string | number;
+  payment_method: string | null;
+  /** Backend uses a boolean here. true = paid/active. */
+  status: boolean;
+  start_date: string;
+  end_date: string;
+  member_category: { id: string; name: string };
+  invoice?: SubscriptionInvoice;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Member dashboard (GET /member/dashboard) ───────────────────────
+export interface MemberDashboardData {
+  member: { id: string; name: string; email: string };
+  account_number: string;
+  subscription_status: SubscriptionStatusKey | string;
+  subscription?: MemberSubscription | null;
+}
+
+// ── Admin: create branch payload ───────────────────────────────────
+export interface CreateBranchInput {
+  name: string;
+  employer_type: EmployerType | string;
+  branch_manager_email: string;
+  branch_manager_name: string;
+  branch_manager_phone: string;
 }

@@ -17,6 +17,7 @@ import {
   MdHowToReg,
   MdBadge,
   MdEventAvailable,
+  MdWorkOutline,
 } from "react-icons/md";
 import { isMemberRole } from "@/lib/rbac";
 import Link from "next/link";
@@ -56,6 +57,7 @@ const STAFF_ITEMS: MenuItem[] = [
 const MEMBER_ITEMS: MenuItem[] = [
   { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
   { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
+  { name: "Workstations", icon: MdWorkOutline, href: "/nnak/me/workstations", show: nnakCan.viewMyWorkstations },
   { name: "Events", icon: MdEventAvailable, href: "/nnak/me/events", show: nnakCan.viewMyEvents },
   { name: "Payments", icon: MdReceipt, href: "/nnak/me/payments", show: nnakCan.viewMyPayments },
 ];

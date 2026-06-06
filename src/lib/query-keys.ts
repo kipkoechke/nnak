@@ -12,6 +12,16 @@ export const nqk = {
     all: ["nnak", "branches"] as const,
     list: () => ["nnak", "branches", "list"] as const,
   },
+  workstations: {
+    all: ["nnak", "workstations"] as const,
+    list: (userId: string) => ["nnak", "workstations", "list", userId] as const,
+  },
+  subscriptions: {
+    all: ["nnak", "subscriptions"] as const,
+    list: () => ["nnak", "subscriptions", "list"] as const,
+    detail: (id: string) => ["nnak", "subscriptions", "detail", id] as const,
+  },
+  memberDashboard: ["nnak", "member", "dashboard"] as const,
   members: {
     all: ["nnak", "members"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "members", "list", p ?? {}] as const,

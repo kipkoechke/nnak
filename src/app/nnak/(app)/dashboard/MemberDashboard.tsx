@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
-import { MdBadge, MdEventAvailable, MdPayments, MdArrowForward } from "react-icons/md";
+import { MdBadge, MdEventAvailable, MdPayments, MdArrowForward, MdWorkOutline } from "react-icons/md";
 import { useNnakMe } from "@/hooks/use-auth";
 import { useMember } from "@/hooks/use-members";
 import { useMyPayments } from "@/hooks/use-payments";
 import { useMyRegistrations } from "@/hooks/use-events";
 import { useCategories } from "@/hooks/use-categories";
+import { useMemberDashboardApi } from "@/hooks/use-subscriptions";
+import { useMyWorkstations } from "@/hooks/use-workstations";
 
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
@@ -21,16 +23,35 @@ export default function MemberDashboard() {
   const { data: paymentsPage } = useMyPayments(me?.id);
   const { data: myRegs = [] } = useMyRegistrations(me?.id);
   const { data: cats = [] } = useCategories();
+  const { data: apiDash } = useMemberDashboardApi();
+  const { data: workstations = [] } = useMyWorkstations();
 
   if (!me || !member) return <div className="text-sm text-slate-500">Loading your portal…</div>;
 
   const cat = cats.find((c) => c.id === member.profile.member_category_id);
-  const expiresIn = daysUntil(member.profile.subscription_expires_at);
+  // Prefer the backend's authoritative expiry (from /member/dashboard) when
+  // available; fall back to whatever the mock store carries for demo users.
+  const apiExpiry = apiDash?.subscription?.end_date ?? null;
+  const expiresIn = apiExpiry
+    ? daysUntil(apiExpiry)
+    : daysUntil(member.profile.subscription_expires_at);
   const nextEvent = [...myRegs]
     .filter((r) => r.event && new Date(r.event.starts_at) >= new Date())
     .sort((a, b) => (a.event?.starts_at || "").localeCompare(b.event?.starts_at || ""))[0];
   const lastPayment = paymentsPage?.data?.[0];
-  const status = member.profile.status || "pending";
+  // /member/dashboard surfaces subscription_status (pending_payment, active,
+  // expired, cancelled). Map it to the existing MemberStatus tones; if the
+  // backend hasn't responded yet we fall back to the cached member status.
+  const apiStatus = apiDash?.subscription_status;
+  const status =
+    apiStatus === "active"
+      ? "active"
+      : apiStatus === "pending_payment"
+        ? "pending"
+        : apiStatus === "expired" || apiStatus === "cancelled"
+          ? "inactive"
+          : (member.profile.status || "pending");
+  const currentWorkstation = workstations[0];
 
   const statusTone =
     status === "active"
@@ -64,12 +85,12 @@ export default function MemberDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <PortalCard
           href="/nnak/me/membership"
           icon={MdBadge}
           title="My Membership"
-          primary={fmtDate(member.profile.subscription_expires_at)}
+          primary={fmtDate(apiExpiry ?? member.profile.subscription_expires_at)}
           subtitle={
             expiresIn === null
               ? "No active subscription"
@@ -90,10 +111,41 @@ export default function MemberDashboard() {
           href="/nnak/me/payments"
           icon={MdPayments}
           title="My Payments"
-          primary={lastPayment ? `KES ${lastPayment.amount.toLocaleString()}` : "—"}
+          primary={lastPayment ? `KES ${Number(lastPayment.amount).toLocaleString()}` : "—"}
           subtitle={lastPayment ? `${lastPayment.purpose} · ${fmtDate(lastPayment.paid_at)}` : "No payments yet"}
         />
+        <PortalCard
+          href="/nnak/me/workstations"
+          icon={MdWorkOutline}
+          title="Workstations"
+          primary={currentWorkstation ? currentWorkstation.name : "None on file"}
+          subtitle={
+            currentWorkstation
+              ? `${currentWorkstation.city}, ${currentWorkstation.country}`
+              : "Add your current employer"
+          }
+        />
       </div>
+
+      {apiDash?.subscription?.invoice && !apiDash.subscription.invoice.status && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
+          <div>
+            <div className="font-semibold">
+              Invoice {apiDash.subscription.invoice.invoice_number} —
+              KES {Number(apiDash.subscription.invoice.amount).toLocaleString()}
+            </div>
+            <div className="text-xs opacity-80">
+              Due {fmtDate(apiDash.subscription.invoice.due_date)}
+            </div>
+          </div>
+          <Link
+            href="/nnak/me/membership"
+            className="bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-amber-800"
+          >
+            Pay now
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNnakLogin } from "@/hooks/use-auth";
 import { DEMO_USERS, signInAsDemoUser } from "@/lib/demo-users";
 import { nqk } from "@/lib/query-keys";
-import type { NnakRole } from "@/types/nnak";
 
 export default function NnakLoginPage() {
   const router = useRouter();
@@ -21,17 +20,19 @@ export default function NnakLoginPage() {
     e.preventDefault();
     const res = await login.mutateAsync({ email, password }).catch(() => null);
     if (!res) return;
-    if (res.otp) {
-      router.push(
-        `/nnak/verify-otp?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}`,
-      );
-    } else {
-      router.push(redirect);
-    }
+    // POST /login always returns a pending_token; the user must verify
+    // the OTP to receive the actual Sanctum bearer token.
+    const params = new URLSearchParams({
+      token: res.pending_token,
+      email,
+      redirect,
+    });
+    if (res.otp) params.set("hint", res.otp); // dev convenience
+    router.push(`/nnak/verify-otp?${params.toString()}`);
   };
 
-  const pickDemo = (role: NnakRole) => {
-    const user = signInAsDemoUser(role);
+  const pickDemo = (personaId: string) => {
+    const user = signInAsDemoUser(personaId);
     if (!user) return;
     qc.setQueryData(nqk.auth.me, user);
     router.push(redirect);
@@ -95,9 +96,9 @@ export default function NnakLoginPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {DEMO_USERS.map((u) => (
             <button
-              key={u.role}
+              key={u.id}
               type="button"
-              onClick={() => pickDemo(u.role)}
+              onClick={() => pickDemo(u.id)}
               className="text-left rounded-md border border-slate-200 bg-white hover:border-primary hover:bg-primary/5 px-3 py-2 transition-colors"
             >
               <div className="flex items-center justify-between">

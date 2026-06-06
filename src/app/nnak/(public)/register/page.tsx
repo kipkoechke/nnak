@@ -19,10 +19,13 @@ export default function NnakRegisterPage() {
     password: "",
     password_confirmation: "",
     phone: "",
-    identification_type: "national_id" as const,
+    identification_type: "National ID",
     identification_number: "",
     license_number: "",
-    gender: "female" as "male" | "female",
+    nck_number: "",
+    professional_qualification: "",
+    date_of_birth: "",
+    gender: "Female",
     member_category_id: "",
     branch_id: "",
   });
@@ -36,9 +39,20 @@ export default function NnakRegisterPage() {
         ...form,
         member_category_id: form.member_category_id || null,
         branch_id: form.branch_id || null,
+        date_of_birth: form.date_of_birth || null,
+        nck_number: form.nck_number || null,
+        professional_qualification: form.professional_qualification || null,
+        license_number: form.license_number || null,
       })
       .catch(() => null);
-    if (r) router.push(`/nnak/verify-otp?email=${encodeURIComponent(form.email)}`);
+    if (!r) return;
+    const params = new URLSearchParams({
+      token: r.pending_token,
+      email: form.email,
+      redirect: "/nnak/dashboard",
+    });
+    if (r.otp) params.set("hint", r.otp);
+    router.push(`/nnak/verify-otp?${params.toString()}`);
   };
 
   return (
@@ -51,8 +65,11 @@ export default function NnakRegisterPage() {
           ["name", "Full Name", "text"],
           ["email", "Email", "email"],
           ["phone", "Phone", "tel"],
-          ["identification_number", "National ID", "text"],
-          ["license_number", "NCK Licence Number", "text"],
+          ["identification_number", "National ID Number", "text"],
+          ["nck_number", "NCK Number", "text"],
+          ["license_number", "Licence Number", "text"],
+          ["professional_qualification", "Professional Qualification", "text"],
+          ["date_of_birth", "Date of Birth", "date"],
           ["password", "Password", "password"],
           ["password_confirmation", "Confirm Password", "password"],
         ] as const

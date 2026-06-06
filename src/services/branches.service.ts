@@ -35,4 +35,12 @@ export const nnakBranchesService = {
       return mockStore.listBranches();
     }
   },
+  /** Admin: POST /branches — create a branch with its primary contact. */
+  create: async (body: import("@/types/nnak").CreateBranchInput): Promise<Branch> => {
+    const r = await nnakApi.post<{ success: boolean; data: Branch }>(
+      "/branches",
+      body,
+    );
+    return r.data?.data;
+  },
 };

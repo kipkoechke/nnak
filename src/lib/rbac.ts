@@ -63,6 +63,7 @@ export const nnakCan = {
   viewMyEvents: (u?: NnakUser | null) => has(u, ["member", "student"]),
   viewMyPayments: (u?: NnakUser | null) => has(u, ["member"]),
   payMySubscription: (u?: NnakUser | null) => has(u, ["member"]),
+  viewMyWorkstations: (u?: NnakUser | null) => has(u, ["member", "student"]),
 };
 
 export const isStaff = (u?: NnakUser | null) =>

@@ -20,38 +20,35 @@ export const useNnakMe = () =>
     retry: 0,
   });
 
-export const useNnakLogin = () => {
+/** First-leg login. Caller must then route to /verify-otp with the
+ *  returned pending_token. Does NOT create a session by itself. */
+export const useNnakLogin = () =>
+  useMutation({
+    mutationFn: nnakAuth.login,
+    onError: (e) => toast.error(extractApiError(e, "Login failed")),
+  });
+
+/** First-leg register. Same shape as login. */
+export const useNnakRegister = () =>
+  useMutation({
+    mutationFn: nnakAuth.register,
+    onError: (e) => toast.error(extractApiError(e, "Registration failed")),
+  });
+
+/** Second-leg: completes login or registration, persists the Sanctum
+ *  token, and primes the auth/me cache. */
+export const useVerifyOtp = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: nnakAuth.login,
+    mutationFn: nnakAuth.verifyOtp,
     onSuccess: (data) => {
       setNnakSession(data.user, data.token);
       qc.setQueryData(nqk.auth.me, data.user);
       toast.success(`Welcome, ${data.user.name}`);
     },
-    onError: (e) => toast.error(extractApiError(e, "Login failed")),
-  });
-};
-
-export const useNnakRegister = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: nnakAuth.register,
-    onSuccess: (data) => {
-      setNnakSession(data.user, data.token);
-      qc.setQueryData(nqk.auth.me, data.user);
-      toast.success("Account created — please verify your email");
-    },
-    onError: (e) => toast.error(extractApiError(e, "Registration failed")),
-  });
-};
-
-export const useVerifyOtp = () =>
-  useMutation({
-    mutationFn: nnakAuth.verifyOtp,
-    onSuccess: () => toast.success("Email verified"),
     onError: (e) => toast.error(extractApiError(e, "OTP verification failed")),
   });
+};
 
 export const useNnakForgotPassword = () =>
   useMutation({
