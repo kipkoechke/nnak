@@ -1,19 +1,19 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { nnakAuth } from "@/services/auth.service";
+import { nnakAuth, type NnakUserWithProfile } from "@/services/auth.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import { clearNnakSession, getNnakUser, setNnakSession } from "@/lib/auth";
 
 export const useNnakMe = () =>
-  useQuery({
+  useQuery<NnakUserWithProfile | null>({
     queryKey: nqk.auth.me,
     queryFn: async () => {
       try {
         return await nnakAuth.me();
       } catch {
-        return getNnakUser();
+        return getNnakUser() as NnakUserWithProfile | null;
       }
     },
     staleTime: 60_000,
@@ -43,7 +43,13 @@ export const useVerifyOtp = () => {
     mutationFn: nnakAuth.verifyOtp,
     onSuccess: (data) => {
       setNnakSession(data.user, data.token);
-      qc.setQueryData(nqk.auth.me, data.user);
+      // Seed the cache for instant UI, then invalidate so React Query
+      // immediately refetches GET /profile to hydrate user.profile.
+      // Without the invalidate, staleTime would keep this thin verify-otp
+      // user cached and the profile-dependent pages would stick on
+      // "Setting up your portal…" forever.
+      qc.setQueryData(nqk.auth.me, data.user as NnakUserWithProfile);
+      qc.invalidateQueries({ queryKey: nqk.auth.me });
       toast.success(`Welcome, ${data.user.name}`);
     },
     onError: (e) => toast.error(extractApiError(e, "OTP verification failed")),

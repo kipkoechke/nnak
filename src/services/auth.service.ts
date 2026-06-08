@@ -10,12 +10,17 @@
  *   2. POST /verify-otp { pending_token, otp } -> { user, token, ... }
  */
 import { nnakApi } from "@/lib/api";
+import { isDemoSession } from "@/lib/demo-token";
+import { getNnakUser } from "@/lib/auth";
 import type {
   ApiEnvelope,
   NnakLoginResponse,
+  NnakProfile,
   NnakUser,
   PendingOtpResponse,
 } from "@/types/nnak";
+
+export type NnakUserWithProfile = NnakUser & { profile?: NnakProfile | null };
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
@@ -69,11 +74,17 @@ export const nnakAuth = {
     password_confirmation: string;
   }) => unwrap<null>(nnakApi.post("/change-password", body)),
 
-  /** GET /profile -> { user: { ..., profile: {...} } } */
-  me: () =>
-    unwrap<{ user: NnakUser & { profile?: unknown } }>(
+  /** GET /profile -> { user: { ..., profile: {...} } }
+   *  Demo sessions short-circuit to the locally seeded user so they don't
+   *  401 against the real backend and trip the auth-expired interceptor. */
+  me: async (): Promise<NnakUserWithProfile | null> => {
+    if (isDemoSession()) {
+      return getNnakUser() as NnakUserWithProfile | null;
+    }
+    return unwrap<{ user: NnakUserWithProfile }>(
       nnakApi.get("/profile"),
-    ).then((d) => d.user),
+    ).then((d) => d.user);
+  },
 
   logout: () => nnakApi.post("/logout").then(() => undefined),
 
