@@ -26,26 +26,22 @@ export default function MemberDashboard() {
   const { data: apiDash } = useMemberDashboardApi();
   const { data: workstations = [] } = useMyWorkstations();
 
-  if (!me || !member) return <div className="text-sm text-slate-500">Loading your portal…</div>;
+  if (!me) return <div className="text-sm text-slate-500">Loading your portal…</div>;
+  // Prefer the real backend profile (from /profile via useNnakMe), falling
+  // back to the mock-store member record that only exists for demo sign-ins.
+  const profile = me.profile ?? member?.profile;
+  if (!profile) return <div className="text-sm text-slate-500">Setting up your portal…</div>;
 
-  const cat = cats.find((c) => c.id === member.profile.member_category_id);
-  // Real backend surfaces employer_type ("Parastatal", "MOH", ...) which
-  // doubles as the member's category label. Fall back to the mock-store
-  // category name only when employer_type isn't set (demo seed paths).
-  const categoryLabel = member.profile.employer_type || cat?.name || "—";
-  // Prefer the backend's authoritative expiry (from /member/dashboard) when
-  // available; fall back to whatever the mock store carries for demo users.
+  const cat = cats.find((c) => c.id === profile.member_category_id);
+  const categoryLabel = profile.employer_type || cat?.name || "—";
   const apiExpiry = apiDash?.subscription?.end_date ?? null;
   const expiresIn = apiExpiry
     ? daysUntil(apiExpiry)
-    : daysUntil(member.profile.subscription_expires_at);
+    : daysUntil(profile.subscription_expires_at);
   const nextEvent = [...myRegs]
     .filter((r) => r.event && new Date(r.event.starts_at) >= new Date())
     .sort((a, b) => (a.event?.starts_at || "").localeCompare(b.event?.starts_at || ""))[0];
   const lastPayment = paymentsPage?.data?.[0];
-  // /member/dashboard surfaces subscription_status (pending_payment, active,
-  // expired, cancelled). Map it to the existing MemberStatus tones; if the
-  // backend hasn't responded yet we fall back to the cached member status.
   const apiStatus = apiDash?.subscription_status;
   const status =
     apiStatus === "active"
@@ -54,7 +50,7 @@ export default function MemberDashboard() {
         ? "pending"
         : apiStatus === "expired" || apiStatus === "cancelled"
           ? "inactive"
-          : (member.profile.status || "pending");
+          : (profile.status || "pending");
   const currentWorkstation = workstations[0];
 
   const statusTone =
@@ -71,7 +67,7 @@ export default function MemberDashboard() {
           <div className="text-sm opacity-80">Welcome back,</div>
           <div className="text-xl font-semibold">{me.name}</div>
           <div className="text-[11px] opacity-80 mt-1">
-            Member #{member.profile.account_number} · {categoryLabel}
+            Member #{profile.account_number} · {categoryLabel}
           </div>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-2">
@@ -94,7 +90,7 @@ export default function MemberDashboard() {
           href="/nnak/me/membership"
           icon={MdBadge}
           title="My Membership"
-          primary={fmtDate(apiExpiry ?? member.profile.subscription_expires_at)}
+          primary={fmtDate(apiExpiry ?? profile.subscription_expires_at)}
           subtitle={
             expiresIn === null
               ? "No active subscription"

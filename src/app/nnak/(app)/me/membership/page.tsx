@@ -8,7 +8,7 @@ import { useNnakBranches } from "@/hooks/use-branches";
 import { useStkPush } from "@/hooks/use-payments";
 import DigitalIdCard, { downloadDigitalIdPdf } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
 import { MdDownload } from "react-icons/md";
-import type { MemberStatus } from "@/types/nnak";
+import type { MemberStatus, NnakProfile, NnakUser } from "@/types/nnak";
 
 const STATUS_TONE: Record<MemberStatus, string> = {
   active: "bg-emerald-100 text-emerald-800",
@@ -29,20 +29,25 @@ const daysUntil = (iso?: string | null) => {
 
 export default function MyMembershipPage() {
   const { data: me } = useNnakMe();
-  const { data: member, isLoading } = useMember(me?.id ?? "");
+  const { data: member } = useMember(me?.id ?? "");
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
   const stk = useStkPush();
   const [phone, setPhone] = useState("");
 
-  if (isLoading || !me || !member) {
+  if (!me) {
     return <div className="px-4 py-6 text-sm text-slate-500">Loading membership…</div>;
   }
+  const profile = me.profile ?? member?.profile;
+  if (!profile) {
+    return <div className="px-4 py-6 text-sm text-slate-500">Setting up your membership…</div>;
+  }
 
-  const cat = cats.find((c) => c.id === member.profile.member_category_id);
-  const branch = branches.find((b) => b.id === member.profile.branch_id);
-  const status = (member.profile.status || "pending") as MemberStatus;
-  const expiresIn = daysUntil(member.profile.subscription_expires_at);
+  const effectiveMember: NnakUser & { profile: NnakProfile } = member ?? { ...me, profile };
+  const cat = cats.find((c) => c.id === profile.member_category_id);
+  const branch = branches.find((b) => b.id === profile.branch_id);
+  const status = (profile.status || "pending") as MemberStatus;
+  const expiresIn = daysUntil(profile.subscription_expires_at);
   const isStudent = me.role === "student";
   const fee = cat ? (cat.billing_frequency === "monthly" ? cat.monthly_fee ?? 0 : cat.annual_fee) : 0;
   const restricted = expiresIn !== null && expiresIn < -30; // FR-MP-017
@@ -76,7 +81,7 @@ export default function MyMembershipPage() {
               </div>
             </div>
           ) : (
-            <DigitalIdCard member={member} category={member.profile.employer_type || cat?.name} showDownload={false} />
+            <DigitalIdCard member={effectiveMember} category={profile.employer_type || cat?.name} showDownload={false} />
           )}
 
           {!restricted && !isStudent && (
@@ -89,7 +94,7 @@ export default function MyMembershipPage() {
                 {stk.isPending ? "Sending STK…" : "Renew Membership"}
               </button>
               <button
-                onClick={() => downloadDigitalIdPdf(member)}
+                onClick={() => downloadDigitalIdPdf(effectiveMember)}
                 className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-primary"
               >
                 <MdDownload className="w-3.5 h-3.5" />
@@ -99,7 +104,7 @@ export default function MyMembershipPage() {
           )}
           {restricted && (
             <button
-              onClick={() => downloadDigitalIdPdf(member)}
+              onClick={() => downloadDigitalIdPdf(effectiveMember)}
               className="w-[344px] inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-500 hover:text-primary opacity-60 cursor-not-allowed"
               disabled
               title="Renew to restore your digital ID"
@@ -115,8 +120,8 @@ export default function MyMembershipPage() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="text-[11px] uppercase tracking-wide text-slate-500">Member</div>
-                <div className="text-lg font-semibold text-slate-900">{member.name}</div>
-                <div className="text-xs text-slate-500">{member.email}</div>
+                <div className="text-lg font-semibold text-slate-900">{effectiveMember.name}</div>
+                <div className="text-xs text-slate-500">{effectiveMember.email}</div>
               </div>
               <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${STATUS_TONE[status]}`}>
                 {status}
@@ -124,20 +129,20 @@ export default function MyMembershipPage() {
             </div>
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <Item label="Account number" value={member.profile.account_number} />
-              <Item label="Licence number" value={member.profile.license_number || "—"} />
-              <Item label="National ID" value={member.profile.identification_number || "—"} />
-              <Item label="Phone" value={member.profile.phone || "—"} />
-              <Item label="Category" value={member.profile.employer_type || cat?.name || "—"} />
+              <Item label="Account number" value={profile.account_number} />
+              <Item label="Licence number" value={profile.license_number || "—"} />
+              <Item label="National ID" value={profile.identification_number || "—"} />
+              <Item label="Phone" value={profile.phone || "—"} />
+              <Item label="Category" value={profile.employer_type || cat?.name || "—"} />
               <Item label="Branch" value={branch?.name || "—"} />
-              <Item label="Employer" value={member.profile.employer_name || (isStudent ? "Student" : "—")} />
-              <Item label="County" value={member.profile.county || "—"} />
-              <Item label="Member since" value={fmtDate(member.profile.joined_at)} />
+              <Item label="Employer" value={profile.employer_name || (isStudent ? "Student" : "—")} />
+              <Item label="County" value={profile.county || "—"} />
+              <Item label="Member since" value={fmtDate(profile.joined_at)} />
               <Item
                 label="Subscription valid until"
                 value={
                   <span>
-                    {fmtDate(member.profile.subscription_expires_at)}
+                    {fmtDate(profile.subscription_expires_at)}
                     {expiresIn !== null && (
                       <span className={`ml-2 text-[11px] ${expiresIn < 0 ? "text-red-600" : expiresIn <= 60 ? "text-amber-600" : "text-slate-400"}`}>
                         ({expiresIn < 0 ? `${Math.abs(expiresIn)}d overdue` : `${expiresIn}d left`})
