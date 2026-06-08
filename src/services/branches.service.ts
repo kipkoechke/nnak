@@ -24,16 +24,14 @@ interface BranchesResponse {
 
 export const nnakBranchesService = {
   list: async (): Promise<Branch[]> => {
+    // On a real session never fall back to the mock store, otherwise the
+    // UI would let users pick a seeded UUID that the backend rejects
+    // (e.g. "The selected branch id is invalid.").
     if (isDemoSession()) return mockStore.listBranches();
-    try {
-      const r = await nnakApi.get<BranchesResponse>("/branches", {
-        params: { per_page: 200 },
-      });
-      const data = r.data?.data;
-      return Array.isArray(data) && data.length > 0 ? data : mockStore.listBranches();
-    } catch {
-      return mockStore.listBranches();
-    }
+    const r = await nnakApi.get<BranchesResponse>("/branches", {
+      params: { per_page: 200 },
+    });
+    return r.data?.data ?? [];
   },
   /** Admin: POST /branches — create a branch with its primary contact. */
   create: async (body: import("@/types/nnak").CreateBranchInput): Promise<Branch> => {

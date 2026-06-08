@@ -76,7 +76,7 @@ export default function MyMembershipPage() {
               </div>
             </div>
           ) : (
-            <DigitalIdCard member={member} category={cat?.name} showDownload={false} />
+            <DigitalIdCard member={member} category={member.profile.employer_type || cat?.name} showDownload={false} />
           )}
 
           {!restricted && !isStudent && (
@@ -128,7 +128,7 @@ export default function MyMembershipPage() {
               <Item label="Licence number" value={member.profile.license_number || "—"} />
               <Item label="National ID" value={member.profile.identification_number || "—"} />
               <Item label="Phone" value={member.profile.phone || "—"} />
-              <Item label="Category" value={cat?.name || "—"} />
+              <Item label="Category" value={member.profile.employer_type || cat?.name || "—"} />
               <Item label="Branch" value={branch?.name || "—"} />
               <Item label="Employer" value={member.profile.employer_name || (isStudent ? "Student" : "—")} />
               <Item label="County" value={member.profile.county || "—"} />

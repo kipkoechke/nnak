@@ -29,6 +29,10 @@ export default function MemberDashboard() {
   if (!me || !member) return <div className="text-sm text-slate-500">Loading your portal…</div>;
 
   const cat = cats.find((c) => c.id === member.profile.member_category_id);
+  // Real backend surfaces employer_type ("Parastatal", "MOH", ...) which
+  // doubles as the member's category label. Fall back to the mock-store
+  // category name only when employer_type isn't set (demo seed paths).
+  const categoryLabel = member.profile.employer_type || cat?.name || "—";
   // Prefer the backend's authoritative expiry (from /member/dashboard) when
   // available; fall back to whatever the mock store carries for demo users.
   const apiExpiry = apiDash?.subscription?.end_date ?? null;
@@ -67,7 +71,7 @@ export default function MemberDashboard() {
           <div className="text-sm opacity-80">Welcome back,</div>
           <div className="text-xl font-semibold">{me.name}</div>
           <div className="text-[11px] opacity-80 mt-1">
-            Member #{member.profile.account_number} · {cat?.name || "—"}
+            Member #{member.profile.account_number} · {categoryLabel}
           </div>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-2">

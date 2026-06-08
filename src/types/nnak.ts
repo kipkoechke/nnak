@@ -63,7 +63,9 @@ export interface NnakProfile {
   professional_qualification: string | null;
   date_of_birth: string | null;
   gender: "male" | "female";
-  employer_type: "employee" | "self_employed" | "unemployed" | null;
+  /** Matches /employer-types API values (MOH | Parastatal | Private | FBO | Other).
+   *  Falls back to plain string so legacy mock data and future values still type-check. */
+  employer_type: string | null;
   employer_name?: string | null;
   county?: string | null;
   photo_url?: string | null;

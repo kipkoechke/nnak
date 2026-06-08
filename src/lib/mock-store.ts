@@ -543,7 +543,7 @@ export const mockStore = {
       professional_qualification: input.role === "student" ? "Diploma in Nursing (in progress)" : "BScN, Kenya Medical Training College",
       date_of_birth: "1992-04-12",
       gender: "female",
-      employer_type: input.role === "student" ? null : "employee",
+      employer_type: input.role === "student" ? null : "Parastatal",
       employer_name: input.role === "student" ? null : "Kenyatta National Hospital",
       county: "Nairobi",
       photo_url: null,

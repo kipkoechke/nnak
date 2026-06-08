@@ -3,21 +3,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
 import { useCreateMember } from "@/hooks/use-members";
-import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
-import { useGenders } from "@/hooks/use-enums";
+import { useGenders, useEmployerTypes } from "@/hooks/use-enums";
 
 export default function NewMemberPage() {
   const router = useRouter();
   const create = useCreateMember();
-  const { data: cats = [] } = useCategories();
-  const { data: branches = [] } = useNnakBranches();
-  const { data: genders = ["male", "female"] } = useGenders();
+  const { data: branches = [], isLoading: branchesLoading } = useNnakBranches();
+  const { data: genders = [], isLoading: gendersLoading } = useGenders();
+  const { data: employerTypes = [], isLoading: typesLoading } = useEmployerTypes();
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
     identification_number: "", license_number: "",
-    gender: "female" as "male" | "female",
-    member_category_id: "", branch_id: "",
+    gender: "",
+    employer_type: "", branch_id: "",
     employer_name: "", county: "",
   });
   const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
@@ -31,8 +30,8 @@ export default function NewMemberPage() {
         phone: form.phone || null,
         identification_number: form.identification_number || null,
         license_number: form.license_number || null,
-        gender: form.gender,
-        member_category_id: form.member_category_id || null,
+        gender: (form.gender as "male" | "female") || "female",
+        employer_type: form.employer_type || null,
         branch_id: form.branch_id || null,
         employer_name: form.employer_name || null,
         county: form.county || null,
@@ -66,24 +65,25 @@ export default function NewMemberPage() {
         ))}
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Gender</label>
-          <select value={form.gender} onChange={(e) => set("gender", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
+          <select value={form.gender} onChange={(e) => set("gender", e.target.value)} required disabled={gendersLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
+            <option value="">{gendersLoading ? "Loading…" : "— Select —"}</option>
             {genders.map((g) => (
-              <option key={g} value={g} className="capitalize">{g.charAt(0).toUpperCase() + g.slice(1)}</option>
+              <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Membership Category</label>
-          <select value={form.member_category_id} onChange={(e) => set("member_category_id", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="">— Select —</option>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          <label className="block text-xs font-medium text-slate-600 mb-1">Category (Employer Type)</label>
+          <select value={form.employer_type} onChange={(e) => set("employer_type", e.target.value)} disabled={typesLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
+            <option value="">{typesLoading ? "Loading…" : "— Select —"}</option>
+            {employerTypes.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>
-          <select value={form.branch_id} onChange={(e) => set("branch_id", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="">— None —</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          <select value={form.branch_id} onChange={(e) => set("branch_id", e.target.value)} disabled={branchesLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
+            <option value="">{branchesLoading ? "Loading branches…" : "— Select —"}</option>
+            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.employer_type ? ` (${b.employer_type})` : ""}</option>)}
           </select>
         </div>
         <div className="md:col-span-2 flex justify-end">

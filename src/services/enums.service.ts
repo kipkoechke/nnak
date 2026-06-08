@@ -26,20 +26,12 @@ const FALLBACK_EMPLOYER_TYPES: EmployerType[] = [
 export const enumsService = {
   genders: async (): Promise<string[]> => {
     if (isDemoSession()) return FALLBACK_GENDERS;
-    try {
-      const r = await nnakApi.get<EnumResponse<string>>("/genders");
-      return r.data?.data ?? FALLBACK_GENDERS;
-    } catch {
-      return FALLBACK_GENDERS;
-    }
+    const r = await nnakApi.get<EnumResponse<string>>("/genders");
+    return r.data?.data ?? [];
   },
   employerTypes: async (): Promise<EmployerType[]> => {
     if (isDemoSession()) return FALLBACK_EMPLOYER_TYPES;
-    try {
-      const r = await nnakApi.get<EnumResponse<EmployerType>>("/employer-types");
-      return r.data?.data ?? FALLBACK_EMPLOYER_TYPES;
-    } catch {
-      return FALLBACK_EMPLOYER_TYPES;
-    }
+    const r = await nnakApi.get<EnumResponse<EmployerType>>("/employer-types");
+    return r.data?.data ?? [];
   },
 };

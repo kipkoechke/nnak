@@ -33,6 +33,9 @@ export interface RegisterPayload {
   gender?: string;
   nck_number?: string | null;
   professional_qualification?: string | null;
+  /** String from GET /employer-types (e.g. "Parastatal", "MOH"). */
+  employer_type?: string;
+  /** Optional — backend may derive this from employer_type. */
   member_category_id?: string | null;
   branch_id?: string | null;
 }

@@ -2,17 +2,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { useNnakRegister } from "@/hooks/use-auth";
-import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
-import { useGenders } from "@/hooks/use-enums";
+import { useGenders, useEmployerTypes } from "@/hooks/use-enums";
 
 export default function NnakRegisterPage() {
   const router = useRouter();
   const reg = useNnakRegister();
-  const { data: cats = [] } = useCategories();
-  const { data: branches = [] } = useNnakBranches();
-  const { data: genders = ["male", "female"] } = useGenders();
+  const { data: branches = [], isLoading: branchesLoading } = useNnakBranches();
+  const { data: genders = [], isLoading: gendersLoading } = useGenders();
+  const { data: employerTypes = [], isLoading: typesLoading } = useEmployerTypes();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,8 +25,8 @@ export default function NnakRegisterPage() {
     nck_number: "",
     professional_qualification: "",
     date_of_birth: "",
-    gender: "Female",
-    member_category_id: "",
+    gender: "",
+    employer_type: "",
     branch_id: "",
   });
   const set = (k: keyof typeof form, v: string) =>
@@ -34,15 +34,29 @@ export default function NnakRegisterPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password !== form.password_confirmation) {
+      toast.error("Passwords do not match");
+      return;
+    }
     const r = await reg
       .mutateAsync({
-        ...form,
-        member_category_id: form.member_category_id || null,
-        branch_id: form.branch_id || null,
-        date_of_birth: form.date_of_birth || null,
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.password_confirmation,
+        phone: form.phone || undefined,
+        identification_type: form.identification_type || null,
+        identification_number: form.identification_number || null,
+        license_number: form.license_number || null,
         nck_number: form.nck_number || null,
         professional_qualification: form.professional_qualification || null,
-        license_number: form.license_number || null,
+        date_of_birth: form.date_of_birth || null,
+        gender: form.gender || undefined,
+        // Source of truth is /employer-types — sent as employer_type
+        // (string) per backend. The legacy member_category_id was a
+        // mock-only field and is intentionally omitted.
+        employer_type: form.employer_type || undefined,
+        branch_id: form.branch_id || null,
       })
       .catch(() => null);
     if (!r) return;
@@ -85,6 +99,10 @@ export default function NnakRegisterPage() {
           />
         </div>
       ))}
+      {form.password_confirmation &&
+        form.password !== form.password_confirmation && (
+          <div className="text-[11px] text-red-600">Passwords do not match.</div>
+        )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -92,8 +110,11 @@ export default function NnakRegisterPage() {
           <select
             value={form.gender}
             onChange={(e) => set("gender", e.target.value)}
+            required
+            disabled={gendersLoading}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
+            <option value="">{gendersLoading ? "Loading…" : "— Select —"}</option>
             {genders.map((g) => (
               <option key={g} value={g}>
                 {g.charAt(0).toUpperCase() + g.slice(1)}
@@ -102,31 +123,37 @@ export default function NnakRegisterPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Branch (optional)</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Category (Employer Type)
+          </label>
           <select
-            value={form.branch_id}
-            onChange={(e) => set("branch_id", e.target.value)}
+            value={form.employer_type}
+            onChange={(e) => set("employer_type", e.target.value)}
+            required
+            disabled={typesLoading}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
-            <option value="">— None —</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+            <option value="">{typesLoading ? "Loading…" : "— Select —"}</option>
+            {employerTypes.map((t) => (
+              <option key={t} value={t}>{t}</option>
             ))}
           </select>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Membership Category</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>
         <select
-          value={form.member_category_id}
-          onChange={(e) => set("member_category_id", e.target.value)}
+          value={form.branch_id}
+          onChange={(e) => set("branch_id", e.target.value)}
+          disabled={branchesLoading}
           className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="">— Select —</option>
-          {cats.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} — KES {c.billing_frequency === "monthly" ? c.monthly_fee : c.annual_fee}/{c.billing_frequency}
+          <option value="">{branchesLoading ? "Loading branches…" : "— Select —"}</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+              {b.employer_type ? ` (${b.employer_type})` : ""}
             </option>
           ))}
         </select>
