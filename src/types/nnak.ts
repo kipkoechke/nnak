@@ -378,3 +378,103 @@ export interface CreateBranchInput {
   branch_manager_name: string;
   branch_manager_phone: string;
 }
+
+// ── Admin dashboard (GET /admin/dashboard?start_date&end_date) ─────
+export interface AdminDashboardCategoryRow {
+  category_id: string | null;
+  category_name: string | null;
+  total_members: number;
+}
+export interface AdminDashboardData {
+  start_date: string;
+  end_date: string;
+  supported_params: string[];
+  applied_filters: Record<string, string>;
+  total_members: number;
+  active_members: number;
+  inactive_members: number;
+  pending_approval_members: number;
+  new_members_in_range: number;
+  member_category_totals: AdminDashboardCategoryRow[];
+  total_collected_amount: number;
+}
+
+// ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)
+export type BranchDashboardData = AdminDashboardData;
+
+// ── Pending profile (GET /members/pending) ────────────────────────
+export interface PendingMemberProfile {
+  id: string;
+  account_number: string;
+  phone?: string | null;
+  nck_number?: string | null;
+  membership_number?: string | null;
+  identification_type?: string | null;
+  identification_number?: string | null;
+  professional_qualification?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  is_verified: boolean;
+  verified_at: string | null;
+  verified_by: string | null;
+  user_id: string;
+  branch_id: string | null;
+  member_category_id: string | null;
+  is_approved: boolean;
+  approved_at: string | null;
+  approved_by: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: { id: string; name: string; email: string; role?: string };
+  branch?: Branch | null;
+  member_category?: {
+    id: string;
+    code?: string;
+    name: string;
+    description?: string;
+    subscription_fee?: string;
+    billing_frequency?: string;
+    is_active?: boolean;
+  } | null;
+}
+
+// ── Branch manager: add member payload (POST /branch/members) ─────
+export interface BranchAddMemberInput {
+  name: string;
+  email: string;
+  phone: string;
+  gender: string;
+  date_of_birth: string;
+  nck_number: string;
+  identification_type: string;
+  identification_number: string;
+  professional_qualification: string;
+}
+
+// ── Branch manager: verify member (POST /branch/members/verify) ───
+export interface BranchVerifyMemberInput {
+  pending_token: string;
+  email_otp: string;
+  phone_otp: string;
+}
+
+// ── Finance: by-product upload (POST /byproduct/upload) ───────────
+export interface ByProductUploadInput {
+  /** File handle (csv / xlsx / xls) — sent as multipart/form-data. */
+  file: File;
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
+}
+export interface ByProductUploadRecord {
+  id: string;
+  file_name?: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  total_records?: number;
+  matched?: number;
+  flagged?: number;
+  total_amount?: number;
+  created_at: string;
+  updated_at: string;
+}

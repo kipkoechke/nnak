@@ -25,3 +25,31 @@ export const useEmployerTypes = () =>
     queryFn: enumsService.employerTypes,
     ...STATIC_OPTS,
   });
+
+export const useBillingFrequencies = () =>
+  useQuery({
+    queryKey: nqk.enums.billingFrequencies,
+    queryFn: enumsService.billingFrequencies,
+    ...STATIC_OPTS,
+  });
+
+export const usePaymentMethods = () =>
+  useQuery({
+    queryKey: nqk.enums.paymentMethods,
+    queryFn: enumsService.paymentMethods,
+    ...STATIC_OPTS,
+  });
+
+export const useUserRoles = () =>
+  useQuery({
+    queryKey: nqk.enums.userRoles,
+    queryFn: enumsService.userRoles,
+    ...STATIC_OPTS,
+  });
+
+export const useChapters = () =>
+  useQuery({
+    queryKey: nqk.enums.chapters,
+    queryFn: enumsService.chapters,
+    ...STATIC_OPTS,
+  });

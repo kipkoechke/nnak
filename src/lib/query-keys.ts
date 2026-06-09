@@ -3,6 +3,10 @@ export const nqk = {
   enums: {
     genders: ["nnak", "enums", "genders"] as const,
     employerTypes: ["nnak", "enums", "employer-types"] as const,
+    billingFrequencies: ["nnak", "enums", "billing-frequencies"] as const,
+    paymentMethods: ["nnak", "enums", "payment-methods"] as const,
+    userRoles: ["nnak", "enums", "user-roles"] as const,
+    chapters: ["nnak", "enums", "chapters"] as const,
   },
   categories: {
     all: ["nnak", "categories"] as const,
@@ -26,7 +30,11 @@ export const nqk = {
     all: ["nnak", "members"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "members", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "members", "detail", id] as const,
+    pending: (p?: Record<string, unknown>) => ["nnak", "members", "pending", p ?? {}] as const,
   },
+  adminDashboard: (p?: Record<string, unknown>) => ["nnak", "admin", "dashboard", p ?? {}] as const,
+  branchDashboard: (p?: Record<string, unknown>) => ["nnak", "branch", "dashboard", p ?? {}] as const,
+  branchMembers: (p?: Record<string, unknown>) => ["nnak", "branch", "members", p ?? {}] as const,
   events: {
     all: ["nnak", "events"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "events", "list", p ?? {}] as const,
@@ -40,6 +48,7 @@ export const nqk = {
   byProduct: {
     all: ["nnak", "byproduct"] as const,
     list: () => ["nnak", "byproduct", "list"] as const,
+    detail: (id: string) => ["nnak", "byproduct", "detail", id] as const,
     lines: (id: string) => ["nnak", "byproduct", id, "lines"] as const,
   },
   reports: {

@@ -140,9 +140,9 @@ export default function MembersPage() {
               </table>
             </div>
             <Pagination
-              currentPage={data.meta.current_page}
-              totalPages={data.meta.last_page}
-              totalItems={data.meta.total}
+              currentPage={data.meta?.current_page ?? 1}
+              totalPages={data.meta?.last_page ?? 1}
+              totalItems={data.meta?.total ?? data.data.length}
               onPageChange={setPage}
             />
           </>

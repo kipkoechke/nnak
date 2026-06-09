@@ -63,3 +63,38 @@ export const useSetMemberStatus = () => {
     },
   });
 };
+
+// ── Admin approval flow (real backend) ────────────────────────────
+const apiErrMsg = (e: unknown, fb: string) =>
+  (e as { response?: { data?: { message?: string } } })?.response?.data?.message || fb;
+
+export const usePendingMembers = (p: { page?: number; per_page?: number } = {}) =>
+  useQuery({
+    queryKey: nqk.members.pending(p as Record<string, unknown>),
+    queryFn: () => membersService.listPending(p),
+    placeholderData: (prev) => prev,
+  });
+
+export const useApproveMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (profile_id: string) => membersService.approve(profile_id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member approved");
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Approve failed")),
+  });
+};
+
+export const useRejectMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (profile_id: string) => membersService.reject(profile_id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member rejected");
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Reject failed")),
+  });
+};
