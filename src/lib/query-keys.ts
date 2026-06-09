@@ -59,4 +59,7 @@ export const nqk = {
     exports: ["nnak", "ilm", "exports"] as const,
     erasures: ["nnak", "ilm", "erasures"] as const,
   },
+  memberPayments: {
+    stkQuery: (invoiceId: string) => ["nnak", "member", "payments", "stkquery", invoiceId] as const,
+  },
 };

@@ -505,3 +505,41 @@ export interface ByProductUploadRecord {
   created_at: string;
   updated_at: string;
 }
+
+// ── Member invoice M-Pesa STK Push ─────────────────────────────────
+export interface InvoiceStkPushInput {
+  phone_number: string;
+}
+
+export interface InvoiceStkPushResponse {
+  success: boolean;
+  message: string;
+  data: {
+    invoice_id: string;
+    invoice_amount: string;
+    invoice_number: string;
+  };
+}
+
+// ── Member invoice M-Pesa STK Query ────────────────────────────────
+export interface InvoiceStkQueryResponse {
+  success: boolean;
+  message: string;
+  data: {
+    invoice_id: string;
+    checkout_request_id: string;
+    status: string;
+  };
+}
+
+// ── M-Pesa C2B register URLs ───────────────────────────────────────
+export interface C2bRegisterUrlsInput {
+  validation_url?: string;
+  confirmation_url?: string;
+}
+
+export interface C2bRegisterUrlsResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+}

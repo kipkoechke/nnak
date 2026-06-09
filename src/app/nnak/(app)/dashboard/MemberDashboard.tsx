@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import {
   MdBadge,
@@ -8,6 +9,7 @@ import {
 } from "react-icons/md";
 import { useNnakMe } from "@/hooks/use-auth";
 import { useMemberDashboardApi } from "@/hooks/use-subscriptions";
+import { useInvoiceStkPush, useInvoiceStkQuery } from "@/hooks/use-member-payments";
 import { useMyWorkstations } from "@/hooks/use-workstations";
 
 const fmtDate = (iso?: string | null) =>
@@ -33,6 +35,10 @@ export default function MemberDashboard() {
   const { data: me } = useNnakMe();
   const { data: apiDash } = useMemberDashboardApi();
   const { data: workstations = [] } = useMyWorkstations();
+  const stkPush = useInvoiceStkPush();
+  const [stkPhone, setStkPhone] = useState("");
+  const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
+  const stkQuery = useInvoiceStkQuery(activeInvoiceId);
 
   if (!me) return <div className="text-sm text-slate-500">Loading your portal…</div>;
   const profile = me.profile;
@@ -139,22 +145,76 @@ export default function MemberDashboard() {
       </div>
 
       {invoice && !invoice.status && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
-          <div>
-            <div className="font-semibold">
-              Invoice {invoice.invoice_number} —
-              KES {Number(invoice.amount).toLocaleString()}
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="font-semibold">
+                Invoice {invoice.invoice_number} —
+                KES {Number(invoice.amount).toLocaleString()}
+              </div>
+              <div className="text-xs opacity-80">
+                Due {fmtDate(invoice.due_date)}
+              </div>
             </div>
-            <div className="text-xs opacity-80">
-              Due {fmtDate(invoice.due_date)}
-            </div>
+            <Link
+              href="/nnak/me/membership"
+              className="text-xs text-slate-500 hover:text-primary whitespace-nowrap"
+            >
+              View details
+            </Link>
           </div>
-          <Link
-            href="/nnak/me/membership"
-            className="bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-amber-800"
-          >
-            Pay now
-          </Link>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="tel"
+              value={stkPhone}
+              onChange={(e) => setStkPhone(e.target.value)}
+              placeholder={profile?.phone || "254700000000"}
+              className="px-3 py-2 border border-amber-300 rounded-md text-sm bg-white w-full sm:w-48"
+            />
+            <button
+              onClick={() => {
+                const phone = stkPhone || profile?.phone || "";
+                if (!phone) return;
+                stkPush.mutate(
+                  { invoiceId: invoice.id, body: { phone_number: phone } },
+                  { onSuccess: (data) => { setStkPhone(""); setActiveInvoiceId(data.invoice_id); } },
+                );
+              }}
+              disabled={stkPush.isPending}
+              className="bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50 whitespace-nowrap"
+            >
+              {stkPush.isPending ? "Sending..." : "Pay via M-Pesa"}
+            </button>
+            {activeInvoiceId && (
+              <button
+                onClick={() => stkQuery.refetch()}
+                disabled={stkQuery.isFetching}
+                className="bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-amber-800 disabled:opacity-50 whitespace-nowrap"
+              >
+                {stkQuery.isFetching ? "Checking..." : "Check Status"}
+              </button>
+            )}
+          </div>
+
+          {stkPush.isSuccess && !stkQuery.data && (
+            <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-1.5">
+              STK Push sent. Check your phone and enter your M-Pesa PIN, then click &ldquo;Check Status&rdquo;.
+            </div>
+          )}
+
+          {stkQuery.data && (
+            <div className={`text-xs rounded-md px-3 py-1.5 border ${
+              stkQuery.data.status === "successful" || stkQuery.data.status === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}>
+              Status: <span className="font-semibold">{stkQuery.data.status}</span>
+              {stkQuery.data.checkout_request_id && (
+                <> · Ref: {stkQuery.data.checkout_request_id}</>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
