@@ -58,11 +58,25 @@ export interface NnakProfile {
   phone: string | null;
   nck_number: string | null;
   license_number: string | null;
-  identification_type: "national_id" | "passport" | null;
+  /** Backend may send canonical lower-case or human-friendly "National ID". */
+  identification_type: string | null;
   identification_number: string | null;
   professional_qualification: string | null;
   date_of_birth: string | null;
-  gender: "male" | "female";
+  /** Backend currently sends "male" | "female" | "other"; future may extend. */
+  gender: string;
+  /** Member's NNAK membership number, distinct from account_number. */
+  membership_number?: string | null;
+  /** Approval flags from /members + /members/pending. */
+  is_approved?: boolean;
+  approved_at?: string | null;
+  approved_by?: string | null;
+  is_verified?: boolean;
+  verified_at?: string | null;
+  verified_by?: string | null;
+  /** /member/dashboard surfaces these too. */
+  subscription_active?: boolean;
+  active_subscription?: unknown | null;
   /** Matches /employer-types API values (MOH | Parastatal | Private | FBO | Other).
    *  Falls back to plain string so legacy mock data and future values still type-check. */
   employer_type: string | null;
@@ -400,7 +414,20 @@ export interface AdminDashboardData {
 }
 
 // ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)
-export type BranchDashboardData = AdminDashboardData;
+export interface BranchDashboardData {
+  branch_id: string;
+  branch_name: string;
+  start_date: string;
+  end_date: string;
+  supported_params: string[];
+  applied_filters: Record<string, string>;
+  total_members: number;
+  active_members: number;
+  inactive_members: number;
+  pending_approval_members: number;
+  member_category_totals: AdminDashboardCategoryRow[];
+  total_collected_amount: number;
+}
 
 // ── Pending profile (GET /members/pending) ────────────────────────
 export interface PendingMemberProfile {

@@ -1,14 +1,23 @@
 "use client";
-import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { useNnakMe } from "@/hooks/use-auth";
-import { useMember } from "@/hooks/use-members";
-import { useCategories } from "@/hooks/use-categories";
-import { useNnakBranches } from "@/hooks/use-branches";
-import { useStkPush } from "@/hooks/use-payments";
-import DigitalIdCard, { downloadDigitalIdPdf } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
+import {
+  useCreateSubscription,
+  useMemberDashboardApi,
+} from "@/hooks/use-subscriptions";
+import DigitalIdCard, {
+  downloadDigitalIdPdf,
+} from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
 import { MdDownload } from "react-icons/md";
 import type { MemberStatus, NnakProfile, NnakUser } from "@/types/nnak";
+
+/**
+ * Member portal — Membership page.
+ * Only calls the member-allowed endpoints:
+ *   GET /profile               (via useNnakMe)
+ *   GET /member/dashboard      (via useMemberDashboardApi)
+ *   POST /member/subscriptions (via useCreateSubscription, on Renew)
+ */
 
 const STATUS_TONE: Record<MemberStatus, string> = {
   active: "bg-emerald-100 text-emerald-800",
@@ -27,41 +36,51 @@ const daysUntil = (iso?: string | null) => {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 };
 
+const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div>
+    <dt className="text-[11px] uppercase tracking-wide text-slate-500">{label}</dt>
+    <dd className="text-sm text-slate-900 mt-0.5">{value}</dd>
+  </div>
+);
+
 export default function MyMembershipPage() {
   const { data: me } = useNnakMe();
-  const { data: member } = useMember(me?.id ?? "");
-  const { data: cats = [] } = useCategories();
-  const { data: branches = [] } = useNnakBranches();
-  const stk = useStkPush();
-  const [phone, setPhone] = useState("");
+  const { data: dash } = useMemberDashboardApi();
+  const subscribe = useCreateSubscription();
 
   if (!me) {
     return <div className="px-4 py-6 text-sm text-slate-500">Loading membership…</div>;
   }
-  const profile = me.profile ?? member?.profile;
+  const profile = me.profile;
   if (!profile) {
     return <div className="px-4 py-6 text-sm text-slate-500">Setting up your membership…</div>;
   }
 
-  const effectiveMember: NnakUser & { profile: NnakProfile } = member ?? { ...me, profile };
-  const cat = cats.find((c) => c.id === profile.member_category_id);
-  const branch = branches.find((b) => b.id === profile.branch_id);
-  const status = (profile.status || "pending") as MemberStatus;
-  const expiresIn = daysUntil(profile.subscription_expires_at);
+  const effectiveMember: NnakUser & { profile: NnakProfile } = { ...me, profile };
+  const apiSub = dash?.subscription ?? null;
   const isStudent = me.role === "student";
-  const fee = cat ? (cat.billing_frequency === "monthly" ? cat.monthly_fee ?? 0 : cat.annual_fee) : 0;
+
+  // Subscription-derived state (no /categories, /branches calls).
+  const subAmount = apiSub ? Number(apiSub.amount) : 0;
+  const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
+  const expiresIn = daysUntil(subExpiry);
   const restricted = expiresIn !== null && expiresIn < -30; // FR-MP-017
 
-  const pay = async () => {
-    if (!phone || !fee) return;
-    await stk.mutateAsync({
-      user_id: me.id,
-      amount: fee,
-      purpose: "subscription",
-      phone,
-    });
-    setPhone("");
-  };
+  const apiStatus = dash?.subscription_status;
+  const status: MemberStatus =
+    apiStatus === "active"
+      ? "active"
+      : apiStatus === "pending_payment"
+        ? "pending"
+        : apiStatus === "expired" || apiStatus === "cancelled"
+          ? "inactive"
+          : ((profile.status || "pending") as MemberStatus);
+
+  const accountNumber = dash?.account_number || profile.account_number;
+  const categoryLabel =
+    apiSub?.member_category?.name || profile.employer_type || "—";
+
+  const onRenew = () => subscribe.mutate({});
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -81,17 +100,21 @@ export default function MyMembershipPage() {
               </div>
             </div>
           ) : (
-            <DigitalIdCard member={effectiveMember} category={profile.employer_type || cat?.name} showDownload={false} />
+            <DigitalIdCard
+              member={effectiveMember}
+              category={categoryLabel}
+              showDownload={false}
+            />
           )}
 
           {!restricted && !isStudent && (
             <div className="space-y-2 w-[344px]">
               <button
-                onClick={pay}
-                disabled={!phone || !fee || stk.isPending}
+                onClick={onRenew}
+                disabled={subscribe.isPending}
                 className="w-full bg-primary text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
               >
-                {stk.isPending ? "Sending STK…" : "Renew Membership"}
+                {subscribe.isPending ? "Submitting…" : "Renew Membership"}
               </button>
               <button
                 onClick={() => downloadDigitalIdPdf(effectiveMember)}
@@ -129,20 +152,20 @@ export default function MyMembershipPage() {
             </div>
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <Item label="Account number" value={profile.account_number} />
+              <Item label="Account number" value={accountNumber} />
               <Item label="Licence number" value={profile.license_number || "—"} />
+              <Item label="NCK number" value={profile.nck_number || "—"} />
               <Item label="National ID" value={profile.identification_number || "—"} />
               <Item label="Phone" value={profile.phone || "—"} />
-              <Item label="Category" value={profile.employer_type || cat?.name || "—"} />
-              <Item label="Branch" value={branch?.name || "—"} />
-              <Item label="Employer" value={profile.employer_name || (isStudent ? "Student" : "—")} />
-              <Item label="County" value={profile.county || "—"} />
-              <Item label="Member since" value={fmtDate(profile.joined_at)} />
+              <Item label="Category" value={categoryLabel} />
+              <Item label="Employer type" value={profile.employer_type || "—"} />
+              <Item label="Gender" value={profile.gender || "—"} />
+              <Item label="Member since" value={fmtDate(profile.created_at)} />
               <Item
                 label="Subscription valid until"
                 value={
                   <span>
-                    {fmtDate(profile.subscription_expires_at)}
+                    {fmtDate(subExpiry)}
                     {expiresIn !== null && (
                       <span className={`ml-2 text-[11px] ${expiresIn < 0 ? "text-red-600" : expiresIn <= 60 ? "text-amber-600" : "text-slate-400"}`}>
                         ({expiresIn < 0 ? `${Math.abs(expiresIn)}d overdue` : `${expiresIn}d left`})
@@ -154,32 +177,33 @@ export default function MyMembershipPage() {
             </dl>
           </div>
 
-          {/* Renewal / pay panel */}
+          {/* Renewal panel — POST /member/subscriptions (no payload) */}
           {!isStudent && (
             <div className="bg-white border border-slate-200 rounded-lg p-4">
               <div className="text-sm font-semibold text-slate-900">
-                {expiresIn !== null && expiresIn < 60 ? "Renew subscription" : "Pay subscription"}
+                {expiresIn !== null && expiresIn < 60 ? "Renew subscription" : "Subscription"}
               </div>
               <div className="text-xs text-slate-500 mt-0.5 mb-3">
-                {cat ? `${cat.name} — KES ${fee.toLocaleString()} ${cat.billing_frequency === "annual" ? "/ year" : "/ month"}` : "No category assigned"}
+                {apiSub
+                  ? `${apiSub.member_category.name} — KES ${subAmount.toLocaleString()}${
+                      apiSub.payment_method ? ` · ${apiSub.payment_method}` : ""
+                    }`
+                  : "No active subscription on file"}
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="M-Pesa phone (e.g. 0712345678)"
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm"
-                />
-                <button
-                  onClick={pay}
-                  disabled={!phone || !fee || stk.isPending}
-                  className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {stk.isPending ? "Sending STK…" : `Pay KES ${fee.toLocaleString()}`}
-                </button>
-              </div>
+              <button
+                onClick={onRenew}
+                disabled={subscribe.isPending}
+                className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+              >
+                {subscribe.isPending
+                  ? "Submitting…"
+                  : apiSub
+                    ? `Renew · KES ${subAmount.toLocaleString()}`
+                    : "Start subscription"}
+              </button>
               <div className="text-[11px] text-slate-400 mt-2">
-                FR-MP-006 · M-Pesa STK push (mock). Receipt is emailed and added to your payment history on confirmation.
+                POST /member/subscriptions — backend issues the invoice; pay via the
+                invoice link the secretariat shares.
               </div>
             </div>
           )}
@@ -189,15 +213,20 @@ export default function MyMembershipPage() {
               Renewal reminder: your subscription expires in {expiresIn} days (FR-MP-012).
             </div>
           )}
+
+          {/* Outstanding invoice surfaced from /member/dashboard */}
+          {apiSub?.invoice && !apiSub.invoice.status && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-sm">
+              <div className="font-semibold">
+                Invoice {apiSub.invoice.invoice_number} — KES {Number(apiSub.invoice.amount).toLocaleString()}
+              </div>
+              <div className="text-xs opacity-80">
+                Issued {fmtDate(apiSub.invoice.issue_date)} · Due {fmtDate(apiSub.invoice.due_date)}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div>
-    <dt className="text-[11px] uppercase tracking-wide text-slate-500">{label}</dt>
-    <dd className="text-sm text-slate-900 mt-0.5">{value}</dd>
-  </div>
-);

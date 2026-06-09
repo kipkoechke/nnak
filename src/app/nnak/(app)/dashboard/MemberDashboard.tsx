@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { MdBadge, MdEventAvailable, MdPayments, MdArrowForward, MdWorkOutline } from "react-icons/md";
+import {
+  MdBadge,
+  MdPayments,
+  MdArrowForward,
+  MdWorkOutline,
+} from "react-icons/md";
 import { useNnakMe } from "@/hooks/use-auth";
-import { useMember } from "@/hooks/use-members";
-import { useMyPayments } from "@/hooks/use-payments";
-import { useMyRegistrations } from "@/hooks/use-events";
-import { useCategories } from "@/hooks/use-categories";
 import { useMemberDashboardApi } from "@/hooks/use-subscriptions";
 import { useMyWorkstations } from "@/hooks/use-workstations";
 
@@ -17,31 +18,38 @@ const daysUntil = (iso?: string | null) => {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 };
 
+/**
+ * Member portal dashboard.
+ *
+ * Per the agreed contract this view only calls the member-allowed
+ * endpoints:
+ *   GET /profile             (via useNnakMe)
+ *   GET /member/dashboard    (via useMemberDashboardApi)
+ *   GET /member/workstations (via useMyWorkstations)
+ *
+ * No /branches, /categories, /employer-types, /payments, /events.
+ */
 export default function MemberDashboard() {
   const { data: me } = useNnakMe();
-  const { data: member } = useMember(me?.id ?? "");
-  const { data: paymentsPage } = useMyPayments(me?.id);
-  const { data: myRegs = [] } = useMyRegistrations(me?.id);
-  const { data: cats = [] } = useCategories();
   const { data: apiDash } = useMemberDashboardApi();
   const { data: workstations = [] } = useMyWorkstations();
 
   if (!me) return <div className="text-sm text-slate-500">Loading your portal…</div>;
-  // Prefer the real backend profile (from /profile via useNnakMe), falling
-  // back to the mock-store member record that only exists for demo sign-ins.
-  const profile = me.profile ?? member?.profile;
-  if (!profile) return <div className="text-sm text-slate-500">Setting up your portal…</div>;
+  const profile = me.profile;
 
-  const cat = cats.find((c) => c.id === profile.member_category_id);
-  const categoryLabel = profile.employer_type || cat?.name || "—";
+  // Profile-derived (no extra fetch): use employer_type from /profile as
+  // the "category" label rather than calling /categories or /branches.
+  const accountNumber = apiDash?.account_number || profile?.account_number || "—";
+  const categoryLabel =
+    apiDash?.subscription?.member_category?.name ||
+    profile?.employer_type ||
+    "—";
+
   const apiExpiry = apiDash?.subscription?.end_date ?? null;
   const expiresIn = apiExpiry
     ? daysUntil(apiExpiry)
-    : daysUntil(profile.subscription_expires_at);
-  const nextEvent = [...myRegs]
-    .filter((r) => r.event && new Date(r.event.starts_at) >= new Date())
-    .sort((a, b) => (a.event?.starts_at || "").localeCompare(b.event?.starts_at || ""))[0];
-  const lastPayment = paymentsPage?.data?.[0];
+    : daysUntil(profile?.subscription_expires_at);
+
   const apiStatus = apiDash?.subscription_status;
   const status =
     apiStatus === "active"
@@ -50,8 +58,10 @@ export default function MemberDashboard() {
         ? "pending"
         : apiStatus === "expired" || apiStatus === "cancelled"
           ? "inactive"
-          : (profile.status || "pending");
+          : (profile?.status || "pending");
+
   const currentWorkstation = workstations[0];
+  const invoice = apiDash?.subscription?.invoice;
 
   const statusTone =
     status === "active"
@@ -67,7 +77,7 @@ export default function MemberDashboard() {
           <div className="text-sm opacity-80">Welcome back,</div>
           <div className="text-xl font-semibold">{me.name}</div>
           <div className="text-[11px] opacity-80 mt-1">
-            Member #{profile.account_number} · {categoryLabel}
+            Member #{accountNumber} · {categoryLabel}
           </div>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-2">
@@ -85,12 +95,12 @@ export default function MemberDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <PortalCard
           href="/nnak/me/membership"
           icon={MdBadge}
           title="My Membership"
-          primary={fmtDate(apiExpiry ?? profile.subscription_expires_at)}
+          primary={fmtDate(apiExpiry ?? profile?.subscription_expires_at)}
           subtitle={
             expiresIn === null
               ? "No active subscription"
@@ -101,18 +111,19 @@ export default function MemberDashboard() {
           tone={expiresIn !== null && expiresIn < 0 ? "danger" : expiresIn !== null && expiresIn <= 60 ? "warn" : "ok"}
         />
         <PortalCard
-          href="/nnak/me/events"
-          icon={MdEventAvailable}
-          title="My Events"
-          primary={nextEvent ? nextEvent.event!.name : "No upcoming"}
-          subtitle={nextEvent ? `${fmtDate(nextEvent.event!.starts_at)} · ${nextEvent.event!.venue}` : "Browse events to register"}
-        />
-        <PortalCard
-          href="/nnak/me/payments"
+          href="/nnak/me/subscriptions"
           icon={MdPayments}
-          title="My Payments"
-          primary={lastPayment ? `KES ${Number(lastPayment.amount).toLocaleString()}` : "—"}
-          subtitle={lastPayment ? `${lastPayment.purpose} · ${fmtDate(lastPayment.paid_at)}` : "No payments yet"}
+          title="Subscriptions & Invoices"
+          primary={
+            apiDash?.subscription
+              ? `KES ${Number(apiDash.subscription.amount).toLocaleString()}`
+              : "—"
+          }
+          subtitle={
+            invoice
+              ? `${invoice.invoice_number} · ${invoice.status ? "Paid" : "Unpaid"}`
+              : "No active subscription"
+          }
         />
         <PortalCard
           href="/nnak/me/workstations"
@@ -127,15 +138,15 @@ export default function MemberDashboard() {
         />
       </div>
 
-      {apiDash?.subscription?.invoice && !apiDash.subscription.invoice.status && (
+      {invoice && !invoice.status && (
         <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
           <div>
             <div className="font-semibold">
-              Invoice {apiDash.subscription.invoice.invoice_number} —
-              KES {Number(apiDash.subscription.invoice.amount).toLocaleString()}
+              Invoice {invoice.invoice_number} —
+              KES {Number(invoice.amount).toLocaleString()}
             </div>
             <div className="text-xs opacity-80">
-              Due {fmtDate(apiDash.subscription.invoice.due_date)}
+              Due {fmtDate(invoice.due_date)}
             </div>
           </div>
           <Link

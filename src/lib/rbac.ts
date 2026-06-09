@@ -26,6 +26,8 @@ export const nnakCan = {
   manageMembers: (u?: NnakUser | null) =>
     has(u, ["super_admin", "admin", "branch", "branch_manager"]),
   upgradeCategory: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
+  /** Create / edit branches — HQ only. Branch managers cannot. */
+  manageBranches: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
 
   // Events
   manageEvents: (u?: NnakUser | null) =>
@@ -48,6 +50,10 @@ export const nnakCan = {
     has(u, ["branch", "branch_manager"]),
   exportData: (u?: NnakUser | null) =>
     has(u, ["super_admin", "admin", "finance"]),
+  /** Standalone Reports page — excludes branch_manager whose own
+   *  dashboard is the only reporting surface they need. */
+  viewReports: (u?: NnakUser | null) =>
+    has(u, ["super_admin", "admin", "finance", "executive"]),
 
   // ILM
   manageILM: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),

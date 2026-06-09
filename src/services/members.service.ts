@@ -82,10 +82,13 @@ export const membersService = {
   },
 
   // ── Admin approval flow ────────────────────────────────────────────
-  listPending: async (params?: { page?: number; per_page?: number }) => {
+  listPending: async (
+    params?: { page?: number; per_page?: number },
+  ): Promise<{ data: PendingMemberProfile[]; pagination?: NnakPagination }> => {
     if (isDemoSession()) {
-      const all = mockStore.listMembers({ status: "pending", ...params });
-      return all;
+      // Demo store doesn't carry the full PendingMemberProfile shape — the
+      // approval flow is admin-only and not part of the demo personas.
+      return { data: [], pagination: undefined };
     }
     const r = await nnakApi.get<PendingResponse>("/members/pending", { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };

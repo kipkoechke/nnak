@@ -9,7 +9,7 @@ import {
   MdPayments,
   MdReceipt,
   MdBadge,
-  MdEventAvailable,
+  MdWorkOutline,
 } from "react-icons/md";
 import { useMe } from "@/hooks/use-auth";
 import { isMemberRole } from "@/lib/rbac";
@@ -31,8 +31,8 @@ const STAFF_NAV: NavItem[] = [
 const MEMBER_NAV: NavItem[] = [
   { name: "Portal", href: "/nnak/dashboard", icon: MdInsertChart },
   { name: "Membership", href: "/nnak/me/membership", icon: MdBadge },
-  { name: "Events", href: "/nnak/me/events", icon: MdEventAvailable },
-  { name: "Payments", href: "/nnak/me/payments", icon: MdReceipt },
+  { name: "Workstations", href: "/nnak/me/workstations", icon: MdWorkOutline },
+  { name: "Subscriptions", href: "/nnak/me/subscriptions", icon: MdReceipt },
 ];
 
 const MobileFooterNav: React.FC = () => {

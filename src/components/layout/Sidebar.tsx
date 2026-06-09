@@ -42,13 +42,14 @@ interface MenuItem {
 const STAFF_ITEMS: MenuItem[] = [
   { name: "Dashboard", icon: MdInsertChart, href: "/nnak/dashboard", show: nnakCan.viewDashboard },
   { name: "Members", icon: MdPeople, href: "/nnak/members", show: nnakCan.manageMembers },
+  { name: "Pending Approvals", icon: MdHowToReg, href: "/nnak/members/pending", show: nnakCan.approveMembers },
   { name: "Categories", icon: MdCategory, href: "/nnak/categories", show: nnakCan.upgradeCategory },
-  { name: "Branches", icon: MdBusiness, href: "/nnak/branches", show: nnakCan.manageMembers },
+  { name: "Branches", icon: MdBusiness, href: "/nnak/branches", show: nnakCan.manageBranches },
   { name: "By-Product", icon: MdHowToReg, href: "/nnak/byproduct", show: nnakCan.reconcileByProduct },
   { name: "Events", icon: MdEvent, href: "/nnak/events", show: nnakCan.manageEvents },
   { name: "Check-In", icon: MdQrCodeScanner, href: "/nnak/checkin", show: nnakCan.checkInAttendees },
   { name: "Payments", icon: MdPayments, href: "/nnak/payments", show: nnakCan.viewFinancials },
-  { name: "Reports", icon: MdReceipt, href: "/nnak/reports", show: nnakCan.viewDashboard },
+  { name: "Reports", icon: MdReceipt, href: "/nnak/reports", show: nnakCan.viewReports },
   { name: "Audit Log", icon: MdHistory, href: "/nnak/ilm/audit", show: nnakCan.viewAuditLog },
   { name: "Data Exports", icon: MdFolderShared, href: "/nnak/ilm/exports", show: nnakCan.approveDataExport },
   { name: "Erasure", icon: MdShield, href: "/nnak/ilm/erasure", show: nnakCan.manageILM },
@@ -58,8 +59,9 @@ const MEMBER_ITEMS: MenuItem[] = [
   { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
   { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
   { name: "Workstations", icon: MdWorkOutline, href: "/nnak/me/workstations", show: nnakCan.viewMyWorkstations },
-  { name: "Events", icon: MdEventAvailable, href: "/nnak/me/events", show: nnakCan.viewMyEvents },
-  { name: "Payments", icon: MdReceipt, href: "/nnak/me/payments", show: nnakCan.viewMyPayments },
+  // Member sidebar surfaces only routes backed by the 5 allowed endpoints
+  // (/profile, /member/dashboard, /member/workstations, /member/subscriptions).
+  { name: "Subscriptions", icon: MdReceipt, href: "/nnak/me/subscriptions", show: nnakCan.viewMyPayments },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {

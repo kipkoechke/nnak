@@ -4,9 +4,16 @@ import Link from "next/link";
 import { MdAdd, MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useMembers, useSetMemberStatus } from "@/hooks/use-members";
+import {
+  useApproveMember,
+  useMembers,
+  useRejectMember,
+  useSetMemberStatus,
+} from "@/hooks/use-members";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
+import { useNnakMe } from "@/hooks/use-auth";
+import { nnakCan } from "@/lib/rbac";
 
 const STATUS_COLOR: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -34,6 +41,10 @@ export default function MembersPage() {
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
   const setStatusM = useSetMemberStatus();
+  const { data: me } = useNnakMe();
+  const approve = useApproveMember();
+  const reject = useRejectMember();
+  const canApprove = nnakCan.approveMembers(me);
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
@@ -104,31 +115,53 @@ export default function MembersPage() {
                         </Link>
                         <div className="text-xs text-slate-500">{m.email}</div>
                       </td>
-                      <td className="px-4 py-2 hidden md:table-cell">{m.profile.license_number || "—"}</td>
+                      <td className="px-4 py-2 hidden md:table-cell">{m.profile?.license_number || "—"}</td>
                       <td className="px-4 py-2 hidden md:table-cell">
-                        {cats.find((c) => c.id === m.profile.member_category_id)?.name || "—"}
+                        {m.profile?.member_category?.name ||
+                          cats.find((c) => c.id === m.profile?.member_category_id)?.name ||
+                          "—"}
                       </td>
                       <td className="px-4 py-2 hidden lg:table-cell">
-                        {branches.find((b) => b.id === m.profile.branch_id)?.name || "—"}
+                        {m.profile?.branch?.name ||
+                          branches.find((b) => b.id === m.profile?.branch_id)?.name ||
+                          "—"}
                       </td>
                       <td className="px-4 py-2">
-                        <span className={`px-2 py-0.5 text-[11px] rounded-full border ${STATUS_COLOR[m.profile.status || "pending"]}`}>
-                          {m.profile.status}
-                        </span>
+                        {(() => {
+                          const isApproved = m.profile?.is_approved ?? (m.profile?.status === "active");
+                          const status = isApproved ? "active" : "pending";
+                          return (
+                            <span className={`px-2 py-0.5 text-[11px] rounded-full border ${STATUS_COLOR[status]}`}>
+                              {status}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-2">
-                        {m.profile.status === "pending" && (
-                          <button
-                            onClick={() => setStatusM.mutate({ id: m.id, status: "active", reason: "approved" })}
-                            className="text-xs bg-emerald-600 text-white px-2 py-1 rounded mr-1"
-                          >
-                            Approve
-                          </button>
+                        {canApprove && m.profile && !(m.profile.is_approved ?? false) && (
+                          <>
+                            <button
+                              disabled={approve.isPending || reject.isPending}
+                              onClick={() => approve.mutate(m.profile!.id)}
+                              className="text-xs bg-emerald-600 text-white px-2 py-1 rounded mr-1 disabled:opacity-50"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              disabled={approve.isPending || reject.isPending}
+                              onClick={() => {
+                                if (confirm(`Reject ${m.name}?`)) reject.mutate(m.profile!.id);
+                              }}
+                              className="text-xs bg-red-600 text-white px-2 py-1 rounded disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </>
                         )}
-                        {m.profile.status === "active" && (
+                        {canApprove && m.profile?.is_approved && (
                           <button
                             onClick={() => setStatusM.mutate({ id: m.id, status: "suspended" })}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded"
+                            className="text-xs bg-amber-600 text-white px-2 py-1 rounded"
                           >
                             Suspend
                           </button>
