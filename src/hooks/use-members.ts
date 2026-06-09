@@ -14,11 +14,12 @@ export interface MemberListParams {
   branch_id?: string;
 }
 
-export const useMembers = (p: MemberListParams = {}) =>
+export const useMembers = (p: MemberListParams = {}, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.members.list(p as Record<string, unknown>),
     queryFn: () => membersService.list(p),
     placeholderData: (prev) => prev,
+    enabled: opts?.enabled,
   });
 
 export const useMember = (id: string) =>

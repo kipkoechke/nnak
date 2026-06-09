@@ -10,6 +10,7 @@ import {
   useRejectMember,
   useSetMemberStatus,
 } from "@/hooks/use-members";
+import { useBranchMembers } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
 import { useNnakMe } from "@/hooks/use-auth";
@@ -30,21 +31,31 @@ export default function MembersPage() {
   const [categoryId, setCategoryId] = useState("");
   const [branchId, setBranchId] = useState("");
 
-  const { data, isLoading } = useMembers({
+  const { data: me } = useNnakMe();
+  const isBranchManager = me?.role === "branch" || me?.role === "branch_manager";
+
+  const branchMembersQuery = useBranchMembers({
+    page,
+    per_page: 15,
+    search: search || undefined,
+  }, { enabled: isBranchManager });
+
+  const adminMembersQuery = useMembers({
     page,
     per_page: 15,
     search: search || undefined,
     status: status || undefined,
     category_id: categoryId || undefined,
     branch_id: branchId || undefined,
-  });
+  }, { enabled: !isBranchManager });
+
+  const { data, isLoading } = isBranchManager ? branchMembersQuery : adminMembersQuery;
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches();
   const setStatusM = useSetMemberStatus();
-  const { data: me } = useNnakMe();
   const approve = useApproveMember();
   const reject = useRejectMember();
-  const canApprove = nnakCan.approveMembers(me);
+  const canApprove = !isBranchManager && nnakCan.approveMembers(me);
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
@@ -61,8 +72,8 @@ export default function MembersPage() {
         }
       />
 
-      <div className="bg-white border border-slate-200 rounded-lg p-3 grid grid-cols-2 md:grid-cols-4 gap-2">
-        <div className="relative col-span-2 md:col-span-1">
+      <div className={`bg-white border border-slate-200 rounded-lg p-3 grid gap-2 ${isBranchManager ? "grid-cols-1" : "grid-cols-2 md:grid-cols-4"}`}>
+        <div className={`relative ${isBranchManager ? "" : "col-span-2 md:col-span-1"}`}>
           <MdSearch className="absolute left-2 top-2.5 text-slate-400 w-4 h-4" />
           <input
             value={search}
@@ -71,20 +82,24 @@ export default function MembersPage() {
             className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm"
           />
         </div>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
-          <option value="">All statuses</option>
-          {["pending","active","suspended","inactive","archived"].map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
-          <option value="">All categories</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
-          <option value="">All branches</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
+        {!isBranchManager && (
+          <>
+            <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
+              <option value="">All statuses</option>
+              {["pending","active","suspended","inactive","archived"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
+              <option value="">All categories</option>
+              {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-lg border border-slate-200 flex-1 min-h-0 flex flex-col overflow-hidden">

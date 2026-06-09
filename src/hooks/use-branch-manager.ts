@@ -21,11 +21,13 @@ export const useBranchDashboard = (params?: DateRangeParams) =>
 
 export const useBranchMembers = (
   params: { page?: number; per_page?: number; search?: string } = {},
+  opts?: { enabled?: boolean },
 ) =>
   useQuery({
     queryKey: nqk.branchMembers(params as Record<string, unknown>),
     queryFn: () => branchManagerService.listMembers(params),
     placeholderData: (prev) => prev,
+    enabled: opts?.enabled,
   });
 
 export const useAddBranchMember = () => {

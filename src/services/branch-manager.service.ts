@@ -41,9 +41,10 @@ export const branchManagerService = {
   },
 
   listMembers: async (params?: { page?: number; per_page?: number; search?: string }) => {
-    if (isDemoSession()) return { data: [], pagination: undefined };
+    if (isDemoSession()) return { data: [], pagination: undefined, meta: undefined };
     const r = await nnakApi.get<BranchMembersResponse>("/branch/members", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    const pagination = r.data?.pagination;
+    return { data: r.data?.data ?? [], pagination, meta: pagination };
   },
 
   /** Create a member under the manager's branch. Returns a pending_token
