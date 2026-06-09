@@ -1,6 +1,6 @@
 // Member invoice M-Pesa STK Push & query endpoints:
 //   POST /member/invoices/{invoice_id}/mpesa/stkpush   { phone_number }
-//   GET  /member/invoices/{invoice_id}/mpesa/stkquery
+//   POST /member/invoices/{invoice_id}/mpesa/stkquery
 //   POST /mpesa/c2b/register-urls                      { validation_url?, confirmation_url? }
 import { nnakApi } from "@/lib/api";
 import type {
@@ -28,7 +28,7 @@ export const memberPaymentService = {
     invoiceId: string,
   ): Promise<InvoiceStkQueryResponse["data"]> =>
     unwrap<InvoiceStkQueryResponse["data"]>(
-      nnakApi.get(`/member/invoices/${invoiceId}/mpesa/stkquery`),
+      nnakApi.post(`/member/invoices/${invoiceId}/mpesa/stkquery`),
     ),
 
   registerC2bUrls: async (
