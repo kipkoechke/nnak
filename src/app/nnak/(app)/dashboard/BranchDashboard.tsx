@@ -31,25 +31,32 @@ export default function BranchDashboard() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-end gap-2 text-sm">
-        <div>
-          <label className="block text-[11px] text-slate-500 mb-1">From</label>
-          <input
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
-          />
+      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <div className="flex items-center gap-2">
+          <div>
+            <label className="block text-[11px] text-slate-500 mb-1">From</label>
+            <input
+              type="date"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] text-slate-500 mb-1">To</label>
+            <input
+              type="date"
+              value={end}
+              onChange={(e) => setEnd(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 mb-1">To</label>
-          <input
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
-          />
-        </div>
+        {data?.branch_name && (
+          <div className="text-sm text-slate-700">
+            <span className="font-semibold">{data.branch_name}</span>
+          </div>
+        )}
       </div>
 
       {isLoading && !data ? (
@@ -58,11 +65,6 @@ export default function BranchDashboard() {
         <div className="text-sm text-slate-500">No branch data available.</div>
       ) : (
         <>
-          {data.branch_name && (
-            <div className="text-sm text-slate-700">
-              Branch: <span className="font-semibold">{data.branch_name}</span>
-            </div>
-          )}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <Kpi label="Total Members" value={data.total_members} />
             <Kpi label="Active" value={data.active_members} tone="ok" />
