@@ -15,7 +15,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const { data: me } = useNnakMe();
   const isBranchManager = me?.role === "branch" || me?.role === "branch_manager";
 
-  const adminMember = useMember(id);
+  const adminMember = useMember(!isBranchManager ? id : "");
   const branchMember = useBranchMember(isBranchManager ? id : undefined);
   const { data: member, isLoading } = isBranchManager ? branchMember : adminMember;
 
