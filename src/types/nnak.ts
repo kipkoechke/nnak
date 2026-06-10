@@ -75,6 +75,7 @@ export interface NnakProfile {
   verified_by?: string | null;
   designation?: string | null;
   chapter?: string | null;
+  chapter_label?: string | null;
   member_category_name?: string | null;
   /** /member/dashboard surfaces these too. */
   subscription_active?: boolean;
