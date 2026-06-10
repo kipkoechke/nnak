@@ -557,8 +557,8 @@ export interface Workstation {
   id: string;
   name: string;
   country: string;
-  city: string;
-  start_date: string; // ISO
+  county: string;
+  start_date: string;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -566,8 +566,8 @@ export interface Workstation {
 export interface WorkstationInput {
   name: string;
   country: string;
-  city: string;
-  start_date: string; // YYYY-MM-DD
+  county: string;
+  start_date: string;
 }
 
 // ── Subscriptions & Invoices (GET/POST /member/subscriptions) ──────

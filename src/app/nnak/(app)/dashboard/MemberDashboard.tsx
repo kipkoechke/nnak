@@ -135,7 +135,7 @@ export default function MemberDashboard() {
           primary={currentWorkstation ? currentWorkstation.name : "None on file"}
           subtitle={
             currentWorkstation
-              ? `${currentWorkstation.city}, ${currentWorkstation.country}`
+              ? `${currentWorkstation.county}, ${currentWorkstation.country}`
               : "Add your current employer"
           }
         />

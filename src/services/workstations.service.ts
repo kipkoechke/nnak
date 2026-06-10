@@ -1,6 +1,6 @@
 // Member workstations (employer history): /member/workstations
 //   GET    /member/workstations           -> { data: Workstation[], pagination }
-//   POST   /member/workstations           { name, country, city, start_date }
+//   POST   /member/workstations           { name, country, county, start_date }
 //   PATCH  /member/workstations/{id}      partial
 //   DELETE /member/workstations/{id}
 import { nnakApi } from "@/lib/api";
