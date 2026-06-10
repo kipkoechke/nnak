@@ -2,7 +2,6 @@
 import { useMemo, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { useCreateBranch, useNnakBranches } from "@/hooks/use-branches";
-import { useMembers } from "@/hooks/use-members";
 import { useEmployerTypes } from "@/hooks/use-enums";
 import { useNnakMe } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
@@ -20,7 +19,6 @@ const emptyBranch: CreateBranchInput = {
 export default function NnakBranchesPage() {
   const { data: me } = useNnakMe();
   const { data: branches = [] } = useNnakBranches();
-  const { data: allMembers } = useMembers({ per_page: 1000 });
   const { data: employerTypes = [] } = useEmployerTypes();
   const create = useCreateBranch();
 
@@ -30,9 +28,6 @@ export default function NnakBranchesPage() {
   const [form, setForm] = useState<CreateBranchInput>(emptyBranch);
 
   const canCreate = nnakCan.manageBranches(me);
-
-  const countFor = (id: string) =>
-    allMembers?.data.filter((m) => m.profile?.branch_id === id).length ?? 0;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -95,7 +90,6 @@ export default function NnakBranchesPage() {
             <tr>
               <th className="px-4 py-2">Branch</th>
               <th className="px-4 py-2">Employer Type</th>
-              <th className="px-4 py-2 text-right">Members</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -107,11 +101,10 @@ export default function NnakBranchesPage() {
                       {b.employer_type_label || b.employer_type || "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right">{countFor(b.id)}</td>
                 </tr>
               ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">No branches match the filter.</td></tr>
+              <tr><td colSpan={2} className="px-4 py-8 text-center text-slate-500 text-sm">No branches match the filter.</td></tr>
             )}
           </tbody>
         </table>
