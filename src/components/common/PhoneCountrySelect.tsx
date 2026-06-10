@@ -4,6 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { getCountryCallingCode, type Country } from "react-phone-number-input";
 import { MdSearch, MdExpandMore, MdCheck } from "react-icons/md";
+import * as Flags from "country-flag-icons/react/3x2";
+
+type FlagComponent = React.ComponentType<{
+  title?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}>;
 
 type CountryCode = Country;
 
@@ -26,14 +33,24 @@ export interface PhoneCountrySelectProps {
 }
 
 /**
- * Convert an ISO 3166-1 alpha-2 country code (e.g. "KE") to its unicode
- * flag emoji ("🇰🇪"). Avoids the country-flag-icons dependency so the
- * Vercel build stays clean of unresolved modules.
+ * Look up the SVG flag for an ISO 3166-1 alpha-2 country code (e.g. "KE").
+ * Unicode flag emojis don't render on most Windows + ChromeOS browsers,
+ * so we ship inline SVGs from `country-flag-icons` instead.
  */
-const flagEmoji = (cc: string): string =>
-  cc
-    .toUpperCase()
-    .replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)));
+const Flag = ({ code, className }: { code?: Country; className?: string }) => {
+  if (!code) return <span className={`bg-slate-200 rounded-sm ${className ?? ""}`} />;
+  const FlagIcon = (Flags as unknown as Record<string, FlagComponent | undefined>)[code];
+  if (!FlagIcon) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center bg-slate-100 text-[10px] font-semibold text-slate-700 rounded-sm ${className ?? ""}`}
+      >
+        {code}
+      </span>
+    );
+  }
+  return <FlagIcon title={code} className={`rounded-sm overflow-hidden ${className ?? ""}`} />;
+};
 
 export function PhoneCountrySelect({
   value,
@@ -102,13 +119,7 @@ export function PhoneCountrySelect({
         aria-label="Select phone country code"
         className="flex items-center gap-1.5 pr-2 shrink-0 cursor-pointer disabled:cursor-not-allowed"
       >
-        {value ? (
-          <span className="text-base leading-none" title={value}>
-            {flagEmoji(value)}
-          </span>
-        ) : (
-          <span className="w-5 h-3.5 rounded-sm bg-slate-200 shrink-0" />
-        )}
+        <Flag code={value} className="w-6 h-4 shrink-0" />
         <MdExpandMore
           className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
@@ -172,9 +183,7 @@ export function PhoneCountrySelect({
                           : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span className="text-base leading-none" title={option.label}>
-                        {flagEmoji(option.value)}
-                      </span>
+                      <Flag code={option.value} className="w-5 h-3.5 shrink-0" />
                       <span className="flex-1 truncate">{option.label}</span>
                       <span className="text-slate-400 text-xs tabular-nums shrink-0">
                         {dial}

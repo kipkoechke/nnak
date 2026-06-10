@@ -7,17 +7,23 @@ import { useNnakRegister } from "@/hooks/use-auth";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 
-const GENDERS = ["Female", "Male", "Other"];
+/* ── Static option sets ─────────────────────────────────────── */
 
-const ID_TYPES = [
+const GENDER_OPTS = [
+  { value: "Female", label: "Female" },
+  { value: "Male", label: "Male" },
+  { value: "Other", label: "Other" },
+];
+
+const ID_TYPE_OPTS = [
   { value: "National ID", label: "National ID", description: "Kenyan citizens" },
   { value: "Passport", label: "Passport", description: "Non-citizens / international" },
   { value: "Alien ID", label: "Alien ID", description: "Foreign nationals resident in Kenya" },
   { value: "Birth Certificate", label: "Birth Certificate", description: "For minors / students" },
 ];
 
-// 47 Kenyan counties, sourced from the official NNAK handout.
-const COUNTIES = [
+// 47 Kenyan counties — official NNAK handout.
+const COUNTY_OPTS = [
   "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
   "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
   "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui",
@@ -26,13 +32,61 @@ const COUNTIES = [
   "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri",
   "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi",
   "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
-];
+].map((c) => ({ value: c, label: c }));
 
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
   { id: 3, label: "Account Details" },
 ] as const;
+
+/* ── Shared visual primitives (match SearchableSelect / InputField) ── */
+
+const FIELD_INPUT_CLS =
+  "w-full px-3 py-3 border rounded-lg shadow-sm text-sm bg-white text-gray-900 placeholder:text-gray-500 " +
+  "border-gray-300 hover:border-gray-400 transition-colors " +
+  "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
+
+const FIELD_LABEL_CLS = "block text-sm font-bold text-gray-700 mb-2";
+
+const FormInput = ({
+  label,
+  required,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  minLength,
+}: {
+  label: string;
+  required?: boolean;
+  type?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  minLength?: number;
+}) => (
+  <div>
+    <label className={FIELD_LABEL_CLS}>
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+      autoComplete={autoComplete}
+      minLength={minLength}
+      className={FIELD_INPUT_CLS}
+    />
+  </div>
+);
+
+/* ── Page ───────────────────────────────────────────────────── */
 
 export default function NnakRegisterPage() {
   const router = useRouter();
@@ -79,12 +133,12 @@ export default function NnakRegisterPage() {
     !!form.password_confirmation &&
     form.password === form.password_confirmation;
 
-  const step3Valid = passwordsMatch;
+  const step3Valid = passwordsMatch && form.password.length >= 8;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!step3Valid) {
-      toast.error("Passwords do not match");
+      toast.error("Please make sure both passwords match (min 8 characters)");
       return;
     }
     const r = await reg
@@ -115,214 +169,160 @@ export default function NnakRegisterPage() {
     router.push(`/nnak/verify-otp?${params.toString()}`);
   };
 
-  // Memoise option arrays so SearchableSelect doesn't re-trigger
-  // search effects on every render.
-  const idTypeOptions = useMemo(() => ID_TYPES, []);
-  const countyOptions = useMemo(
-    () => COUNTIES.map((c) => ({ value: c, label: c })),
-    [],
-  );
+  const idTypeOptions = useMemo(() => ID_TYPE_OPTS, []);
+  const countyOptions = useMemo(() => COUNTY_OPTS, []);
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-5">
       <p className="text-xs text-slate-500">NNAK self-registration</p>
 
       {/* Step indicator */}
-      <div className="flex gap-2">
-        {STEPS.map((s) => (
-          <div
-            key={s.id}
-            className={`flex-1 h-1 rounded-full ${
-              step >= s.id ? "bg-primary" : "bg-slate-200"
-            }`}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between text-xs">
-        {STEPS.map((s) => (
-          <span
-            key={s.id}
-            className={
-              step === s.id
-                ? "text-primary font-semibold"
-                : step > s.id
-                  ? "text-slate-700"
-                  : "text-slate-400"
-            }
-          >
-            {s.label}
-          </span>
-        ))}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          {STEPS.map((s) => (
+            <div
+              key={s.id}
+              className={`flex-1 h-1 rounded-full ${
+                step >= s.id ? "bg-primary" : "bg-slate-200"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between text-xs">
+          {STEPS.map((s) => (
+            <span
+              key={s.id}
+              className={
+                step === s.id
+                  ? "text-primary font-semibold"
+                  : step > s.id
+                    ? "text-slate-700"
+                    : "text-slate-400"
+              }
+            >
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* ── Step 1 — Personal Details ───────────────────── */}
+      {/* ── Step 1 — Personal Details ─────────────────── */}
       {step === 1 && (
-        <div className="space-y-3">
-          {(
-            [
-              ["name", "Full Name", "text", "e.g. Jane Achieng Omondi"],
-              ["email", "Email", "email", "e.g. jane.omondi@example.com"],
-            ] as const
-          ).map(([key, label, type, placeholder]) => (
-            <div key={key}>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                {label}
-              </label>
-              <input
-                type={type}
-                value={form[key]}
-                onChange={(e) => set(key, e.target.value)}
-                placeholder={placeholder}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          ))}
+        <div className="space-y-4">
+          <FormInput
+            label="Full Name"
+            required
+            value={form.name}
+            onChange={(v) => set("name", v)}
+            placeholder="e.g. Jane Achieng Omondi"
+            autoComplete="name"
+          />
+          <FormInput
+            label="Email"
+            type="email"
+            required
+            value={form.email}
+            onChange={(v) => set("email", v)}
+            placeholder="e.g. jane.omondi@example.com"
+            autoComplete="email"
+          />
 
           <PhoneInputField
             label="Phone"
+            required
             value={form.phone}
             onChange={(v) => set("phone", v ?? "")}
-            required
             defaultCountry="KE"
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => set("date_of_birth", e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Gender
-              </label>
-              <select
-                value={form.gender}
-                onChange={(e) => set("gender", e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-              >
-                <option value="">— Select —</option>
-                {GENDERS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormInput
+              label="Date of Birth"
+              type="date"
+              required
+              value={form.date_of_birth}
+              onChange={(v) => set("date_of_birth", v)}
+            />
+            <SearchableSelect
+              label="Gender"
+              required
+              options={GENDER_OPTS}
+              value={form.gender}
+              onChange={(v) => set("gender", v)}
+              placeholder="Select gender"
+            />
           </div>
 
-          {/* Identification — type + number on one row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <SearchableSelect
               label="Identification Type"
+              required
               options={idTypeOptions}
               value={form.identification_type}
               onChange={(v) => set("identification_type", v)}
-              placeholder="Select an ID type"
-              required
+              placeholder="Select ID type"
             />
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Identification Number
-              </label>
-              <input
-                type="text"
-                value={form.identification_number}
-                onChange={(e) => set("identification_number", e.target.value)}
-                placeholder="e.g. 34567890"
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+            <FormInput
+              label="Identification Number"
+              required
+              value={form.identification_number}
+              onChange={(v) => set("identification_number", v)}
+              placeholder="e.g. 34567890"
+            />
           </div>
 
           <button
             type="button"
             onClick={() => setStep(2)}
             disabled={!step1Valid}
-            className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
           >
             Continue
           </button>
         </div>
       )}
 
-      {/* ── Step 2 — Professional ────────────────────── */}
+      {/* ── Step 2 — Professional ──────────────────── */}
       {step === 2 && (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              NCK License Number
-            </label>
-            <input
-              type="text"
-              value={form.nck_number}
-              onChange={(e) => set("nck_number", e.target.value)}
-              placeholder="e.g. NCK/2024/98765"
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
+        <div className="space-y-4">
+          <FormInput
+            label="NCK License Number"
+            required
+            value={form.nck_number}
+            onChange={(v) => set("nck_number", v)}
+            placeholder="e.g. NCK/2024/98765"
+          />
+          <FormInput
+            label="Professional Qualification"
+            required
+            value={form.professional_qualification}
+            onChange={(v) => set("professional_qualification", v)}
+            placeholder="e.g. Bachelor of Science in Nursing"
+          />
+          <FormInput
+            label="Place of Work"
+            required
+            value={form.place_of_work}
+            onChange={(v) => set("place_of_work", v)}
+            placeholder="e.g. Kenyatta National Hospital"
+          />
 
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              Professional Qualification
-            </label>
-            <input
-              type="text"
-              value={form.professional_qualification}
-              onChange={(e) => set("professional_qualification", e.target.value)}
-              placeholder="e.g. Bachelor of Science in Nursing"
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormInput
+              label="Designation"
               required
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              value={form.designation}
+              onChange={(v) => set("designation", v)}
+              placeholder="e.g. Registered Nurse"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              Place of Work
-            </label>
-            <input
-              type="text"
-              value={form.place_of_work}
-              onChange={(e) => set("place_of_work", e.target.value)}
-              placeholder="e.g. Kenyatta National Hospital"
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Designation
-              </label>
-              <input
-                type="text"
-                value={form.designation}
-                onChange={(e) => set("designation", e.target.value)}
-                placeholder="e.g. Registered Nurse"
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
             <SearchableSelect
               label="County"
+              required
               options={countyOptions}
               value={form.county}
               onChange={(v) => set("county", v)}
-              placeholder="Select your county"
+              placeholder="Select county"
               searchPlaceholder="Search counties…"
-              required
             />
           </div>
 
@@ -330,7 +330,7 @@ export default function NnakRegisterPage() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+              className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50"
             >
               Back
             </button>
@@ -338,7 +338,7 @@ export default function NnakRegisterPage() {
               type="button"
               onClick={() => setStep(3)}
               disabled={!step2Valid}
-              className="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
               Continue
             </button>
@@ -346,39 +346,37 @@ export default function NnakRegisterPage() {
         </div>
       )}
 
-      {/* ── Step 3 — Account Details ─────────────────── */}
+      {/* ── Step 3 — Account Details ──────────────── */}
       {step === 3 && (
-        <div className="space-y-3">
-          {(
-            [
-              ["password", "Password", "••••••••"],
-              ["password_confirmation", "Confirm Password", "••••••••"],
-            ] as const
-          ).map(([key, label, placeholder]) => (
-            <div key={key}>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                {label}
-              </label>
-              <input
-                type="password"
-                value={form[key]}
-                onChange={(e) => set(key, e.target.value)}
-                placeholder={placeholder}
-                required
-                minLength={8}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          ))}
+        <div className="space-y-4">
+          <FormInput
+            label="Password"
+            type="password"
+            required
+            value={form.password}
+            onChange={(v) => set("password", v)}
+            placeholder="••••••••"
+            autoComplete="new-password"
+            minLength={8}
+          />
+          <FormInput
+            label="Confirm Password"
+            type="password"
+            required
+            value={form.password_confirmation}
+            onChange={(v) => set("password_confirmation", v)}
+            placeholder="••••••••"
+            autoComplete="new-password"
+            minLength={8}
+          />
 
-          {form.password && form.password_confirmation &&
+          {form.password &&
+            form.password_confirmation &&
             form.password !== form.password_confirmation && (
-              <div className="text-[11px] text-red-600">
-                Passwords do not match.
-              </div>
+              <div className="text-xs text-red-600">Passwords do not match.</div>
             )}
 
-          <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-md p-3">
+          <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
             Use 8 characters or more, mixing letters, numbers and symbols for a
             strong account.
           </div>
@@ -387,14 +385,14 @@ export default function NnakRegisterPage() {
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+              className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={reg.isPending || !step3Valid}
-              className="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
               {reg.isPending ? "Registering..." : "Create account"}
             </button>

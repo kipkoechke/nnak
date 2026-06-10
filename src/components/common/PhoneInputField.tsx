@@ -27,13 +27,13 @@ export function PhoneInputField({
 }: PhoneInputFieldProps) {
   return (
     <div>
-      <label className="text-gray-700 mb-2 flex text-xs font-semibold">
+      <label className="block text-sm font-bold text-gray-700 mb-2">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div
-        className={`booking-phone-input h-10 px-3 rounded-lg border bg-white flex items-center transition-all duration-300 hover:border-slate-400 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary ${
-          error ? "border-red-500" : "border-slate-300"
+        className={`booking-phone-input h-[46px] px-3 rounded-lg border bg-white flex items-center transition-colors shadow-sm hover:border-gray-400 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary ${
+          error ? "border-red-500" : "border-gray-300"
         }`}
       >
         <PhoneInput
