@@ -81,7 +81,32 @@ export default function MyMembershipPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
-      <PageHeader title="My Membership" />
+      <PageHeader
+        title="My Membership"
+        action={
+          !isStudent ? (
+            <div className="flex items-center gap-3">
+              {apiSub && (
+                <div className="hidden sm:block text-right">
+                  <div className="text-xs text-slate-500">
+                    {apiSub.member_category.name} · KES {subAmount.toLocaleString()}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    expires {fmtDate(subExpiry)}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={onRenew}
+                disabled={subscribe.isPending}
+                className="bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+              >
+                {subscribe.isPending ? "..." : apiSub ? "Renew" : "Subscribe"}
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4">
         {/* Digital ID Card column */}
@@ -168,32 +193,6 @@ export default function MyMembershipPage() {
               />
             </dl>
           </div>
-
-          {!isStudent && (
-            <div className="bg-white border border-slate-200 rounded-lg p-4">
-              <div className="text-sm font-semibold text-slate-900">
-                {expiresIn !== null && expiresIn < 60 ? "Renew subscription" : "Subscription"}
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5 mb-3">
-                {apiSub
-                  ? `${apiSub.member_category.name} — KES ${subAmount.toLocaleString()}${
-                      apiSub.payment_method ? ` · ${apiSub.payment_method}` : ""
-                    }`
-                  : "No active subscription on file"}
-              </div>
-              <button
-                onClick={onRenew}
-                disabled={subscribe.isPending}
-                className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-              >
-                {subscribe.isPending
-                  ? "Submitting…"
-                  : apiSub
-                    ? `Renew · KES ${subAmount.toLocaleString()}`
-                    : "Start subscription"}
-              </button>
-            </div>
-          )}
 
           {expiresIn !== null && expiresIn <= 60 && expiresIn >= 0 && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-lg p-3">
