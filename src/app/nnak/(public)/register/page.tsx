@@ -9,6 +9,7 @@ import { useNnakRegister } from "@/hooks/use-auth";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { DatePicker } from "@/components/common/DatePicker";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth.schema";
 
 const GENDER_OPTS = [
@@ -211,13 +212,19 @@ export default function NnakRegisterPage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InputField
-              label="Date of Birth"
-              type="date"
-              placeholder=""
-              register={register("date_of_birth")}
-              error={errors.date_of_birth?.message}
-              required
+            <Controller
+              control={control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <DatePicker
+                  label="Date of Birth"
+                  required
+                  value={field.value}
+                  onChange={field.onChange}
+                  maxDate={new Date()}
+                  error={errors.date_of_birth?.message}
+                />
+              )}
             />
             <Controller
               control={control}
