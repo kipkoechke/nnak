@@ -31,12 +31,7 @@ export default function NnakDashboardPage() {
   }
 
   if (view === "branch") {
-    return (
-      <div className="px-4 py-4 flex flex-col gap-3">
-        <PageHeader title="Branch Dashboard" description={`Welcome, ${user.name}`} />
-        <BranchDashboard />
-      </div>
-    );
+    return <BranchDashboard user={user} />;
   }
 
   return (

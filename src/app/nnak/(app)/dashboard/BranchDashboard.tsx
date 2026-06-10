@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useBranchDashboard } from "@/hooks/use-branch-manager";
+import PageHeader from "@/components/common/PageHeader";
+import type { NnakUser } from "@/types/nnak";
 
 const Kpi = ({ label, value, tone = "default" }: {
   label: string;
@@ -23,40 +25,44 @@ const monthsAgoIso = (n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-export default function BranchDashboard() {
+export default function BranchDashboard({ user }: { user: NnakUser }) {
   const [start, setStart] = useState(monthsAgoIso(1));
   const [end, setEnd] = useState(todayIso());
   const params = useMemo(() => ({ start_date: start, end_date: end }), [start, end]);
   const { data, isLoading } = useBranchDashboard(params);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <div className="flex items-center gap-2">
-          <div>
-            <label className="block text-[11px] text-slate-500 mb-1">From</label>
-            <input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] text-slate-500 mb-1">To</label>
-            <input
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
-            />
-          </div>
+    <div className="px-4 py-4 flex flex-col gap-3">
+      <PageHeader
+        title="Branch Dashboard"
+        description={`Welcome, ${user.name}`}
+        action={
+          data?.branch_name ? (
+            <span className="text-sm font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+              {data.branch_name}
+            </span>
+          ) : undefined
+        }
+      />
+      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-end gap-2 text-sm">
+        <div>
+          <label className="block text-[11px] text-slate-500 mb-1">From</label>
+          <input
+            type="date"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+          />
         </div>
-        {data?.branch_name && (
-          <div className="text-sm text-slate-700">
-            <span className="font-semibold">{data.branch_name}</span>
-          </div>
-        )}
+        <div>
+          <label className="block text-[11px] text-slate-500 mb-1">To</label>
+          <input
+            type="date"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+          />
+        </div>
       </div>
 
       {isLoading && !data ? (
