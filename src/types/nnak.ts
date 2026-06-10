@@ -116,9 +116,8 @@ export type EmployerType = "MOH" | "Parastatal" | "Private" | "FBO" | "Other";
 export interface Branch {
   id: string;
   name: string;
-  /** Matches the /api/v1/branches response. */
-  employer_type?: EmployerType | string;
-  /** Legacy / mock-only field, retained for backward-compat. */
+  employer_type?: string;
+  employer_type_label?: string;
   county?: string;
   chair_user_id?: string | null;
   secretariat_user_id?: string | null;

@@ -9,14 +9,6 @@ import { nnakCan } from "@/lib/rbac";
 import { MdAdd, MdClose } from "react-icons/md";
 import type { CreateBranchInput } from "@/types/nnak";
 
-const TONE: Record<string, string> = {
-  MOH: "bg-blue-100 text-blue-800",
-  Parastatal: "bg-violet-100 text-violet-800",
-  Private: "bg-emerald-100 text-emerald-800",
-  FBO: "bg-amber-100 text-amber-800",
-  Other: "bg-slate-200 text-slate-700",
-};
-
 const emptyBranch: CreateBranchInput = {
   name: "",
   employer_type: "Parastatal",
@@ -103,26 +95,21 @@ export default function NnakBranchesPage() {
             <tr>
               <th className="px-4 py-2">Branch</th>
               <th className="px-4 py-2">Employer Type</th>
-              <th className="px-4 py-2 hidden md:table-cell">County</th>
               <th className="px-4 py-2 text-right">Members</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filtered.map((b) => {
-              const t = b.employer_type || "Other";
-              return (
+            {filtered.map((b) => (
                 <tr key={b.id} className="hover:bg-slate-50">
                   <td className="px-4 py-2 font-medium">{b.name}</td>
                   <td className="px-4 py-2">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${TONE[t] || TONE.Other}`}>
-                      {t}
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-700">
+                      {b.employer_type_label || b.employer_type || "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{b.county || "—"}</td>
                   <td className="px-4 py-2 text-right">{countFor(b.id)}</td>
                 </tr>
-              );
-            })}
+              ))}
             {filtered.length === 0 && (
               <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">No branches match the filter.</td></tr>
             )}
