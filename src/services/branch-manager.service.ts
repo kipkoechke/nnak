@@ -47,6 +47,17 @@ export const branchManagerService = {
     return { data: r.data?.data ?? [], pagination, meta: pagination };
   },
 
+  getMemberById: async (id: string) => {
+    if (isDemoSession()) return null;
+    try {
+      return await unwrap<NnakUser & { profile: NnakProfile | null }>(
+        nnakApi.get(`/branch/members/${id}`),
+      );
+    } catch {
+      return null;
+    }
+  },
+
   /** Create a member under the manager's branch. Returns a pending_token
    *  the manager must verify via verifyMember(). */
   addMember: async (body: BranchAddMemberInput) =>

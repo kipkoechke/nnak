@@ -28,6 +28,13 @@ export const useBranchMembers = (
     enabled: opts?.enabled,
   });
 
+export const useBranchMember = (id?: string) =>
+  useQuery({
+    queryKey: [...nqk.branchMembers({}), "detail", id ?? ""] as const,
+    queryFn: () => branchManagerService.getMemberById(id!),
+    enabled: !!id,
+  });
+
 export const useAddBranchMember = () => {
   const qc = useQueryClient();
   return useMutation({
