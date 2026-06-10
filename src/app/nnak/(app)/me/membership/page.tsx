@@ -161,6 +161,7 @@ export default function MyMembershipPage() {
             </div>
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
+              <Item label="Membership Number" value={profile.membership_number || "—"} />
               <Item label="Account number" value={accountNumber} />
               <Item label="NCK License Number" value={profile.nck_number || "—"} />
               <Item label="National ID" value={profile.identification_number || "—"} />

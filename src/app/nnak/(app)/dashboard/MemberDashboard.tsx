@@ -73,7 +73,7 @@ export default function MemberDashboard() {
           <div className="text-sm opacity-80">Welcome back,</div>
           <div className="text-xl font-semibold">{me.name}</div>
           <div className="text-[11px] opacity-80 mt-1">
-            Member #{accountNumber} · {categoryLabel}
+            Member #{profile?.membership_number || accountNumber} · {categoryLabel}
           </div>
         </div>
         <div className="flex flex-row items-center gap-2 flex-wrap">

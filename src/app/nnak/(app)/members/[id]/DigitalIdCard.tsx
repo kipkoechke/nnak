@@ -195,7 +195,7 @@ function DigitalIdPdf({ member, qrDataUrl }: Props & { qrDataUrl: string }) {
           <View style={pdfStyles.info}>
             <Text style={pdfStyles.name}>{member.name}</Text>
             <Text style={pdfStyles.label}>Member ID</Text>
-            <Text style={pdfStyles.value}>{member.profile.account_number}</Text>
+            <Text style={pdfStyles.value}>{(member.profile.membership_number || member.profile.account_number)}</Text>
             <Text style={pdfStyles.label}>NCK License Number</Text>
             <Text style={pdfStyles.value}>{member.profile.nck_number || "—"}</Text>
           </View>
@@ -236,7 +236,7 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `NNAK-${member.profile.account_number}.pdf`;
+      a.download = `NNAK-${(member.profile.membership_number || member.profile.account_number)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -287,7 +287,7 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
             {member.name}
           </div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4 }}>Member ID</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.account_number}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{(member.profile.membership_number || member.profile.account_number)}</div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK License Number</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.nck_number || "—"}</div>
         </div>
@@ -326,7 +326,7 @@ export async function downloadDigitalIdPdf(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `NNAK-${member.profile.account_number}.pdf`;
+  a.download = `NNAK-${(member.profile.membership_number || member.profile.account_number)}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();
