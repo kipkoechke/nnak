@@ -154,11 +154,11 @@ export default function MembersPage() {
                       </td>
                       <td className="px-4 py-2">
                         {canApprove && m.profile && !(m.profile.is_approved ?? false) && (
-                          <>
+                          <div className="flex items-center gap-1">
                             <button
                               disabled={approve.isPending || reject.isPending}
                               onClick={() => approve.mutate(m.profile!.id)}
-                              className="text-xs bg-emerald-600 text-white px-2 py-1 rounded mr-1 disabled:opacity-50"
+                              className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md hover:bg-emerald-100 disabled:opacity-50 font-medium"
                             >
                               Approve
                             </button>
@@ -167,16 +167,16 @@ export default function MembersPage() {
                               onClick={() => {
                                 if (confirm(`Reject ${m.name}?`)) reject.mutate(m.profile!.id);
                               }}
-                              className="text-xs bg-red-600 text-white px-2 py-1 rounded disabled:opacity-50"
+                              className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-md hover:bg-red-100 disabled:opacity-50 font-medium"
                             >
                               Reject
                             </button>
-                          </>
+                          </div>
                         )}
                         {canApprove && m.profile?.is_approved && (
                           <button
                             onClick={() => setStatusM.mutate({ id: m.id, status: "suspended" })}
-                            className="text-xs bg-amber-600 text-white px-2 py-1 rounded"
+                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
                           >
                             Suspend
                           </button>

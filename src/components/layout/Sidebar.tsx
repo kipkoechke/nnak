@@ -16,7 +16,6 @@ import {
   MdFolderShared,
   MdHowToReg,
   MdBadge,
-  MdEventAvailable,
   MdWorkOutline,
 } from "react-icons/md";
 import { isMemberRole } from "@/lib/rbac";
@@ -42,7 +41,6 @@ interface MenuItem {
 const STAFF_ITEMS: MenuItem[] = [
   { name: "Dashboard", icon: MdInsertChart, href: "/nnak/dashboard", show: nnakCan.viewDashboard },
   { name: "Members", icon: MdPeople, href: "/nnak/members", show: nnakCan.manageMembers },
-  { name: "Pending Approvals", icon: MdHowToReg, href: "/nnak/members/pending", show: nnakCan.approveMembers },
   { name: "Categories", icon: MdCategory, href: "/nnak/categories", show: nnakCan.upgradeCategory },
   { name: "Branches", icon: MdBusiness, href: "/nnak/branches", show: nnakCan.manageBranches },
   { name: "By-Product", icon: MdHowToReg, href: "/nnak/byproduct", show: nnakCan.reconcileByProduct },
