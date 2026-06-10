@@ -57,6 +57,7 @@ export default function MemberDashboard() {
 
   const currentWorkstation = workstations[0];
   const invoice = apiDash?.subscription?.invoice;
+  const [showPayModal, setShowPayModal] = useState(false);
 
   const statusTone =
     status === "active"
@@ -79,14 +80,21 @@ export default function MemberDashboard() {
           <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}>
             {status}
           </span>
-          {(status !== "active" || (expiresIn !== null && expiresIn < 30)) && (
+          {apiStatus === "pending_payment" && invoice && !invoice.status ? (
+            <button
+              onClick={() => setShowPayModal(true)}
+              className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
+            >
+              Pay now <MdArrowForward className="w-3.5 h-3.5" />
+            </button>
+          ) : (status !== "active" || (expiresIn !== null && expiresIn < 30)) ? (
             <Link
               href="/nnak/me/membership"
               className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
             >
               Renew My Membership <MdArrowForward className="w-3.5 h-3.5" />
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -204,6 +212,87 @@ export default function MemberDashboard() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPayModal && invoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPayModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">Pay Invoice</h3>
+              <button onClick={() => setShowPayModal(false)} className="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Invoice</span>
+                <span className="font-mono font-semibold">{invoice.invoice_number}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-slate-600">Amount</span>
+                <span className="font-semibold">KES {Number(invoice.amount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-slate-600">Due</span>
+                <span>{fmtDate(invoice.due_date)}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">M-Pesa Phone Number</label>
+              <input
+                type="tel"
+                value={stkPhone}
+                onChange={(e) => setStkPhone(e.target.value)}
+                placeholder={profile?.phone || "254700000000"}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                const phone = stkPhone || profile?.phone || "";
+                if (!phone) return;
+                stkPush.mutate(
+                  { invoiceId: invoice.id, body: { phone_number: phone.replace(/^\+/, "") } },
+                  { onSuccess: (data) => { setStkPhone(""); setActiveInvoiceId(data.invoice_id); } },
+                );
+              }}
+              disabled={stkPush.isPending}
+              className="w-full bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {stkPush.isPending ? "Sending..." : "Pay via M-Pesa"}
+            </button>
+
+            {stkPush.isSuccess && !stkQuery.data && (
+              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 text-center">
+                STK Push sent. Check your phone and enter your M-Pesa PIN.
+              </div>
+            )}
+
+            {activeInvoiceId && (
+              <button
+                onClick={() => stkQuery.refetch()}
+                disabled={stkQuery.isFetching}
+                className="w-full border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-50 disabled:opacity-50"
+              >
+                {stkQuery.isFetching ? "Checking..." : "Check Payment Status"}
+              </button>
+            )}
+
+            {stkQuery.data && (
+              <div className={`text-xs rounded-md px-3 py-2 text-center font-medium ${
+                stkQuery.data.status === "successful" || stkQuery.data.status === "success"
+                  ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                  : "bg-red-50 border border-red-200 text-red-700"
+              }`}>
+                {stkQuery.data.status === "successful" || stkQuery.data.status === "success"
+                  ? "Payment successful!"
+                  : `Status: ${stkQuery.data.status}`}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
