@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
 import { useByProductApiList, useUploadByProductFile, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
 import { MdUpload, MdClose } from "react-icons/md";
@@ -146,7 +145,6 @@ export default function ByProductPage() {
                     "bg-slate-100 text-slate-600"
                   }`}>{u.status}</span>
                 </td>
-                <td className="px-3 py-2"><Link href={`/nnak/byproduct/${u.id}`} className="text-xs text-primary">Details</Link></td>
               </tr>
             ))}
           </tbody>
