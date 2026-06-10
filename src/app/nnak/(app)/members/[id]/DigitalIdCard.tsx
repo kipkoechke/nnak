@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { MdPerson } from "react-icons/md";
+import { useState, useEffect } from "react";
 import {
   Document,
   Page,
@@ -10,13 +9,13 @@ import {
   StyleSheet,
   pdf,
 } from "@react-pdf/renderer";
+import QRCodeLib from "qrcode";
 import { logoSrc } from "@/utils/logo";
 import type { NnakProfile, NnakUser } from "@/types/nnak";
 
 interface Props {
   member: NnakUser & { profile: NnakProfile };
   category?: string;
-  /** Hide the download button when the host page renders its own CTA. */
   showDownload?: boolean;
 }
 
@@ -32,9 +31,6 @@ const TEXT = "#0f172a";
 const MUTED = "#475569";
 const SURFACE = "#f1f5f9";
 
-// PDF stylesheet — react-pdf uses a Yoga (flexbox) layout engine and
-// produces a true vector PDF, so text is never rasterised and can't
-// be clipped the way html2canvas was clipping it.
 const pdfStyles = StyleSheet.create({
   page: {
     backgroundColor: SURFACE,
@@ -44,8 +40,8 @@ const pdfStyles = StyleSheet.create({
     justifyContent: "center",
   },
   card: {
-    width: 360, // pt
-    height: 226, // ~1.59 aspect, real ID-card ratio
+    width: 360,
+    height: 226,
     backgroundColor: "#ffffff",
     borderRadius: 12,
     position: "relative",
@@ -60,8 +56,6 @@ const pdfStyles = StyleSheet.create({
     height: 6,
     backgroundColor: BRAND_GREEN,
   },
-  // The brand bar is a 3-stop gradient in the HTML version — react-pdf
-  // doesn't support CSS gradients, so we layer three coloured strips.
   topBarMid: {
     position: "absolute",
     top: 0,
@@ -109,14 +103,12 @@ const pdfStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Initials avoid the missing-glyph "=d" problem react-pdf's default
-  // font has with emoji codepoints.
   photoFallbackGlyph: { fontSize: 30, fontWeight: 700, color: BRAND_GREEN_DARK, letterSpacing: 1 },
   info: {
     position: "absolute",
     top: 94,
     left: 106,
-    right: 18,
+    right: 80,
   },
   name: {
     fontSize: 16,
@@ -153,15 +145,29 @@ const pdfStyles = StyleSheet.create({
   },
   footerLeft: { fontSize: 9, fontWeight: 700, color: "white" },
   footerRight: { fontSize: 9, color: "white", opacity: 0.85 },
+  qrContainer: {
+    position: "absolute",
+    bottom: 34,
+    right: 14,
+    width: 42,
+    height: 42,
+    backgroundColor: "#ffffff",
+    borderRadius: 4,
+    padding: 3,
+    border: "1pt solid #e2e8f0",
+  },
+  qrImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+  },
 });
 
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-function DigitalIdPdf({ member }: Props) {
+function DigitalIdPdf({ member, qrDataUrl }: Props & { qrDataUrl: string }) {
   const valid = fmtDate(member.profile.subscription_expires_at);
-  // react-pdf renders relative URLs against the runtime origin — convert
-  // logoSrc (e.g. "/assets/nnak_logo.png") into an absolute URL.
   const logoUrl =
     typeof window !== "undefined" && logoSrc.startsWith("/")
       ? new URL(logoSrc, window.location.origin).toString()
@@ -176,11 +182,9 @@ function DigitalIdPdf({ member }: Props) {
           <View style={pdfStyles.topBarMid} />
           <View style={pdfStyles.topBarEnd} />
 
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image src={logoUrl} style={pdfStyles.logo} />
 
           {photoUrl ? (
-            // eslint-disable-next-line jsx-a11y/alt-text
             <Image src={photoUrl} style={pdfStyles.photo} />
           ) : (
             <View style={pdfStyles.photoFallback}>
@@ -192,9 +196,15 @@ function DigitalIdPdf({ member }: Props) {
             <Text style={pdfStyles.name}>{member.name}</Text>
             <Text style={pdfStyles.label}>Member ID</Text>
             <Text style={pdfStyles.value}>{member.profile.account_number}</Text>
-            <Text style={pdfStyles.label}>Licence Number</Text>
-            <Text style={pdfStyles.value}>{member.profile.license_number || "—"}</Text>
+            <Text style={pdfStyles.label}>NCK License Number</Text>
+            <Text style={pdfStyles.value}>{member.profile.nck_number || "—"}</Text>
           </View>
+
+          {qrDataUrl && (
+            <View style={pdfStyles.qrContainer}>
+              <Image src={qrDataUrl} style={pdfStyles.qrImage} />
+            </View>
+          )}
 
           <View style={pdfStyles.footer}>
             <Text style={pdfStyles.footerLeft}>Valid until {valid}</Text>
@@ -208,13 +218,21 @@ function DigitalIdPdf({ member }: Props) {
 
 export default function DigitalIdCard({ member, showDownload = true }: Props) {
   const [downloading, setDownloading] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const photo = member.profile.photo_url;
   const validUntil = fmtDate(member.profile.subscription_expires_at);
+
+  useEffect(() => {
+    const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
+    QRCodeLib.toDataURL(verifyUrl, { width: 120, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [member.id]);
 
   const downloadPdf = async () => {
     try {
       setDownloading(true);
-      const blob = await pdf(<DigitalIdPdf member={member} />).toBlob();
+      const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -228,7 +246,6 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
     }
   };
 
-  // ───── On-screen preview (HTML, mirrors the PDF layout) ─────
   return (
     <div className="space-y-2">
       <div
@@ -265,15 +282,22 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
           )}
         </div>
 
-        <div style={{ position: "absolute", top: 92, left: 100, right: 16, lineHeight: 1 }}>
+        <div style={{ position: "absolute", top: 92, left: 100, right: 60, lineHeight: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.25, color: TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>
             {member.name}
           </div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4 }}>Member ID</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.account_number}</div>
-          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>Licence Number</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.license_number || "—"}</div>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK License Number</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.nck_number || "—"}</div>
         </div>
+
+        {qrDataUrl && (
+          <div style={{ position: "absolute", bottom: 32, right: 12, width: 40, height: 40, background: "#fff", borderRadius: 4, padding: 3, border: "1px solid #e2e8f0" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrDataUrl} alt="QR" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+        )}
 
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: BRAND_GREEN_DARK, color: "white", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10, letterSpacing: 0.4 }}>
           <span style={{ fontWeight: 600 }}>Valid until {validUntil}</span>
@@ -293,12 +317,12 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
   );
 }
 
-/** Expose the download trigger so host pages (e.g. /me/membership) can
- *  render their own button. */
 export async function downloadDigitalIdPdf(
   member: NnakUser & { profile: NnakProfile },
 ) {
-  const blob = await pdf(<DigitalIdPdf member={member} />).toBlob();
+  const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
+  const qrDataUrl = await QRCodeLib.toDataURL(verifyUrl, { width: 120, margin: 1 }).catch(() => "");
+  const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} />).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
