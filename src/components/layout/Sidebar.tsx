@@ -56,11 +56,8 @@ const STAFF_ITEMS: MenuItem[] = [
 ];
 
 const MEMBER_ITEMS: MenuItem[] = [
-  { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
   { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
   { name: "Workstations", icon: MdWorkOutline, href: "/nnak/me/workstations", show: nnakCan.viewMyWorkstations },
-  // Member sidebar surfaces only routes backed by the 5 allowed endpoints
-  // (/profile, /member/dashboard, /member/workstations, /member/subscriptions).
   { name: "Subscriptions", icon: MdReceipt, href: "/nnak/me/subscriptions", show: nnakCan.viewMyPayments },
 ];
 

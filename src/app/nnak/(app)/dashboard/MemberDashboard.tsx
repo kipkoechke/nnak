@@ -28,6 +28,7 @@ export default function MemberDashboard() {
   const [stkPhone, setStkPhone] = useState("");
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const stkQuery = useInvoiceStkQuery(activeInvoiceId);
+  const [showPayModal, setShowPayModal] = useState(false);
 
   if (!me) return <div className="text-sm text-slate-500">Loading your portal…</div>;
   const profile = me.profile;
@@ -57,7 +58,6 @@ export default function MemberDashboard() {
 
   const currentWorkstation = workstations[0];
   const invoice = apiDash?.subscription?.invoice;
-  const [showPayModal, setShowPayModal] = useState(false);
 
   const statusTone =
     status === "active"
@@ -76,7 +76,7 @@ export default function MemberDashboard() {
             Member #{accountNumber} · {categoryLabel}
           </div>
         </div>
-        <div className="flex flex-col items-start sm:items-end gap-2">
+        <div className="flex flex-row items-center gap-2 flex-wrap">
           <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}>
             {status}
           </span>
