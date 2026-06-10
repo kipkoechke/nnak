@@ -21,17 +21,28 @@ const DONUT_COLORS = [
   "#f97316", // orange-500
 ];
 
-const Kpi = ({ label, value, hint, tone = "default" }: {
+const Kpi = ({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
   label: string;
   value: string | number;
   hint?: string;
   tone?: "default" | "warn" | "danger" | "ok";
 }) => (
-  <div className={`bg-white rounded-lg border p-4 ${
-    tone === "warn" ? "border-amber-200" :
-    tone === "danger" ? "border-red-200" :
-    tone === "ok" ? "border-emerald-200" : "border-slate-200"
-  }`}>
+  <div
+    className={`bg-white rounded-lg border p-4 ${
+      tone === "warn"
+        ? "border-amber-200"
+        : tone === "danger"
+          ? "border-red-200"
+          : tone === "ok"
+            ? "border-emerald-200"
+            : "border-slate-200"
+    }`}
+  >
     <div className="text-xs text-slate-500">{label}</div>
     <div className="text-2xl font-semibold text-slate-900 mt-1">{value}</div>
     {hint && <div className="text-[11px] text-slate-400 mt-1">{hint}</div>}
@@ -71,10 +82,7 @@ const DonutCard = ({
             paddingAngle={2}
           >
             {data.map((_, i) => (
-              <Cell
-                key={i}
-                fill={DONUT_COLORS[i % DONUT_COLORS.length]}
-              />
+              <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
@@ -157,7 +165,9 @@ export default function AdminDashboard() {
       {isLoading && !data ? (
         <div className="text-sm text-slate-500">Loading admin KPIs…</div>
       ) : !data ? (
-        <div className="text-sm text-slate-500">No data available for this period.</div>
+        <div className="text-sm text-slate-500">
+          No data available for this period.
+        </div>
       ) : (
         <>
           {/* KPI row */}
@@ -165,7 +175,11 @@ export default function AdminDashboard() {
             <Kpi label="Total Members" value={data.total_members} />
             <Kpi label="Active" value={data.active_members} tone="ok" />
             <Kpi label="Inactive" value={data.inactive_members} tone="warn" />
-            <Kpi label="Pending Approval" value={data.pending_approval_members} tone="warn" />
+            <Kpi
+              label="Pending Approval"
+              value={data.pending_approval_members}
+              tone="warn"
+            />
             <Kpi label="New in range" value={data.new_members_in_range} />
             <Kpi
               label="Collected (KES)"
@@ -210,7 +224,10 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {pendingMembers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                      <td
+                        colSpan={7}
+                        className="px-4 py-6 text-center text-slate-500"
+                      >
                         No pending approvals.
                       </td>
                     </tr>
