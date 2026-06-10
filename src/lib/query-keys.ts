@@ -70,6 +70,9 @@ export const nqk = {
     all: ["nnak", "payments"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "payments", "list", p ?? {}] as const,
   },
+  mpesaTransactions: {
+    list: (p?: Record<string, unknown>) => ["nnak", "mpesa", "transactions", p ?? {}] as const,
+  },
   byProduct: {
     all: ["nnak", "byproduct"] as const,
     list: () => ["nnak", "byproduct", "list"] as const,

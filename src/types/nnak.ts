@@ -385,6 +385,34 @@ export interface Payment {
   created_at: string;
 }
 
+// M-Pesa transactions ---------------------------------------
+export interface MpesaTransaction {
+  id: string;
+  transaction_type: string;
+  transaction_id: string;
+  transaction_time: string;
+  amount: number;
+  phone_number: string;
+  name: string;
+  reference: string;
+  status: string;
+  used: boolean;
+  payload?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MpesaTransactionListParams {
+  page?: number;
+  per_page?: number;
+  transaction_type?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  used?: boolean;
+  search?: string;
+}
+
 // By-product reconciliation -------------------------------
 export interface ByProductUpload {
   id: string;
