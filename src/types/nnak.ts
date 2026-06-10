@@ -388,18 +388,30 @@ export interface Payment {
 // M-Pesa transactions ---------------------------------------
 export interface MpesaTransaction {
   id: string;
-  transaction_type: string;
-  transaction_id: string;
-  transaction_time: string;
-  amount: number;
-  phone_number: string;
-  name: string;
-  reference: string;
+  TransID: string;
+  TransactionType: string;
+  TransTime: string | null;
+  TransAmount: string;
+  BusinessShortCode: string | null;
+  BillRefNumber: string | null;
+  InvoiceNumber: string | null;
+  ThirdPartyTransID: string | null;
+  MSISDN: string;
+  FirstName: string | null;
+  OrgAccountBalance: string | null;
+  MpesaReceiptNumber: string;
+  CheckoutRequestID: string | null;
+  MerchantRequestID: string | null;
+  invoice_id: string | null;
+  invoice_payment_id: string | null;
   status: string;
+  ResultCode: number | null;
+  ResultDesc: string | null;
   used: boolean;
-  payload?: Record<string, unknown> | null;
+  payload: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface MpesaTransactionListParams {
@@ -409,7 +421,7 @@ export interface MpesaTransactionListParams {
   status?: string;
   date_from?: string;
   date_to?: string;
-  used?: boolean;
+  used?: boolean | string;
   search?: string;
 }
 

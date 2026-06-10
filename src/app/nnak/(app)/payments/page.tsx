@@ -58,7 +58,8 @@ export default function PaymentsPage() {
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Phone</th>
                   <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Reference</th>
+                  <th className="px-3 py-2">Receipt</th>
+                  <th className="px-3 py-2">Invoice</th>
                   <th className="px-3 py-2">Amount</th>
                   <th className="px-3 py-2">Status</th>
                 </tr>
@@ -67,12 +68,13 @@ export default function PaymentsPage() {
                 {data.data.map((t) => (
                   <tr key={t.id}>
                     <td className="px-3 py-2 text-xs">
-                      {new Date(t.transaction_time).toLocaleString()}
+                      {t.TransTime ? new Date(t.TransTime).toLocaleString() : new Date(t.created_at).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 text-xs font-mono">{t.phone_number}</td>
-                    <td className="px-3 py-2">{t.name}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{t.reference}</td>
-                    <td className="px-3 py-2">KES {t.amount.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-xs font-mono">{t.MSISDN}</td>
+                    <td className="px-3 py-2 text-xs">{t.FirstName || "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{t.MpesaReceiptNumber}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{t.InvoiceNumber || "—"}</td>
+                    <td className="px-3 py-2">KES {Number(t.TransAmount).toLocaleString()}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`text-[11px] px-2 py-0.5 rounded-full ${
