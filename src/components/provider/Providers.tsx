@@ -43,8 +43,9 @@ export default function Providers({
           toastOptions={{
             duration: 4000,
             style: {
-              background: "#363636",
-              color: "#fff",
+              background: "#fff",
+              color: "#1e293b",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
             },
             success: {
               duration: 3000,
