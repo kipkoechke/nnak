@@ -36,6 +36,7 @@ export default function NnakLoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="e.g. jane.omondi@example.com"
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -46,6 +47,7 @@ export default function NnakLoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            placeholder="Enter your password"
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>

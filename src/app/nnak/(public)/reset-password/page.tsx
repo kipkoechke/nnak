@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNnakResetPassword } from "@/hooks/use-auth";
 
@@ -43,6 +44,11 @@ export default function NnakResetPasswordPage() {
       >
         Reset password
       </button>
+      <div className="text-xs text-center text-slate-600">
+        <Link href="/nnak/login" className="text-primary hover:underline">
+          Back to sign in
+        </Link>
+      </div>
     </form>
   );
 }

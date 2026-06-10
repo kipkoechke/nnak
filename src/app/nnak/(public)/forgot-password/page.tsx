@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useNnakForgotPassword } from "@/hooks/use-auth";
 
 export default function NnakForgotPasswordPage() {
@@ -32,6 +33,11 @@ export default function NnakForgotPasswordPage() {
       >
         Send reset link
       </button>
+      <div className="text-xs text-center text-slate-600">
+        <Link href="/nnak/login" className="text-primary hover:underline">
+          Back to sign in
+        </Link>
+      </div>
     </form>
   );
 }

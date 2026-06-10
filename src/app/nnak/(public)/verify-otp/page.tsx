@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVerifyOtp } from "@/hooks/use-auth";
 
@@ -8,7 +9,7 @@ export default function VerifyOtpPage() {
   const sp = useSearchParams();
   const pendingToken = sp.get("token") || "";
   const email = sp.get("email") || "";
-  const hint = sp.get("hint") || ""; // dev only: OTP echoed by backend
+  const hint = sp.get("hint") || "";
   const redirect = sp.get("redirect") || "/nnak/dashboard";
   const [otp, setOtp] = useState(hint);
   const m = useVerifyOtp();
@@ -27,7 +28,7 @@ export default function VerifyOtpPage() {
       <div className="space-y-3 text-sm">
         <h2 className="text-lg font-semibold text-slate-900">Missing token</h2>
         <p className="text-slate-600">
-          Please <a className="text-primary hover:underline" href="/nnak/login">sign in again</a> to receive a new OTP.
+          Please <Link className="text-primary hover:underline" href="/nnak/login">sign in again</Link> to receive a new OTP.
         </p>
       </div>
     );
@@ -60,6 +61,11 @@ export default function VerifyOtpPage() {
       >
         {m.isPending ? "Verifying..." : "Verify & sign in"}
       </button>
+      <div className="text-xs text-center text-slate-600">
+        <Link href="/nnak/login" className="text-primary hover:underline">
+          Back to sign in
+        </Link>
+      </div>
     </form>
   );
 }
