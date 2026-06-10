@@ -126,32 +126,13 @@ export default function MyMembershipPage() {
             />
           )}
 
-          {!restricted && !isStudent && (
-            <div className="space-y-2 w-[344px]">
-              <button
-                onClick={onRenew}
-                disabled={subscribe.isPending}
-                className="w-full bg-primary text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-              >
-                {subscribe.isPending ? "Submitting…" : "Renew Membership"}
-              </button>
-              <button
-                onClick={() => downloadDigitalIdPdf(effectiveMember)}
-                className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-primary"
-              >
-                <MdDownload className="w-3.5 h-3.5" />
-                Download digital ID (PDF)
-              </button>
-            </div>
-          )}
-          {restricted && (
+          {!restricted && (
             <button
               onClick={() => downloadDigitalIdPdf(effectiveMember)}
-              className="w-[344px] inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-500 hover:text-primary opacity-60 cursor-not-allowed"
-              disabled
-              title="Renew to restore your digital ID"
+              className="w-[344px] inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-primary py-2"
             >
-              Digital ID download restricted
+              <MdDownload className="w-3.5 h-3.5" />
+              Download digital ID (PDF)
             </button>
           )}
         </div>
