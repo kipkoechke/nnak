@@ -677,7 +677,12 @@ export interface RecentPendingMember {
     approved_at: string | null;
     user_id: string;
     branch_id: string | null;
-    branch?: { id: string; name: string; employer_type?: string; employer_type_label?: string } | null;
+    branch?: {
+      id: string;
+      name: string;
+      employer_type?: string;
+      employer_type_label?: string;
+    } | null;
     subscription_active: boolean;
     subscription_expires_at: string | null;
     active_subscription: unknown;
@@ -715,8 +720,9 @@ export interface BranchDashboardData {
   active_members: number;
   inactive_members: number;
   pending_approval_members: number;
-  member_category_totals: AdminDashboardCategoryRow[];
-  total_collected_amount: number;
+  recent_members: RecentPendingMember[];
+  chapter_totals: AdminDashboardChapterRow[];
+  total_collected_amount: string | number;
 }
 
 // ── Pending profile (GET /members/pending) ────────────────────────
