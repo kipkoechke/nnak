@@ -125,7 +125,7 @@ export default function MembersPage() {
                   {data.data.map((m) => (
                     <tr key={m.id} className="hover:bg-slate-50">
                       <td className="px-4 py-2">
-                        <Link href={`/nnak/members/${m.id}`} className="font-semibold text-primary hover:underline">
+                        <Link href={`/nnak/members/${m.profile?.id || m.id}`} className="font-semibold text-primary hover:underline">
                           {m.name}
                         </Link>
                         <div className="text-xs text-slate-500">{m.email}</div>
