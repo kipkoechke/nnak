@@ -105,10 +105,7 @@ export default function NnakRegisterPage() {
   const { data: chapters = [] } = useChapters();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  const employerTypeOptions = useMemo(
-    () => employerTypes.map((t) => ({ value: t, label: t })),
-    [employerTypes],
-  );
+  const employerTypeOptions = useMemo(() => employerTypes, [employerTypes]);
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],

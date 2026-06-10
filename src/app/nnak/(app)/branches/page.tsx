@@ -10,7 +10,7 @@ import type { CreateBranchInput } from "@/types/nnak";
 
 const emptyBranch: CreateBranchInput = {
   name: "",
-  employer_type: "Parastatal",
+  employer_type: "",
   branch_manager_email: "",
   branch_manager_name: "",
   branch_manager_phone: "",
@@ -68,7 +68,7 @@ export default function NnakBranchesPage() {
         >
           <option value="">All employer types</option>
           {employerTypes.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
         <span className="text-xs text-slate-500 ml-auto">
@@ -141,8 +141,9 @@ export default function NnakBranchesPage() {
                 required
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
               >
+                <option value="">— Select —</option>
                 {employerTypes.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </div>

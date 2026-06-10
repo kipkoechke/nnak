@@ -11,20 +11,53 @@
 
 import { nnakApi } from "@/lib/api";
 import { isDemoSession } from "@/lib/demo-token";
-import type { EmployerType } from "@/types/nnak";
 
 interface EnumResponse<T> {
   success: boolean;
   data: T[];
 }
 
+/** Normalised option shape used by every enum dropdown. */
+export interface EmployerTypeOption {
+  value: string;
+  label: string;
+}
+
+interface EmployerTypeBackendObject {
+  value?: string;
+  label?: string;
+  code?: string;
+  name?: string;
+  /** Some payloads embed it as { employer_type, employer_type_label }. */
+  employer_type?: string;
+  employer_type_label?: string;
+}
+
+const humanise = (s: string) =>
+  s
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+
+const normaliseEmployerType = (
+  raw: string | EmployerTypeBackendObject,
+): EmployerTypeOption => {
+  if (typeof raw === "string") return { value: raw, label: humanise(raw) };
+  const value =
+    raw.value ?? raw.code ?? raw.employer_type ?? raw.name ?? "";
+  const label =
+    raw.label ?? raw.employer_type_label ?? raw.name ?? humanise(value);
+  return { value: String(value), label: String(label) };
+};
+
 const FALLBACK_GENDERS: string[] = ["male", "female"];
-const FALLBACK_EMPLOYER_TYPES: EmployerType[] = [
-  "MOH",
-  "Parastatal",
-  "Private",
-  "FBO",
-  "Other",
+const FALLBACK_EMPLOYER_TYPES: EmployerTypeOption[] = [
+  { value: "ministry_of_health", label: "Ministry of Health" },
+  { value: "parastatal_institutions", label: "Parastatal Institutions" },
+  { value: "private_institutions", label: "Private Institutions" },
+  { value: "faith_based_hospitals", label: "Faith Based Hospitals" },
+  { value: "counties_remittance", label: "Counties Remittance" },
+  { value: "individuals", label: "Individuals" },
 ];
 const FALLBACK_BILLING: string[] = ["monthly", "yearly"];
 const FALLBACK_PAYMENT_METHODS: string[] = [
@@ -54,10 +87,16 @@ export const enumsService = {
     const r = await nnakApi.get<EnumResponse<string>>("/genders");
     return r.data?.data ?? [];
   },
-  employerTypes: async (): Promise<EmployerType[]> => {
+  /** Returns a normalised { value, label }[] regardless of whether the
+   *  backend ships strings ("MOH") or option objects
+   *  ({ value: "ministry_of_health", label: "Ministry of Health" }). */
+  employerTypes: async (): Promise<EmployerTypeOption[]> => {
     if (isDemoSession()) return FALLBACK_EMPLOYER_TYPES;
-    const r = await nnakApi.get<EnumResponse<EmployerType>>("/employer-types");
-    return r.data?.data ?? [];
+    const r = await nnakApi.get<
+      EnumResponse<string | EmployerTypeBackendObject>
+    >("/employer-types");
+    const raw = r.data?.data ?? [];
+    return raw.map(normaliseEmployerType).filter((o) => !!o.value);
   },
   billingFrequencies: async (): Promise<string[]> => {
     if (isDemoSession()) return FALLBACK_BILLING;
