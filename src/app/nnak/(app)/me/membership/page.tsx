@@ -58,7 +58,6 @@ export default function MyMembershipPage() {
   const apiSub = dash?.subscription ?? null;
   const isStudent = me.role === "student";
 
-  // Subscription-derived state (no /categories, /branches calls).
   const subAmount = apiSub ? Number(apiSub.amount) : 0;
   const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
   const expiresIn = daysUntil(subExpiry);
@@ -82,10 +81,7 @@ export default function MyMembershipPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
-      <PageHeader
-        title="My Membership"
-        description="Your NNAK digital membership and subscription status"
-      />
+      <PageHeader title="My Membership" />
 
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4">
         {/* Digital ID Card column */}
@@ -140,7 +136,6 @@ export default function MyMembershipPage() {
           <div className="bg-white border border-slate-200 rounded-lg p-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-slate-500">Member</div>
                 <div className="text-lg font-semibold text-slate-900">{effectiveMember.name}</div>
                 <div className="text-xs text-slate-500">{effectiveMember.email}</div>
               </div>
@@ -174,7 +169,6 @@ export default function MyMembershipPage() {
             </dl>
           </div>
 
-          {/* Renewal panel */}
           {!isStudent && (
             <div className="bg-white border border-slate-200 rounded-lg p-4">
               <div className="text-sm font-semibold text-slate-900">
@@ -207,7 +201,6 @@ export default function MyMembershipPage() {
             </div>
           )}
 
-          {/* Outstanding invoice with M-Pesa STK Push payment */}
           {apiSub?.invoice && !apiSub.invoice.status && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 text-sm space-y-3">
               <div>
