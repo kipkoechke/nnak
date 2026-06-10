@@ -56,6 +56,7 @@ const STAFF_ITEMS: MenuItem[] = [
 ];
 
 const MEMBER_ITEMS: MenuItem[] = [
+  { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
   { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
   { name: "Workstations", icon: MdWorkOutline, href: "/nnak/me/workstations", show: nnakCan.viewMyWorkstations },
   { name: "Subscriptions", icon: MdReceipt, href: "/nnak/me/subscriptions", show: nnakCan.viewMyPayments },
