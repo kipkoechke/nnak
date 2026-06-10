@@ -28,60 +28,91 @@ export const nqk = {
   memberDashboard: ["nnak", "member", "dashboard"] as const,
   members: {
     all: ["nnak", "members"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "members", "list", p ?? {}] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "members", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "members", "detail", id] as const,
-    pending: (p?: Record<string, unknown>) => ["nnak", "members", "pending", p ?? {}] as const,
+    pending: (p?: Record<string, unknown>) =>
+      ["nnak", "members", "pending", p ?? {}] as const,
   },
-  adminDashboard: (p?: Record<string, unknown>) => ["nnak", "admin", "dashboard", p ?? {}] as const,
-  branchDashboard: (p?: Record<string, unknown>) => ["nnak", "branch", "dashboard", p ?? {}] as const,
-  branchMembers: (p?: Record<string, unknown>) => ["nnak", "branch", "members", p ?? {}] as const,
+  adminDashboard: (p?: Record<string, unknown>) =>
+    ["nnak", "admin", "dashboard", p ?? {}] as const,
+  branchDashboard: (p?: Record<string, unknown>) =>
+    ["nnak", "branch", "dashboard", p ?? {}] as const,
+  branchMembers: (p?: Record<string, unknown>) =>
+    ["nnak", "branch", "members", p ?? {}] as const,
   events: {
     all: ["nnak", "events"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "events", "list", p ?? {}] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "events", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "events", "detail", id] as const,
     registrants: (id: string) => ["nnak", "events", id, "registrants"] as const,
   },
   agendas: {
     all: ["nnak", "agendas"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "agendas", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "agendas", "detail", id] as const,
+    list: (eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "agendas", "list", eventId, p ?? {}] as const,
+    detail: (eventId: string, id: string) =>
+      ["nnak", "agendas", "detail", eventId, id] as const,
   },
   speakers: {
     all: ["nnak", "speakers"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "speakers", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "speakers", "detail", id] as const,
+    list: (eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "speakers", "list", eventId, p ?? {}] as const,
+    detail: (eventId: string, id: string) =>
+      ["nnak", "speakers", "detail", eventId, id] as const,
   },
   breakoutRooms: {
     all: ["nnak", "breakout-rooms"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "breakout-rooms", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "breakout-rooms", "detail", id] as const,
+    list: (eventId: string, agendaId: string, p?: Record<string, unknown>) =>
+      ["nnak", "breakout-rooms", "list", eventId, agendaId, p ?? {}] as const,
+    detail: (eventId: string, agendaId: string, id: string) =>
+      ["nnak", "breakout-rooms", "detail", eventId, agendaId, id] as const,
   },
   agendaSpeakers: {
     all: ["nnak", "agenda-speakers"] as const,
-    list: (p?: Record<string, unknown>) =>
-      ["nnak", "agenda-speakers", "list", p ?? {}] as const,
+    list: (eventId: string, agendaId: string, p?: Record<string, unknown>) =>
+      ["nnak", "agenda-speakers", "list", eventId, agendaId, p ?? {}] as const,
   },
   breakoutSpeakers: {
     all: ["nnak", "breakout-speakers"] as const,
-    list: (p?: Record<string, unknown>) =>
-      ["nnak", "breakout-speakers", "list", p ?? {}] as const,
+    list: (
+      eventId: string,
+      agendaId: string,
+      breakoutRoomId: string,
+      p?: Record<string, unknown>,
+    ) =>
+      [
+        "nnak",
+        "breakout-speakers",
+        "list",
+        eventId,
+        agendaId,
+        breakoutRoomId,
+        p ?? {},
+      ] as const,
   },
   sponsors: {
     all: ["nnak", "sponsors"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "sponsors", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "sponsors", "detail", id] as const,
+    list: (eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "sponsors", "list", eventId, p ?? {}] as const,
+    detail: (eventId: string, id: string) =>
+      ["nnak", "sponsors", "detail", eventId, id] as const,
   },
   exhibitors: {
     all: ["nnak", "exhibitors"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "exhibitors", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "exhibitors", "detail", id] as const,
+    list: (eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "exhibitors", "list", eventId, p ?? {}] as const,
+    detail: (eventId: string, id: string) =>
+      ["nnak", "exhibitors", "detail", eventId, id] as const,
   },
   payments: {
     all: ["nnak", "payments"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "payments", "list", p ?? {}] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "payments", "list", p ?? {}] as const,
   },
   mpesaTransactions: {
-    list: (p?: Record<string, unknown>) => ["nnak", "mpesa", "transactions", p ?? {}] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "mpesa", "transactions", p ?? {}] as const,
   },
   byProduct: {
     all: ["nnak", "byproduct"] as const,
@@ -93,11 +124,13 @@ export const nqk = {
     kpis: ["nnak", "reports", "kpis"] as const,
   },
   ilm: {
-    audit: (p?: Record<string, unknown>) => ["nnak", "ilm", "audit", p ?? {}] as const,
+    audit: (p?: Record<string, unknown>) =>
+      ["nnak", "ilm", "audit", p ?? {}] as const,
     exports: ["nnak", "ilm", "exports"] as const,
     erasures: ["nnak", "ilm", "erasures"] as const,
   },
   memberPayments: {
-    stkQuery: (invoiceId: string) => ["nnak", "member", "payments", "stkquery", invoiceId] as const,
+    stkQuery: (invoiceId: string) =>
+      ["nnak", "member", "payments", "stkquery", invoiceId] as const,
   },
 };

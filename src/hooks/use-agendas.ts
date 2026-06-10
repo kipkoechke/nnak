@@ -6,24 +6,34 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateAgendaInput } from "@/types/nnak";
 
-export const useAgendas = (params?: { event_id?: string; page?: number; per_page?: number }) =>
+export const useAgendas = (
+  eventId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.agendas.list(params as Record<string, unknown>),
-    queryFn: () => agendaService.list(params),
+    queryKey: nqk.agendas.list(eventId, params as Record<string, unknown>),
+    queryFn: () => agendaService.list(eventId, params),
+    enabled: !!eventId,
     placeholderData: (prev) => prev,
   });
 
-export const useAgenda = (id?: string) =>
+export const useAgenda = (eventId: string, id?: string) =>
   useQuery({
-    queryKey: nqk.agendas.detail(id ?? ""),
-    queryFn: () => agendaService.getById(id!),
-    enabled: !!id,
+    queryKey: nqk.agendas.detail(eventId, id ?? ""),
+    queryFn: () => agendaService.getById(eventId, id!),
+    enabled: !!eventId && !!id,
   });
 
 export const useCreateAgenda = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateAgendaInput) => agendaService.create(input),
+    mutationFn: ({
+      eventId,
+      input,
+    }: {
+      eventId: string;
+      input: CreateAgendaInput;
+    }) => agendaService.create(eventId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.agendas.all });
       toast.success("Agenda created");
@@ -35,8 +45,15 @@ export const useCreateAgenda = () => {
 export const useUpdateAgenda = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<CreateAgendaInput> }) =>
-      agendaService.update(id, input),
+    mutationFn: ({
+      eventId,
+      id,
+      input,
+    }: {
+      eventId: string;
+      id: string;
+      input: Partial<CreateAgendaInput>;
+    }) => agendaService.update(eventId, id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.agendas.all });
       toast.success("Agenda updated");
@@ -48,7 +65,8 @@ export const useUpdateAgenda = () => {
 export const useDeleteAgenda = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => agendaService.remove(id),
+    mutationFn: ({ eventId, id }: { eventId: string; id: string }) =>
+      agendaService.remove(eventId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.agendas.all });
       toast.success("Agenda deleted");

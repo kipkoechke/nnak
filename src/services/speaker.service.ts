@@ -1,9 +1,9 @@
-// Speaker endpoints:
-//   GET  /speakers?event_id=      list (paginated)
-//   POST /speakers                 create
-//   GET  /speakers/{id}            detail
-//   PATCH /speakers/{id}           update
-//   DELETE /speakers/{id}          delete
+// Speaker endpoints (nested under event):
+//   GET  /events/{event}/speakers           list (paginated)
+//   POST /events/{event}/speakers           create
+//   GET  /events/{event}/speakers/{id}      detail
+//   PATCH /events/{event}/speakers/{id}     update
+//   DELETE /events/{event}/speakers/{id}    delete
 import { nnakApi } from "@/lib/api";
 import type {
   ApiEnvelope,
@@ -21,22 +21,33 @@ interface SpeakersResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+const base = (eventId: string) => `/events/${eventId}/speakers`;
+
 export const speakerService = {
-  list: async (params?: { event_id?: string; page?: number; per_page?: number }) => {
-    const r = await nnakApi.get<SpeakersResponse>("/speakers", { params });
+  list: async (
+    eventId: string,
+    params?: { page?: number; per_page?: number },
+  ) => {
+    const r = await nnakApi.get<SpeakersResponse>(base(eventId), { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
-  getById: async (id: string) =>
-    unwrap<Speaker>(nnakApi.get(`/speakers/${id}`)),
+  getById: async (eventId: string, id: string) =>
+    unwrap<Speaker>(nnakApi.get(`${base(eventId)}/${id}`)),
 
-  create: async (input: CreateSpeakerInput): Promise<Speaker> =>
-    unwrap<Speaker>(nnakApi.post("/speakers", input)),
+  create: async (
+    eventId: string,
+    input: CreateSpeakerInput,
+  ): Promise<Speaker> => unwrap<Speaker>(nnakApi.post(base(eventId), input)),
 
-  update: async (id: string, input: Partial<CreateSpeakerInput>): Promise<Speaker> =>
-    unwrap<Speaker>(nnakApi.patch(`/speakers/${id}`, input)),
+  update: async (
+    eventId: string,
+    id: string,
+    input: Partial<CreateSpeakerInput>,
+  ): Promise<Speaker> =>
+    unwrap<Speaker>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
-  remove: async (id: string) => {
-    await nnakApi.delete(`/speakers/${id}`);
+  remove: async (eventId: string, id: string) => {
+    await nnakApi.delete(`${base(eventId)}/${id}`);
   },
 };

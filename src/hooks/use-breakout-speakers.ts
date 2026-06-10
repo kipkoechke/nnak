@@ -6,23 +6,40 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateBreakoutSpeakerInput } from "@/types/nnak";
 
-export const useBreakoutSpeakers = (params?: {
-  breakout_room_id?: string;
-  page?: number;
-  per_page?: number;
-}) =>
+export const useBreakoutSpeakers = (
+  eventId: string,
+  agendaId: string,
+  breakoutRoomId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.breakoutSpeakers.list(params as Record<string, unknown>),
-    queryFn: () => breakoutSpeakerService.list(params),
-    enabled: !!params?.breakout_room_id,
+    queryKey: nqk.breakoutSpeakers.list(
+      eventId,
+      agendaId,
+      breakoutRoomId,
+      params as Record<string, unknown>,
+    ),
+    queryFn: () =>
+      breakoutSpeakerService.list(eventId, agendaId, breakoutRoomId, params),
+    enabled: !!eventId && !!agendaId && !!breakoutRoomId,
     placeholderData: (prev) => prev,
   });
 
 export const useCreateBreakoutSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateBreakoutSpeakerInput) =>
-      breakoutSpeakerService.create(input),
+    mutationFn: ({
+      eventId,
+      agendaId,
+      breakoutRoomId,
+      input,
+    }: {
+      eventId: string;
+      agendaId: string;
+      breakoutRoomId: string;
+      input: CreateBreakoutSpeakerInput;
+    }) =>
+      breakoutSpeakerService.create(eventId, agendaId, breakoutRoomId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.breakoutSpeakers.all });
       qc.invalidateQueries({ queryKey: nqk.breakoutRooms.all });
@@ -36,7 +53,17 @@ export const useCreateBreakoutSpeaker = () => {
 export const useDeleteBreakoutSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => breakoutSpeakerService.remove(id),
+    mutationFn: ({
+      eventId,
+      agendaId,
+      breakoutRoomId,
+      id,
+    }: {
+      eventId: string;
+      agendaId: string;
+      breakoutRoomId: string;
+      id: string;
+    }) => breakoutSpeakerService.remove(eventId, agendaId, breakoutRoomId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.breakoutSpeakers.all });
       qc.invalidateQueries({ queryKey: nqk.breakoutRooms.all });

@@ -1,9 +1,9 @@
-// Breakout Room endpoints:
-//   GET  /breakout-rooms?agenda_id=  list
-//   POST /breakout-rooms              create
-//   GET  /breakout-rooms/{id}         detail
-//   PATCH /breakout-rooms/{id}        update
-//   DELETE /breakout-rooms/{id}       delete
+// Breakout Room endpoints (nested under event/agenda):
+//   GET  /events/{event}/agendas/{agenda}/breakout-rooms         list
+//   POST /events/{event}/agendas/{agenda}/breakout-rooms         create
+//   GET  /events/{event}/agendas/{agenda}/breakout-rooms/{id}    detail
+//   PATCH /events/{event}/agendas/{agenda}/breakout-rooms/{id}   update
+//   DELETE /events/{event}/agendas/{agenda}/breakout-rooms/{id}  delete
 import { nnakApi } from "@/lib/api";
 import type {
   ApiEnvelope,
@@ -21,22 +21,43 @@ interface BreakoutRoomsResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+const base = (eventId: string, agendaId: string) =>
+  `/events/${eventId}/agendas/${agendaId}/breakout-rooms`;
+
 export const breakoutRoomService = {
-  list: async (params?: { agenda_id?: string; page?: number; per_page?: number }) => {
-    const r = await nnakApi.get<BreakoutRoomsResponse>("/breakout-rooms", { params });
+  list: async (
+    eventId: string,
+    agendaId: string,
+    params?: { page?: number; per_page?: number },
+  ) => {
+    const r = await nnakApi.get<BreakoutRoomsResponse>(
+      base(eventId, agendaId),
+      { params },
+    );
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
-  getById: async (id: string) =>
-    unwrap<BreakoutRoom>(nnakApi.get(`/breakout-rooms/${id}`)),
+  getById: async (eventId: string, agendaId: string, id: string) =>
+    unwrap<BreakoutRoom>(nnakApi.get(`${base(eventId, agendaId)}/${id}`)),
 
-  create: async (input: CreateBreakoutRoomInput): Promise<BreakoutRoom> =>
-    unwrap<BreakoutRoom>(nnakApi.post("/breakout-rooms", input)),
+  create: async (
+    eventId: string,
+    agendaId: string,
+    input: CreateBreakoutRoomInput,
+  ): Promise<BreakoutRoom> =>
+    unwrap<BreakoutRoom>(nnakApi.post(base(eventId, agendaId), input)),
 
-  update: async (id: string, input: Partial<CreateBreakoutRoomInput>): Promise<BreakoutRoom> =>
-    unwrap<BreakoutRoom>(nnakApi.patch(`/breakout-rooms/${id}`, input)),
+  update: async (
+    eventId: string,
+    agendaId: string,
+    id: string,
+    input: Partial<CreateBreakoutRoomInput>,
+  ): Promise<BreakoutRoom> =>
+    unwrap<BreakoutRoom>(
+      nnakApi.patch(`${base(eventId, agendaId)}/${id}`, input),
+    ),
 
-  remove: async (id: string) => {
-    await nnakApi.delete(`/breakout-rooms/${id}`);
+  remove: async (eventId: string, agendaId: string, id: string) => {
+    await nnakApi.delete(`${base(eventId, agendaId)}/${id}`);
   },
 };

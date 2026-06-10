@@ -6,24 +6,34 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateSpeakerInput } from "@/types/nnak";
 
-export const useSpeakers = (params?: { event_id?: string; page?: number; per_page?: number }) =>
+export const useSpeakers = (
+  eventId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.speakers.list(params as Record<string, unknown>),
-    queryFn: () => speakerService.list(params),
+    queryKey: nqk.speakers.list(eventId, params as Record<string, unknown>),
+    queryFn: () => speakerService.list(eventId, params),
+    enabled: !!eventId,
     placeholderData: (prev) => prev,
   });
 
-export const useSpeaker = (id?: string) =>
+export const useSpeaker = (eventId: string, id?: string) =>
   useQuery({
-    queryKey: nqk.speakers.detail(id ?? ""),
-    queryFn: () => speakerService.getById(id!),
-    enabled: !!id,
+    queryKey: nqk.speakers.detail(eventId, id ?? ""),
+    queryFn: () => speakerService.getById(eventId, id!),
+    enabled: !!eventId && !!id,
   });
 
 export const useCreateSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateSpeakerInput) => speakerService.create(input),
+    mutationFn: ({
+      eventId,
+      input,
+    }: {
+      eventId: string;
+      input: CreateSpeakerInput;
+    }) => speakerService.create(eventId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.speakers.all });
       toast.success("Speaker created");
@@ -35,8 +45,15 @@ export const useCreateSpeaker = () => {
 export const useUpdateSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<CreateSpeakerInput> }) =>
-      speakerService.update(id, input),
+    mutationFn: ({
+      eventId,
+      id,
+      input,
+    }: {
+      eventId: string;
+      id: string;
+      input: Partial<CreateSpeakerInput>;
+    }) => speakerService.update(eventId, id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.speakers.all });
       toast.success("Speaker updated");
@@ -48,7 +65,8 @@ export const useUpdateSpeaker = () => {
 export const useDeleteSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => speakerService.remove(id),
+    mutationFn: ({ eventId, id }: { eventId: string; id: string }) =>
+      speakerService.remove(eventId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.speakers.all });
       toast.success("Speaker deleted");

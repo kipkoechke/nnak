@@ -6,24 +6,34 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateExhibitorInput } from "@/types/nnak";
 
-export const useExhibitors = (params?: { event_id?: string; page?: number; per_page?: number }) =>
+export const useExhibitors = (
+  eventId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.exhibitors.list(params as Record<string, unknown>),
-    queryFn: () => exhibitorService.list(params),
+    queryKey: nqk.exhibitors.list(eventId, params as Record<string, unknown>),
+    queryFn: () => exhibitorService.list(eventId, params),
+    enabled: !!eventId,
     placeholderData: (prev) => prev,
   });
 
-export const useExhibitor = (id?: string) =>
+export const useExhibitor = (eventId: string, id?: string) =>
   useQuery({
-    queryKey: nqk.exhibitors.detail(id ?? ""),
-    queryFn: () => exhibitorService.getById(id!),
-    enabled: !!id,
+    queryKey: nqk.exhibitors.detail(eventId, id ?? ""),
+    queryFn: () => exhibitorService.getById(eventId, id!),
+    enabled: !!eventId && !!id,
   });
 
 export const useCreateExhibitor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateExhibitorInput) => exhibitorService.create(input),
+    mutationFn: ({
+      eventId,
+      input,
+    }: {
+      eventId: string;
+      input: CreateExhibitorInput;
+    }) => exhibitorService.create(eventId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.exhibitors.all });
       toast.success("Exhibitor created");
@@ -35,8 +45,15 @@ export const useCreateExhibitor = () => {
 export const useUpdateExhibitor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<CreateExhibitorInput> }) =>
-      exhibitorService.update(id, input),
+    mutationFn: ({
+      eventId,
+      id,
+      input,
+    }: {
+      eventId: string;
+      id: string;
+      input: Partial<CreateExhibitorInput>;
+    }) => exhibitorService.update(eventId, id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.exhibitors.all });
       toast.success("Exhibitor updated");
@@ -48,7 +65,8 @@ export const useUpdateExhibitor = () => {
 export const useDeleteExhibitor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => exhibitorService.remove(id),
+    mutationFn: ({ eventId, id }: { eventId: string; id: string }) =>
+      exhibitorService.remove(eventId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.exhibitors.all });
       toast.success("Exhibitor deleted");

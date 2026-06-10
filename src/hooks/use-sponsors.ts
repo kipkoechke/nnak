@@ -6,24 +6,34 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateSponsorInput } from "@/types/nnak";
 
-export const useSponsors = (params?: { event_id?: string; page?: number; per_page?: number }) =>
+export const useSponsors = (
+  eventId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.sponsors.list(params as Record<string, unknown>),
-    queryFn: () => sponsorService.list(params),
+    queryKey: nqk.sponsors.list(eventId, params as Record<string, unknown>),
+    queryFn: () => sponsorService.list(eventId, params),
+    enabled: !!eventId,
     placeholderData: (prev) => prev,
   });
 
-export const useSponsor = (id?: string) =>
+export const useSponsor = (eventId: string, id?: string) =>
   useQuery({
-    queryKey: nqk.sponsors.detail(id ?? ""),
-    queryFn: () => sponsorService.getById(id!),
-    enabled: !!id,
+    queryKey: nqk.sponsors.detail(eventId, id ?? ""),
+    queryFn: () => sponsorService.getById(eventId, id!),
+    enabled: !!eventId && !!id,
   });
 
 export const useCreateSponsor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateSponsorInput) => sponsorService.create(input),
+    mutationFn: ({
+      eventId,
+      input,
+    }: {
+      eventId: string;
+      input: CreateSponsorInput;
+    }) => sponsorService.create(eventId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.sponsors.all });
       toast.success("Sponsor created");
@@ -35,8 +45,15 @@ export const useCreateSponsor = () => {
 export const useUpdateSponsor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<CreateSponsorInput> }) =>
-      sponsorService.update(id, input),
+    mutationFn: ({
+      eventId,
+      id,
+      input,
+    }: {
+      eventId: string;
+      id: string;
+      input: Partial<CreateSponsorInput>;
+    }) => sponsorService.update(eventId, id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.sponsors.all });
       toast.success("Sponsor updated");
@@ -48,7 +65,8 @@ export const useUpdateSponsor = () => {
 export const useDeleteSponsor = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => sponsorService.remove(id),
+    mutationFn: ({ eventId, id }: { eventId: string; id: string }) =>
+      sponsorService.remove(eventId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.sponsors.all });
       toast.success("Sponsor deleted");

@@ -1,9 +1,9 @@
-// Agenda endpoints:
-//   GET  /agendas?event_id=      list (paginated)
-//   POST /agendas                 create
-//   GET  /agendas/{id}            detail
-//   PATCH /agendas/{id}           update
-//   DELETE /agendas/{id}          delete
+// Agenda endpoints (nested under event):
+//   GET  /events/{event}/agendas           list (paginated)
+//   POST /events/{event}/agendas           create
+//   GET  /events/{event}/agendas/{id}      detail
+//   PATCH /events/{event}/agendas/{id}     update
+//   DELETE /events/{event}/agendas/{id}    delete
 import { nnakApi } from "@/lib/api";
 import type {
   Agenda,
@@ -21,22 +21,31 @@ interface AgendasResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+const base = (eventId: string) => `/events/${eventId}/agendas`;
+
 export const agendaService = {
-  list: async (params?: { event_id?: string; page?: number; per_page?: number }) => {
-    const r = await nnakApi.get<AgendasResponse>("/agendas", { params });
+  list: async (
+    eventId: string,
+    params?: { page?: number; per_page?: number },
+  ) => {
+    const r = await nnakApi.get<AgendasResponse>(base(eventId), { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
-  getById: async (id: string) =>
-    unwrap<Agenda>(nnakApi.get(`/agendas/${id}`)),
+  getById: async (eventId: string, id: string) =>
+    unwrap<Agenda>(nnakApi.get(`${base(eventId)}/${id}`)),
 
-  create: async (input: CreateAgendaInput): Promise<Agenda> =>
-    unwrap<Agenda>(nnakApi.post("/agendas", input)),
+  create: async (eventId: string, input: CreateAgendaInput): Promise<Agenda> =>
+    unwrap<Agenda>(nnakApi.post(base(eventId), input)),
 
-  update: async (id: string, input: Partial<CreateAgendaInput>): Promise<Agenda> =>
-    unwrap<Agenda>(nnakApi.patch(`/agendas/${id}`, input)),
+  update: async (
+    eventId: string,
+    id: string,
+    input: Partial<CreateAgendaInput>,
+  ): Promise<Agenda> =>
+    unwrap<Agenda>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
-  remove: async (id: string) => {
-    await nnakApi.delete(`/agendas/${id}`);
+  remove: async (eventId: string, id: string) => {
+    await nnakApi.delete(`${base(eventId)}/${id}`);
   },
 };

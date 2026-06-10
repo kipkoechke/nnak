@@ -123,7 +123,8 @@ interface ModalProps {
 }
 const Modal = ({ open, onClose, title, children, size = "md" }: ModalProps) => {
   if (!open) return null;
-  const maxW = size === "sm" ? "max-w-md" : size === "lg" ? "max-w-2xl" : "max-w-lg";
+  const maxW =
+    size === "sm" ? "max-w-md" : size === "lg" ? "max-w-2xl" : "max-w-lg";
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -135,7 +136,10 @@ const Modal = ({ open, onClose, title, children, size = "md" }: ModalProps) => {
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 sticky top-0 bg-white rounded-t-xl">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 p-1"
+          >
             <MdClose className="w-5 h-5" />
           </button>
         </div>
@@ -161,7 +165,9 @@ const Field = ({
   placeholder?: string;
 }) => (
   <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+    <label className="block text-xs font-medium text-slate-600 mb-1">
+      {label}
+    </label>
     <input
       type={type}
       value={value}
@@ -189,7 +195,9 @@ const TextArea = ({
   placeholder?: string;
 }) => (
   <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+    <label className="block text-xs font-medium text-slate-600 mb-1">
+      {label}
+    </label>
     <textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -222,7 +230,9 @@ const SectionHeader = ({
           </span>
         )}
       </div>
-      {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+      {description && (
+        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+      )}
     </div>
     {action}
   </div>
@@ -245,7 +255,9 @@ const EmptyState = ({
     </div>
     <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
     {description && (
-      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">{description}</p>
+      <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+        {description}
+      </p>
     )}
     {action && <div className="mt-4">{action}</div>}
   </div>
@@ -322,10 +334,10 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
   const { data: event, isLoading } = useEvent(eventId);
 
   // Pull counts for the tab badges
-  const { data: agendasData } = useAgendas({ event_id: eventId });
-  const { data: speakersData } = useSpeakers({ event_id: eventId });
-  const { data: sponsorsData } = useSponsors({ event_id: eventId });
-  const { data: exhibitorsData } = useExhibitors({ event_id: eventId });
+  const { data: agendasData } = useAgendas(eventId);
+  const { data: speakersData } = useSpeakers(eventId);
+  const { data: sponsorsData } = useSponsors(eventId);
+  const { data: exhibitorsData } = useExhibitors(eventId);
 
   const counts: Record<string, number> = useMemo(
     () => ({
@@ -385,7 +397,9 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
                 {typeof count === "number" && count > 0 && (
                   <span
                     className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                      active ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-600"
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {count}
@@ -404,7 +418,9 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
         {tab === "speakers" && <SpeakersTab eventId={eventId} />}
         {tab === "agendaSpeakers" && <AgendaSpeakersTab eventId={eventId} />}
         {tab === "breakoutRooms" && <BreakoutRoomsTab eventId={eventId} />}
-        {tab === "breakoutSpeakers" && <BreakoutSpeakersTab eventId={eventId} />}
+        {tab === "breakoutSpeakers" && (
+          <BreakoutSpeakersTab eventId={eventId} />
+        )}
         {tab === "sponsors" && <SponsorsTab eventId={eventId} />}
         {tab === "exhibitors" && <ExhibitorsTab eventId={eventId} />}
       </div>
@@ -416,7 +432,13 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
  *  Hero
  * ────────────────────────────────────────────────────────────────────── */
 
-function EventHero({ event, onBack }: { event: NnakEvent; onBack: () => void }) {
+function EventHero({
+  event,
+  onBack,
+}: {
+  event: NnakEvent;
+  onBack: () => void;
+}) {
   const router = useRouter();
   const deleteEvent = useDeleteEvent();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -508,7 +530,9 @@ function EventHero({ event, onBack }: { event: NnakEvent; onBack: () => void }) 
               {event.type}
             </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold leading-tight">{event.title}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold leading-tight">
+            {event.title}
+          </h1>
           {event.theme && (
             <p className="text-sm opacity-90 mt-1 italic">{event.theme}</p>
           )}
@@ -523,7 +547,11 @@ function EventHero({ event, onBack }: { event: NnakEvent; onBack: () => void }) 
             label="When"
             value={fmtRange(event.start_date, event.end_date)}
           />
-          <KpiCell icon={MdLocationOn} label="Where" value={event.location || "—"} />
+          <KpiCell
+            icon={MdLocationOn}
+            label="Where"
+            value={event.location || "—"}
+          />
           <KpiCell
             icon={MdGroups}
             label="Registrants"
@@ -562,8 +590,12 @@ const KpiCell = ({
       <div className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">
         {label}
       </div>
-      <div className="text-sm font-semibold text-slate-900 truncate">{value}</div>
-      {footer && <div className="text-[11px] text-slate-500 mt-0.5">{footer}</div>}
+      <div className="text-sm font-semibold text-slate-900 truncate">
+        {value}
+      </div>
+      {footer && (
+        <div className="text-[11px] text-slate-500 mt-0.5">{footer}</div>
+      )}
     </div>
   </div>
 );
@@ -577,7 +609,9 @@ function OverviewTab({ event }: { event: NnakEvent }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-4">
         <Card>
-          <h3 className="text-sm font-semibold text-slate-900 mb-2">About this event</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-2">
+            About this event
+          </h3>
           <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
             {event.description || "No description yet."}
           </p>
@@ -585,7 +619,9 @@ function OverviewTab({ event }: { event: NnakEvent }) {
 
         {event.pricing && event.pricing.length > 0 && (
           <Card>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">Pricing tiers</h3>
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              Pricing tiers
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {event.pricing.map((p, i) => (
                 <div
@@ -609,7 +645,9 @@ function OverviewTab({ event }: { event: NnakEvent }) {
 
         {event.metadata && Object.keys(event.metadata).length > 0 && (
           <Card>
-            <h3 className="text-sm font-semibold text-slate-900 mb-2">Metadata</h3>
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">
+              Metadata
+            </h3>
             <pre className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-md overflow-auto max-h-60">
               {JSON.stringify(event.metadata, null, 2)}
             </pre>
@@ -619,10 +657,18 @@ function OverviewTab({ event }: { event: NnakEvent }) {
 
       <div className="space-y-4">
         <Card>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Schedule</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Schedule
+          </h3>
           <div className="space-y-2 text-sm">
-            <Row label="Starts" value={`${fmtDate(event.start_date)} ${fmtTime(event.start_date)}`} />
-            <Row label="Ends" value={`${fmtDate(event.end_date)} ${fmtTime(event.end_date)}`} />
+            <Row
+              label="Starts"
+              value={`${fmtDate(event.start_date)} ${fmtTime(event.start_date)}`}
+            />
+            <Row
+              label="Ends"
+              value={`${fmtDate(event.end_date)} ${fmtTime(event.end_date)}`}
+            />
             <Row label="Location" value={event.location || "—"} />
             {event.location_coordinates && (
               <Row
@@ -634,7 +680,9 @@ function OverviewTab({ event }: { event: NnakEvent }) {
         </Card>
 
         <Card>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Identifiers</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Identifiers
+          </h3>
           <div className="space-y-2 text-sm">
             <Row label="Code" value={event.code} mono />
             <Row label="Type" value={event.type} cap />
@@ -647,7 +695,9 @@ function OverviewTab({ event }: { event: NnakEvent }) {
 }
 
 const Card = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-4">{children}</div>
+  <div className="bg-white border border-slate-200 rounded-xl p-4">
+    {children}
+  </div>
 );
 
 const Row = ({
@@ -676,7 +726,7 @@ const Row = ({
  * ────────────────────────────────────────────────────────────────────── */
 
 function AgendasTab({ eventId }: { eventId: string }) {
-  const { data: agendasData, isLoading } = useAgendas({ event_id: eventId });
+  const { data: agendasData, isLoading } = useAgendas(eventId);
   const createAgenda = useCreateAgenda();
   const updateAgenda = useUpdateAgenda();
   const deleteAgenda = useDeleteAgenda();
@@ -692,7 +742,13 @@ function AgendasTab({ eventId }: { eventId: string }) {
   });
 
   const reset = () => {
-    setForm({ title: "", description: "", start_time: "", end_time: "", type: "general" });
+    setForm({
+      title: "",
+      description: "",
+      start_time: "",
+      end_time: "",
+      type: "general",
+    });
     setEditId(null);
     setModalOpen(false);
   };
@@ -709,8 +765,12 @@ function AgendasTab({ eventId }: { eventId: string }) {
       end_time: new Date(form.end_time).toISOString(),
       type: form.type,
     };
-    if (editId) updateAgenda.mutate({ id: editId, input: payload }, { onSuccess: reset });
-    else createAgenda.mutate(payload, { onSuccess: reset });
+    if (editId)
+      updateAgenda.mutate(
+        { eventId, id: editId, input: payload },
+        { onSuccess: reset },
+      );
+    else createAgenda.mutate({ eventId, input: payload }, { onSuccess: reset });
   };
 
   return (
@@ -723,7 +783,13 @@ function AgendasTab({ eventId }: { eventId: string }) {
           <AddBtn
             onClick={() => {
               setEditId(null);
-              setForm({ title: "", description: "", start_time: "", end_time: "", type: "general" });
+              setForm({
+                title: "",
+                description: "",
+                start_time: "",
+                end_time: "",
+                type: "general",
+              });
               setModalOpen(true);
             }}
             label="New agenda"
@@ -738,7 +804,12 @@ function AgendasTab({ eventId }: { eventId: string }) {
           icon={MdSchedule}
           title="No agendas yet"
           description="Build your event timeline by adding sessions, panels and workshops."
-          action={<AddBtn onClick={() => setModalOpen(true)} label="Add the first agenda" />}
+          action={
+            <AddBtn
+              onClick={() => setModalOpen(true)}
+              label="Add the first agenda"
+            />
+          }
         />
       ) : (
         <div className="space-y-2">
@@ -753,7 +824,9 @@ function AgendasTab({ eventId }: { eventId: string }) {
                 <div className="flex items-start gap-3">
                   <div className="shrink-0 w-14 text-center">
                     <div className="text-[10px] uppercase font-semibold text-slate-500">
-                      {new Date(a.start_time).toLocaleString("en-GB", { month: "short" })}
+                      {new Date(a.start_time).toLocaleString("en-GB", {
+                        month: "short",
+                      })}
                     </div>
                     <div className="text-xl font-bold text-slate-900 leading-none">
                       {new Date(a.start_time).getDate()}
@@ -764,7 +837,9 @@ function AgendasTab({ eventId }: { eventId: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-slate-900 truncate">{a.title}</h4>
+                      <h4 className="font-semibold text-slate-900 truncate">
+                        {a.title}
+                      </h4>
                       <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
                         {a.type}
                       </span>
@@ -773,7 +848,9 @@ function AgendasTab({ eventId }: { eventId: string }) {
                       {fmtTime(a.start_time)} – {fmtTime(a.end_time)}
                     </div>
                     {a.description && (
-                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">{a.description}</p>
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
+                        {a.description}
+                      </p>
                     )}
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -796,7 +873,8 @@ function AgendasTab({ eventId }: { eventId: string }) {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Delete agenda "${a.title}"?`)) deleteAgenda.mutate(a.id);
+                        if (confirm(`Delete agenda "${a.title}"?`))
+                          deleteAgenda.mutate(a.id);
                       }}
                       className="p-2 rounded-md hover:bg-red-50 text-slate-500 hover:text-red-600"
                       title="Delete"
@@ -847,19 +925,29 @@ function AgendasTab({ eventId }: { eventId: string }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Type</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Type
+            </label>
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
             >
-              {["keynote", "panel", "workshop", "breakout", "general"].map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
+              {["keynote", "panel", "workshop", "breakout", "general"].map(
+                (t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ),
+              )}
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={reset} className="px-3 py-2 border border-slate-300 rounded text-sm">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
               Cancel
             </button>
             <button
@@ -885,12 +973,18 @@ function AgendasTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function SpeakersTab({ eventId }: { eventId: string }) {
-  const { data: speakersData, isLoading } = useSpeakers({ event_id: eventId });
+  const { data: speakersData, isLoading } = useSpeakers(eventId);
   const createSpeaker = useCreateSpeaker();
   const deleteSpeaker = useDeleteSpeaker();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", title: "", organization: "", bio: "", photo_url: "" });
+  const [form, setForm] = useState({
+    name: "",
+    title: "",
+    organization: "",
+    bio: "",
+    photo_url: "",
+  });
 
   const reset = () => {
     setForm({ name: "", title: "", organization: "", bio: "", photo_url: "" });
@@ -905,7 +999,9 @@ function SpeakersTab({ eventId }: { eventId: string }) {
         title="Speakers"
         description="Build the line-up that will appear on the event"
         count={speakers.length}
-        action={<AddBtn onClick={() => setModalOpen(true)} label="New speaker" />}
+        action={
+          <AddBtn onClick={() => setModalOpen(true)} label="New speaker" />
+        }
       />
 
       {isLoading ? (
@@ -915,7 +1011,12 @@ function SpeakersTab({ eventId }: { eventId: string }) {
           icon={MdMic}
           title="No speakers yet"
           description="Add speakers, then link them to agendas and breakout rooms in the next tabs."
-          action={<AddBtn onClick={() => setModalOpen(true)} label="Add the first speaker" />}
+          action={
+            <AddBtn
+              onClick={() => setModalOpen(true)}
+              label="Add the first speaker"
+            />
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -926,16 +1027,29 @@ function SpeakersTab({ eventId }: { eventId: string }) {
             >
               <Avatar name={s.name} src={s.photo_url} />
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-slate-900 truncate">{s.name}</h4>
-                {s.title && <div className="text-xs text-slate-600 truncate">{s.title}</div>}
-                {s.organization && (
-                  <div className="text-[11px] text-slate-500 truncate">{s.organization}</div>
+                <h4 className="font-semibold text-slate-900 truncate">
+                  {s.name}
+                </h4>
+                {s.title && (
+                  <div className="text-xs text-slate-600 truncate">
+                    {s.title}
+                  </div>
                 )}
-                {s.bio && <p className="text-xs text-slate-600 mt-2 line-clamp-2">{s.bio}</p>}
+                {s.organization && (
+                  <div className="text-[11px] text-slate-500 truncate">
+                    {s.organization}
+                  </div>
+                )}
+                {s.bio && (
+                  <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                    {s.bio}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => {
-                  if (confirm(`Delete speaker ${s.name}?`)) deleteSpeaker.mutate(s.id);
+                  if (confirm(`Delete speaker ${s.name}?`))
+                    deleteSpeaker.mutate({ eventId, id: s.id });
                 }}
                 className="self-start p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
                 title="Delete"
@@ -952,13 +1066,18 @@ function SpeakersTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSpeaker.mutate(
-              { event_id: eventId, ...form, links: {} },
+              { eventId, input: { event_id: eventId, ...form, links: {} } },
               { onSuccess: reset },
             );
           }}
           className="space-y-3"
         >
-          <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+            required
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field
               label="Title"
@@ -985,7 +1104,11 @@ function SpeakersTab({ eventId }: { eventId: string }) {
             rows={4}
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={reset} className="px-3 py-2 border border-slate-300 rounded text-sm">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
               Cancel
             </button>
             <button
@@ -1007,8 +1130,8 @@ function SpeakersTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function AgendaSpeakersTab({ eventId }: { eventId: string }) {
-  const { data: agendasData } = useAgendas({ event_id: eventId });
-  const { data: speakersData } = useSpeakers({ event_id: eventId });
+  const { data: agendasData } = useAgendas(eventId);
+  const { data: speakersData } = useSpeakers(eventId);
   const agendas = agendasData?.data ?? [];
   const speakers = speakersData?.data ?? [];
 
@@ -1016,7 +1139,7 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
   const [speakerId, setSpeakerId] = useState<string>("");
   const [role, setRole] = useState<string>("speaker");
 
-  const { data: linksData, isLoading } = useAgendaSpeakers({ agenda_id: agendaId });
+  const { data: linksData, isLoading } = useAgendaSpeakers(eventId, agendaId);
   const createLink = useCreateAgendaSpeaker();
   const deleteLink = useDeleteAgendaSpeaker();
 
@@ -1054,7 +1177,9 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                       : "border-slate-200 hover:border-slate-300"
                   }`}
                 >
-                  <div className="text-sm font-semibold text-slate-900 line-clamp-1">{a.title}</div>
+                  <div className="text-sm font-semibold text-slate-900 line-clamp-1">
+                    {a.title}
+                  </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
                     {fmtDate(a.start_time)} · {fmtTime(a.start_time)}
                   </div>
@@ -1071,7 +1196,9 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <label className="block text-xs font-medium text-slate-600 mb-2">
               Step 2 — link a speaker to{" "}
-              <span className="text-slate-900 font-semibold">{selectedAgenda?.title}</span>
+              <span className="text-slate-900 font-semibold">
+                {selectedAgenda?.title}
+              </span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <select
@@ -1096,7 +1223,15 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                 disabled={!speakerId || createLink.isPending}
                 onClick={() =>
                   createLink.mutate(
-                    { agenda_id: agendaId, speaker_id: speakerId, role },
+                    {
+                      eventId,
+                      agendaId,
+                      input: {
+                        agenda_id: agendaId,
+                        speaker_id: speakerId,
+                        role,
+                      },
+                    },
                     {
                       onSuccess: () => {
                         setSpeakerId("");
@@ -1107,7 +1242,8 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                 }
                 className="inline-flex items-center justify-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
               >
-                <MdLink className="w-4 h-4" /> {createLink.isPending ? "Linking…" : "Link speaker"}
+                <MdLink className="w-4 h-4" />{" "}
+                {createLink.isPending ? "Linking…" : "Link speaker"}
               </button>
             </div>
           </div>
@@ -1129,7 +1265,10 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                     key={l.id}
                     className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3"
                   >
-                    <Avatar name={sp?.name || l.speaker_id} src={sp?.photo_url} />
+                    <Avatar
+                      name={sp?.name || l.speaker_id}
+                      src={sp?.photo_url}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 truncate">
                         {sp?.name ?? l.speaker_id}
@@ -1144,7 +1283,8 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                     </span>
                     <button
                       onClick={() => {
-                        if (confirm("Unlink this speaker from the agenda?")) deleteLink.mutate(l.id);
+                        if (confirm("Unlink this speaker from the agenda?"))
+                          deleteLink.mutate({ eventId, agendaId, id: l.id });
                       }}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
                       title="Unlink"
@@ -1167,11 +1307,11 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function BreakoutRoomsTab({ eventId }: { eventId: string }) {
-  const { data: agendasData } = useAgendas({ event_id: eventId });
+  const { data: agendasData } = useAgendas(eventId);
   const agendas = agendasData?.data ?? [];
 
   const [agendaId, setAgendaId] = useState<string>("");
-  const { data: roomsData, isLoading } = useBreakoutRooms({ agenda_id: agendaId });
+  const { data: roomsData, isLoading } = useBreakoutRooms(eventId, agendaId);
   const createRoom = useCreateBreakoutRoom();
   const updateRoom = useUpdateBreakoutRoom();
   const deleteRoom = useDeleteBreakoutRoom();
@@ -1214,7 +1354,9 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
           Step 1 — pick an agenda
         </label>
         {agendas.length === 0 ? (
-          <p className="text-sm text-slate-500">Add agendas first; rooms hang off them.</p>
+          <p className="text-sm text-slate-500">
+            Add agendas first; rooms hang off them.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {agendas.map((a) => {
@@ -1232,7 +1374,9 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                       : "border-slate-200 hover:border-slate-300"
                   }`}
                 >
-                  <div className="text-sm font-semibold text-slate-900 line-clamp-1">{a.title}</div>
+                  <div className="text-sm font-semibold text-slate-900 line-clamp-1">
+                    {a.title}
+                  </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
                     {fmtDate(a.start_time)} · {fmtTime(a.start_time)}
                   </div>
@@ -1251,7 +1395,9 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
             icon={MdMeetingRoom}
             title="No breakout rooms yet"
             description="Add a room for this agenda — then assign speakers in the next tab."
-            action={<AddBtn onClick={() => setModalOpen(true)} label="Add a room" />}
+            action={
+              <AddBtn onClick={() => setModalOpen(true)} label="Add a room" />
+            }
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -1264,7 +1410,9 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <MdMeetingRoom className="w-5 h-5 text-primary" />
-                      <h4 className="font-semibold text-slate-900 truncate">{r.name}</h4>
+                      <h4 className="font-semibold text-slate-900 truncate">
+                        {r.name}
+                      </h4>
                     </div>
                     {r.location && (
                       <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
@@ -1278,7 +1426,9 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                       </span>
                     )}
                     {r.description && (
-                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">{r.description}</p>
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
+                        {r.description}
+                      </p>
                     )}
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1300,7 +1450,8 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Delete room "${r.name}"?`)) deleteRoom.mutate(r.id);
+                        if (confirm(`Delete room "${r.name}"?`))
+                          deleteRoom.mutate({ eventId, agendaId, id: r.id });
                       }}
                       className="p-1.5 text-slate-500 hover:text-red-600 rounded hover:bg-red-50"
                       title="Delete"
@@ -1322,12 +1473,25 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (editId) updateRoom.mutate({ id: editId, input: form }, { onSuccess: reset });
-            else createRoom.mutate({ agenda_id: agendaId, ...form }, { onSuccess: reset });
+            if (editId)
+              updateRoom.mutate(
+                { eventId, agendaId, id: editId, input: form },
+                { onSuccess: reset },
+              );
+            else
+              createRoom.mutate(
+                { eventId, agendaId, input: { agenda_id: agendaId, ...form } },
+                { onSuccess: reset },
+              );
           }}
           className="space-y-3"
         >
-          <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+            required
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field
               label="Location"
@@ -1348,7 +1512,11 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
             onChange={(v) => setForm({ ...form, description: v })}
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={reset} className="px-3 py-2 border border-slate-300 rounded text-sm">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
               Cancel
             </button>
             <button
@@ -1374,20 +1542,24 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
-  const { data: agendasData } = useAgendas({ event_id: eventId });
-  const { data: speakersData } = useSpeakers({ event_id: eventId });
+  const { data: agendasData } = useAgendas(eventId);
+  const { data: speakersData } = useSpeakers(eventId);
   const agendas = agendasData?.data ?? [];
   const speakers = speakersData?.data ?? [];
 
   const [agendaId, setAgendaId] = useState<string>("");
-  const { data: roomsData } = useBreakoutRooms({ agenda_id: agendaId });
+  const { data: roomsData } = useBreakoutRooms(eventId, agendaId);
   const rooms = roomsData?.data ?? [];
 
   const [roomId, setRoomId] = useState<string>("");
   const [speakerId, setSpeakerId] = useState<string>("");
   const [role, setRole] = useState<string>("speaker");
 
-  const { data: linksData, isLoading } = useBreakoutSpeakers({ breakout_room_id: roomId });
+  const { data: linksData, isLoading } = useBreakoutSpeakers(
+    eventId,
+    agendaId,
+    roomId,
+  );
   const createLink = useCreateBreakoutSpeaker();
   const deleteLink = useDeleteBreakoutSpeaker();
 
@@ -1417,7 +1589,9 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
           >
             <option value="">— Pick an agenda —</option>
             {agendas.map((a) => (
-              <option key={a.id} value={a.id}>{a.title}</option>
+              <option key={a.id} value={a.id}>
+                {a.title}
+              </option>
             ))}
           </select>
         </div>
@@ -1429,7 +1603,8 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
             </label>
             {rooms.length === 0 ? (
               <p className="text-xs text-slate-500">
-                No breakout rooms for this agenda yet. Add some in the Breakout Rooms tab.
+                No breakout rooms for this agenda yet. Add some in the Breakout
+                Rooms tab.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -1463,7 +1638,9 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-2">
               Step 3 — link a speaker to{" "}
-              <span className="text-slate-900 font-semibold">{selectedRoom?.name}</span>
+              <span className="text-slate-900 font-semibold">
+                {selectedRoom?.name}
+              </span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <select
@@ -1473,7 +1650,9 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
               >
                 <option value="">— Pick a speaker —</option>
                 {speakers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
                 ))}
               </select>
               <input
@@ -1486,7 +1665,16 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                 disabled={!speakerId || createLink.isPending}
                 onClick={() =>
                   createLink.mutate(
-                    { breakout_room_id: roomId, speaker_id: speakerId, role },
+                    {
+                      eventId,
+                      agendaId,
+                      breakoutRoomId: roomId,
+                      input: {
+                        breakout_room_id: roomId,
+                        speaker_id: speakerId,
+                        role,
+                      },
+                    },
                     {
                       onSuccess: () => {
                         setSpeakerId("");
@@ -1497,7 +1685,8 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                 }
                 className="inline-flex items-center justify-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
               >
-                <MdLink className="w-4 h-4" /> {createLink.isPending ? "Linking…" : "Link speaker"}
+                <MdLink className="w-4 h-4" />{" "}
+                {createLink.isPending ? "Linking…" : "Link speaker"}
               </button>
             </div>
           </div>
@@ -1537,7 +1726,13 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                   </span>
                   <button
                     onClick={() => {
-                      if (confirm("Unlink this speaker?")) deleteLink.mutate(l.id);
+                      if (confirm("Unlink this speaker?"))
+                        deleteLink.mutate({
+                          eventId,
+                          agendaId,
+                          breakoutRoomId: roomId,
+                          id: l.id,
+                        });
                     }}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
                     title="Unlink"
@@ -1568,7 +1763,7 @@ const SPONSOR_TONE: Record<string, string> = {
 };
 
 function SponsorsTab({ eventId }: { eventId: string }) {
-  const { data: sponsorsData, isLoading } = useSponsors({ event_id: eventId });
+  const { data: sponsorsData, isLoading } = useSponsors(eventId);
   const createSponsor = useCreateSponsor();
   const deleteSponsor = useDeleteSponsor();
 
@@ -1583,7 +1778,14 @@ function SponsorsTab({ eventId }: { eventId: string }) {
   });
 
   const reset = () => {
-    setForm({ name: "", website_url: "", category: "platinum", is_partner: false, description: "", logo_url: "" });
+    setForm({
+      name: "",
+      website_url: "",
+      category: "platinum",
+      is_partner: false,
+      description: "",
+      logo_url: "",
+    });
     setModalOpen(false);
   };
 
@@ -1596,9 +1798,26 @@ function SponsorsTab({ eventId }: { eventId: string }) {
       arr.push(s);
       m.set(k, arr);
     });
-    return Array.from(m.entries()).sort(([a], [b]) =>
-      ["platinum", "gold", "silver", "bronze", "partner", "media", "other"].indexOf(a) -
-      ["platinum", "gold", "silver", "bronze", "partner", "media", "other"].indexOf(b),
+    return Array.from(m.entries()).sort(
+      ([a], [b]) =>
+        [
+          "platinum",
+          "gold",
+          "silver",
+          "bronze",
+          "partner",
+          "media",
+          "other",
+        ].indexOf(a) -
+        [
+          "platinum",
+          "gold",
+          "silver",
+          "bronze",
+          "partner",
+          "media",
+          "other",
+        ].indexOf(b),
     );
   }, [sponsors]);
 
@@ -1608,7 +1827,9 @@ function SponsorsTab({ eventId }: { eventId: string }) {
         title="Sponsors & Partners"
         description="Recognise the organisations backing this event"
         count={sponsors.length}
-        action={<AddBtn onClick={() => setModalOpen(true)} label="New sponsor" />}
+        action={
+          <AddBtn onClick={() => setModalOpen(true)} label="New sponsor" />
+        }
       />
 
       {isLoading ? (
@@ -1618,14 +1839,17 @@ function SponsorsTab({ eventId }: { eventId: string }) {
           icon={MdHandshake}
           title="No sponsors or partners yet"
           description="Add the organisations supporting this event so they show on the public page."
-          action={<AddBtn onClick={() => setModalOpen(true)} label="Add a sponsor" />}
+          action={
+            <AddBtn onClick={() => setModalOpen(true)} label="Add a sponsor" />
+          }
         />
       ) : (
         <div className="space-y-5">
           {grouped.map(([category, items]) => (
             <div key={category}>
               <h4 className="text-xs uppercase font-semibold text-slate-500 tracking-wide mb-2">
-                {category} <span className="text-slate-400">· {items.length}</span>
+                {category}{" "}
+                <span className="text-slate-400">· {items.length}</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {items.map((s) => (
@@ -1636,14 +1860,20 @@ function SponsorsTab({ eventId }: { eventId: string }) {
                     <div className="w-14 h-14 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                       {s.logo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.logo_url} alt={s.name} className="w-full h-full object-contain" />
+                        <img
+                          src={s.logo_url}
+                          alt={s.name}
+                          className="w-full h-full object-contain"
+                        />
                       ) : (
                         <MdBusinessCenter className="w-6 h-6 text-slate-300" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="font-semibold text-slate-900 truncate">{s.name}</h4>
+                        <h4 className="font-semibold text-slate-900 truncate">
+                          {s.name}
+                        </h4>
                         {s.is_partner && (
                           <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
                             Partner
@@ -1658,7 +1888,9 @@ function SponsorsTab({ eventId }: { eventId: string }) {
                         {s.category}
                       </span>
                       {s.description && (
-                        <p className="text-xs text-slate-600 mt-2 line-clamp-2">{s.description}</p>
+                        <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                          {s.description}
+                        </p>
                       )}
                       {s.website_url && (
                         <a
@@ -1673,7 +1905,8 @@ function SponsorsTab({ eventId }: { eventId: string }) {
                     </div>
                     <button
                       onClick={() => {
-                        if (confirm(`Delete sponsor ${s.name}?`)) deleteSponsor.mutate(s.id);
+                        if (confirm(`Delete sponsor ${s.name}?`))
+                          deleteSponsor.mutate({ eventId, id: s.id });
                       }}
                       className="self-start p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Delete"
@@ -1688,28 +1921,50 @@ function SponsorsTab({ eventId }: { eventId: string }) {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={reset} title="New sponsor / partner" size="lg">
+      <Modal
+        open={modalOpen}
+        onClose={reset}
+        title="New sponsor / partner"
+        size="lg"
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
             createSponsor.mutate(
-              { event_id: eventId, ...form, metadata: {} },
+              { eventId, input: { event_id: eventId, ...form, metadata: {} } },
               { onSuccess: reset },
             );
           }}
           className="space-y-3"
         >
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+            <Field
+              label="Name"
+              value={form.name}
+              onChange={(v) => setForm({ ...form, name: v })}
+              required
+            />
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Tier</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Tier
+              </label>
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
               >
-                {["platinum", "gold", "silver", "bronze", "partner", "media", "other"].map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                {[
+                  "platinum",
+                  "gold",
+                  "silver",
+                  "bronze",
+                  "partner",
+                  "media",
+                  "other",
+                ].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1732,7 +1987,9 @@ function SponsorsTab({ eventId }: { eventId: string }) {
             <input
               type="checkbox"
               checked={form.is_partner}
-              onChange={(e) => setForm({ ...form, is_partner: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, is_partner: e.target.checked })
+              }
               className="accent-primary"
             />
             Mark as long-term partner
@@ -1743,7 +2000,11 @@ function SponsorsTab({ eventId }: { eventId: string }) {
             onChange={(v) => setForm({ ...form, description: v })}
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={reset} className="px-3 py-2 border border-slate-300 rounded text-sm">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
               Cancel
             </button>
             <button
@@ -1765,12 +2026,17 @@ function SponsorsTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function ExhibitorsTab({ eventId }: { eventId: string }) {
-  const { data: exhibitorsData, isLoading } = useExhibitors({ event_id: eventId });
+  const { data: exhibitorsData, isLoading } = useExhibitors(eventId);
   const createExhibitor = useCreateExhibitor();
   const deleteExhibitor = useDeleteExhibitor();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", logo_url: "", booth: "" });
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    logo_url: "",
+    booth: "",
+  });
 
   const reset = () => {
     setForm({ name: "", description: "", logo_url: "", booth: "" });
@@ -1785,7 +2051,9 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
         title="Exhibitors"
         description="Vendors & organisations showcasing on the event floor"
         count={exhibitors.length}
-        action={<AddBtn onClick={() => setModalOpen(true)} label="New exhibitor" />}
+        action={
+          <AddBtn onClick={() => setModalOpen(true)} label="New exhibitor" />
+        }
       />
 
       {isLoading ? (
@@ -1795,12 +2063,18 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
           icon={MdStore}
           title="No exhibitors yet"
           description="Add the organisations that will have stands at the event."
-          action={<AddBtn onClick={() => setModalOpen(true)} label="Add an exhibitor" />}
+          action={
+            <AddBtn
+              onClick={() => setModalOpen(true)}
+              label="Add an exhibitor"
+            />
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {exhibitors.map((ex) => {
-            const booth = (ex.metadata as Record<string, unknown> | null)?.booth;
+            const booth = (ex.metadata as Record<string, unknown> | null)
+              ?.booth;
             return (
               <div
                 key={ex.id}
@@ -1809,13 +2083,19 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
                 <div className="w-14 h-14 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                   {ex.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={ex.logo_url} alt={ex.name} className="w-full h-full object-contain" />
+                    <img
+                      src={ex.logo_url}
+                      alt={ex.name}
+                      className="w-full h-full object-contain"
+                    />
                   ) : (
                     <MdStore className="w-6 h-6 text-slate-300" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-slate-900 truncate">{ex.name}</h4>
+                  <h4 className="font-semibold text-slate-900 truncate">
+                    {ex.name}
+                  </h4>
                   {typeof booth === "string" && booth && (
                     <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                       <MdCampaign className="w-3.5 h-3.5" />
@@ -1823,12 +2103,15 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
                     </div>
                   )}
                   {ex.description && (
-                    <p className="text-xs text-slate-600 mt-2 line-clamp-3">{ex.description}</p>
+                    <p className="text-xs text-slate-600 mt-2 line-clamp-3">
+                      {ex.description}
+                    </p>
                   )}
                 </div>
                 <button
                   onClick={() => {
-                    if (confirm(`Delete exhibitor ${ex.name}?`)) deleteExhibitor.mutate(ex.id);
+                    if (confirm(`Delete exhibitor ${ex.name}?`))
+                      deleteExhibitor.mutate({ eventId, id: ex.id });
                   }}
                   className="self-start p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Delete"
@@ -1847,11 +2130,14 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
             e.preventDefault();
             createExhibitor.mutate(
               {
-                event_id: eventId,
-                name: form.name,
-                description: form.description,
-                logo_url: form.logo_url,
-                metadata: form.booth ? { booth: form.booth } : {},
+                eventId,
+                input: {
+                  event_id: eventId,
+                  name: form.name,
+                  description: form.description,
+                  logo_url: form.logo_url,
+                  metadata: form.booth ? { booth: form.booth } : {},
+                },
               },
               { onSuccess: reset },
             );
@@ -1859,7 +2145,12 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
           className="space-y-3"
         >
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+            <Field
+              label="Name"
+              value={form.name}
+              onChange={(v) => setForm({ ...form, name: v })}
+              required
+            />
             <Field
               label="Booth"
               value={form.booth}
@@ -1879,7 +2170,11 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
             onChange={(v) => setForm({ ...form, description: v })}
           />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={reset} className="px-3 py-2 border border-slate-300 rounded text-sm">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
               Cancel
             </button>
             <button

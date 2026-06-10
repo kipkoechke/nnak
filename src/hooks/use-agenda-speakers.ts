@@ -6,23 +6,34 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { CreateAgendaSpeakerInput } from "@/types/nnak";
 
-export const useAgendaSpeakers = (params?: {
-  agenda_id?: string;
-  page?: number;
-  per_page?: number;
-}) =>
+export const useAgendaSpeakers = (
+  eventId: string,
+  agendaId: string,
+  params?: { page?: number; per_page?: number },
+) =>
   useQuery({
-    queryKey: nqk.agendaSpeakers.list(params as Record<string, unknown>),
-    queryFn: () => agendaSpeakerService.list(params),
-    enabled: !!params?.agenda_id,
+    queryKey: nqk.agendaSpeakers.list(
+      eventId,
+      agendaId,
+      params as Record<string, unknown>,
+    ),
+    queryFn: () => agendaSpeakerService.list(eventId, agendaId, params),
+    enabled: !!eventId && !!agendaId,
     placeholderData: (prev) => prev,
   });
 
 export const useCreateAgendaSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateAgendaSpeakerInput) =>
-      agendaSpeakerService.create(input),
+    mutationFn: ({
+      eventId,
+      agendaId,
+      input,
+    }: {
+      eventId: string;
+      agendaId: string;
+      input: CreateAgendaSpeakerInput;
+    }) => agendaSpeakerService.create(eventId, agendaId, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.agendaSpeakers.all });
       qc.invalidateQueries({ queryKey: nqk.agendas.all });
@@ -36,7 +47,15 @@ export const useCreateAgendaSpeaker = () => {
 export const useDeleteAgendaSpeaker = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => agendaSpeakerService.remove(id),
+    mutationFn: ({
+      eventId,
+      agendaId,
+      id,
+    }: {
+      eventId: string;
+      agendaId: string;
+      id: string;
+    }) => agendaSpeakerService.remove(eventId, agendaId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.agendaSpeakers.all });
       qc.invalidateQueries({ queryKey: nqk.agendas.all });

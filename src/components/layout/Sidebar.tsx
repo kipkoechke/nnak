@@ -17,6 +17,7 @@ import {
   MdHowToReg,
   MdBadge,
   MdWorkOutline,
+  MdAnalytics,
 } from "react-icons/md";
 import { isMemberRole } from "@/lib/rbac";
 import Link from "next/link";
@@ -39,25 +40,106 @@ interface MenuItem {
 }
 
 const STAFF_ITEMS: MenuItem[] = [
-  { name: "Dashboard", icon: MdInsertChart, href: "/nnak/dashboard", show: nnakCan.viewDashboard },
-  { name: "Members", icon: MdPeople, href: "/nnak/members", show: nnakCan.manageMembers },
-  { name: "Categories", icon: MdCategory, href: "/nnak/categories", show: nnakCan.upgradeCategory },
-  { name: "Branches", icon: MdBusiness, href: "/nnak/branches", show: nnakCan.manageBranches },
-  { name: "By-Product", icon: MdHowToReg, href: "/nnak/byproduct", show: nnakCan.reconcileByProduct },
-  { name: "Events", icon: MdEvent, href: "/nnak/events", show: nnakCan.manageEvents },
-  { name: "Check-In", icon: MdQrCodeScanner, href: "/nnak/checkin", show: nnakCan.checkInAttendees },
-  { name: "Payments", icon: MdPayments, href: "/nnak/payments", show: nnakCan.viewFinancials },
-  { name: "Reports", icon: MdReceipt, href: "/nnak/reports", show: nnakCan.viewReports },
-  { name: "Audit Log", icon: MdHistory, href: "/nnak/ilm/audit", show: nnakCan.viewAuditLog },
-  { name: "Data Exports", icon: MdFolderShared, href: "/nnak/ilm/exports", show: nnakCan.approveDataExport },
-  { name: "Erasure", icon: MdShield, href: "/nnak/ilm/erasure", show: nnakCan.manageILM },
+  {
+    name: "Dashboard",
+    icon: MdInsertChart,
+    href: "/nnak/dashboard",
+    show: nnakCan.viewDashboard,
+  },
+  {
+    name: "Members",
+    icon: MdPeople,
+    href: "/nnak/members",
+    show: nnakCan.manageMembers,
+  },
+  {
+    name: "By-Product",
+    icon: MdHowToReg,
+    href: "/nnak/byproduct",
+    show: nnakCan.reconcileByProduct,
+  },
+  {
+    name: "Events",
+    icon: MdEvent,
+    href: "/nnak/events",
+    show: nnakCan.manageEvents,
+  },
+  {
+    name: "Payments",
+    icon: MdPayments,
+    href: "/nnak/payments",
+    show: nnakCan.viewFinancials,
+  },
+  {
+    name: "Reports",
+    icon: MdReceipt,
+    href: "/nnak/reports",
+    show: nnakCan.viewReports,
+  },
+  {
+    name: "Branches",
+    icon: MdBusiness,
+    href: "/nnak/branches",
+    show: nnakCan.manageBranches,
+  },
+  {
+    name: "Categories",
+    icon: MdCategory,
+    href: "/nnak/categories",
+    show: nnakCan.upgradeCategory,
+  },
+  {
+    name: "Analytics",
+    icon: MdAnalytics,
+    href: "/nnak/analytics",
+    show: nnakCan.viewReports,
+  },
+  {
+    name: "Check-In",
+    icon: MdQrCodeScanner,
+    href: "/nnak/checkin",
+    show: nnakCan.checkInAttendees,
+  },
+  {
+    name: "Audit Log",
+    icon: MdHistory,
+    href: "/nnak/ilm/audit",
+    show: nnakCan.viewAuditLog,
+  },
+  {
+    name: "Data Exports",
+    icon: MdFolderShared,
+    href: "/nnak/ilm/exports",
+    show: nnakCan.approveDataExport,
+  },
+  {
+    name: "Erasure",
+    icon: MdShield,
+    href: "/nnak/ilm/erasure",
+    show: nnakCan.manageILM,
+  },
 ];
 
 const MEMBER_ITEMS: MenuItem[] = [
   { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
-  { name: "My Membership", icon: MdBadge, href: "/nnak/me/membership", show: nnakCan.viewMyMembership },
-  { name: "Workstations", icon: MdWorkOutline, href: "/nnak/me/workstations", show: nnakCan.viewMyWorkstations },
-  { name: "Subscriptions", icon: MdReceipt, href: "/nnak/me/subscriptions", show: nnakCan.viewMyPayments },
+  {
+    name: "My Membership",
+    icon: MdBadge,
+    href: "/nnak/me/membership",
+    show: nnakCan.viewMyMembership,
+  },
+  {
+    name: "Workstations",
+    icon: MdWorkOutline,
+    href: "/nnak/me/workstations",
+    show: nnakCan.viewMyWorkstations,
+  },
+  {
+    name: "Subscriptions",
+    icon: MdReceipt,
+    href: "/nnak/me/subscriptions",
+    show: nnakCan.viewMyPayments,
+  },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
@@ -75,7 +157,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
   return (
     <div
       className={`bg-primary-dark text-white flex flex-col transition-all duration-300 fixed md:relative inset-y-0 left-0 z-50 w-64 md:w-56 ${
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        isMobileMenuOpen
+          ? "translate-x-0"
+          : "-translate-x-full md:translate-x-0"
       }`}
     >
       <div className="flex items-center justify-end px-3 py-2 border-b border-white/15 md:hidden">
@@ -103,7 +187,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
               >
                 <div
                   className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
-                    item.active ? "bg-primary text-white" : "bg-white/15 text-white"
+                    item.active
+                      ? "bg-primary text-white"
+                      : "bg-white/15 text-white"
                   }`}
                 >
                   <item.icon className="w-4 h-4" />

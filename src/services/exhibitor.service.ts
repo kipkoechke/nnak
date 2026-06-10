@@ -1,9 +1,9 @@
-// Exhibitor endpoints:
-//   GET  /exhibitors?event_id=     list
-//   POST /exhibitors                create
-//   GET  /exhibitors/{id}           detail
-//   PATCH /exhibitors/{id}          update
-//   DELETE /exhibitors/{id}         delete
+// Exhibitor endpoints (nested under event):
+//   GET  /events/{event}/exhibitors         list
+//   POST /events/{event}/exhibitors         create
+//   GET  /events/{event}/exhibitors/{id}    detail
+//   PATCH /events/{event}/exhibitors/{id}   update
+//   DELETE /events/{event}/exhibitors/{id}  delete
 import { nnakApi } from "@/lib/api";
 import type {
   ApiEnvelope,
@@ -21,22 +21,34 @@ interface ExhibitorsResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+const base = (eventId: string) => `/events/${eventId}/exhibitors`;
+
 export const exhibitorService = {
-  list: async (params?: { event_id?: string; page?: number; per_page?: number }) => {
-    const r = await nnakApi.get<ExhibitorsResponse>("/exhibitors", { params });
+  list: async (
+    eventId: string,
+    params?: { page?: number; per_page?: number },
+  ) => {
+    const r = await nnakApi.get<ExhibitorsResponse>(base(eventId), { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
-  getById: async (id: string) =>
-    unwrap<Exhibitor>(nnakApi.get(`/exhibitors/${id}`)),
+  getById: async (eventId: string, id: string) =>
+    unwrap<Exhibitor>(nnakApi.get(`${base(eventId)}/${id}`)),
 
-  create: async (input: CreateExhibitorInput): Promise<Exhibitor> =>
-    unwrap<Exhibitor>(nnakApi.post("/exhibitors", input)),
+  create: async (
+    eventId: string,
+    input: CreateExhibitorInput,
+  ): Promise<Exhibitor> =>
+    unwrap<Exhibitor>(nnakApi.post(base(eventId), input)),
 
-  update: async (id: string, input: Partial<CreateExhibitorInput>): Promise<Exhibitor> =>
-    unwrap<Exhibitor>(nnakApi.patch(`/exhibitors/${id}`, input)),
+  update: async (
+    eventId: string,
+    id: string,
+    input: Partial<CreateExhibitorInput>,
+  ): Promise<Exhibitor> =>
+    unwrap<Exhibitor>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
-  remove: async (id: string) => {
-    await nnakApi.delete(`/exhibitors/${id}`);
+  remove: async (eventId: string, id: string) => {
+    await nnakApi.delete(`${base(eventId)}/${id}`);
   },
 };

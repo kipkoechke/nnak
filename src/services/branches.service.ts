@@ -34,9 +34,24 @@ export const nnakBranchesService = {
     return r.data?.data ?? [];
   },
   /** Admin: POST /branches — create a branch with its primary contact. */
-  create: async (body: import("@/types/nnak").CreateBranchInput): Promise<Branch> => {
+  create: async (
+    body: import("@/types/nnak").CreateBranchInput,
+  ): Promise<Branch> => {
     const r = await nnakApi.post<{ success: boolean; data: Branch }>(
       "/branches",
+      body,
+    );
+    return r.data?.data;
+  },
+
+  /** Admin: POST /branches/verify — verify the branch manager after
+   *  branch creation. The create endpoint returns a pending_token that
+   *  must be confirmed with email + phone OTPs. */
+  verifyManager: async (
+    body: import("@/types/nnak").BranchVerifyManagerInput,
+  ): Promise<Branch> => {
+    const r = await nnakApi.post<{ success: boolean; data: Branch }>(
+      "/branches/verify",
       body,
     );
     return r.data?.data;

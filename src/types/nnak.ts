@@ -128,7 +128,12 @@ export interface Branch {
 
 // Events --------------------------------------------------
 export type EventType = "conference" | "workshop" | "cpd" | "agm" | "training";
-export type EventStatus = "draft" | "published" | "closed" | "completed" | "cancelled";
+export type EventStatus =
+  | "draft"
+  | "published"
+  | "closed"
+  | "completed"
+  | "cancelled";
 
 export interface EventLocationCoordinates {
   lat: number;
@@ -627,6 +632,13 @@ export interface CreateBranchInput {
   branch_manager_email: string;
   branch_manager_name: string;
   branch_manager_phone: string;
+}
+
+// ── Admin: verify branch manager (POST /branches/verify) ───────────
+export interface BranchVerifyManagerInput {
+  pending_token: string;
+  email_otp: string;
+  phone_otp: string;
 }
 
 // ── Admin dashboard (GET /admin/dashboard?start_date&end_date) ─────
