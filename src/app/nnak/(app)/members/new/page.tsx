@@ -1,12 +1,30 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import PageHeader from "@/components/common/PageHeader";
-import { useCreateMember } from "@/hooks/use-members";
+import toast from "react-hot-toast";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAddBranchMember } from "@/hooks/use-branch-manager";
-import { useNnakBranches } from "@/hooks/use-branches";
-import { useGenders, useEmployerTypes } from "@/hooks/use-enums";
-import { useNnakMe } from "@/hooks/use-auth";
+import { useEmployerTypes } from "@/hooks/use-enums";
+import PageHeader from "@/components/common/PageHeader";
+import { InputField } from "@/components/common/InputField";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { DatePicker } from "@/components/common/DatePicker";
+import { branchMemberSchema, type BranchMemberFormValues } from "@/schemas/auth.schema";
+
+const GENDER_OPTS = [
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "other", label: "Other" },
+];
+
+const ID_TYPE_OPTS = [
+  { value: "National ID", label: "National ID" },
+  { value: "Passport", label: "Passport" },
+  { value: "Alien ID", label: "Alien ID" },
+  { value: "Birth Certificate", label: "Birth Certificate" },
+];
 
 const COUNTY_OPTS = [
   "Baringo","Bomet","Bungoma","Busia","Elgeyo Marakwet","Embu",
@@ -19,152 +37,155 @@ const COUNTY_OPTS = [
   "Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
+const STEPS = [
+  { id: 1, label: "Personal Details" },
+  { id: 2, label: "Professional" },
+] as const;
+
 export default function NewMemberPage() {
   const router = useRouter();
-  const create = useCreateMember();
   const addBranchMember = useAddBranchMember();
-  const { data: branches = [], isLoading: branchesLoading } = useNnakBranches();
-  const { data: genders = [], isLoading: gendersLoading } = useGenders();
-  const { data: employerTypes = [], isLoading: typesLoading } = useEmployerTypes();
-  const { data: me } = useNnakMe();
-  const isBranchManager = me?.role === "branch" || me?.role === "branch_manager";
+  const { data: employerTypes = [] } = useEmployerTypes();
+  const [step, setStep] = useState<1 | 2>(1);
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    trigger,
+    formState: { errors },
+  } = useForm<BranchMemberFormValues>({
+    resolver: zodResolver(branchMemberSchema),
+    defaultValues: {
+      name: "", email: "", phone: "",
+      date_of_birth: "", gender: "",
+      identification_type: "National ID", identification_number: "",
+      nck_number: "", professional_qualification: "",
+      designation: "", place_of_work: "", county: "", employer_type: "",
+    },
+  });
+
+  const step1Fields: (keyof BranchMemberFormValues)[] = [
+    "name","email","phone","date_of_birth","gender",
+    "identification_type","identification_number",
+  ];
+  const step2Fields: (keyof BranchMemberFormValues)[] = [
+    "nck_number","professional_qualification",
+    "designation","place_of_work","county","employer_type",
+  ];
+
+  const handleNext = async (target: number, fields: (keyof BranchMemberFormValues)[]) => {
+    const valid = await trigger(fields);
+    if (valid) setStep(target as 1 | 2);
+    else {
+      const first = fields.find((f) => errors[f]);
+      if (first) toast.error((errors[first]?.message as string) || "Please fix the highlighted field");
+    }
+  };
+
+  const onSubmit = async (data: BranchMemberFormValues) => {
+    const r = await addBranchMember.mutateAsync({
+      name: data.name,
+      email: data.email,
+      phone: data.phone.replace(/^\+/, ""),
+      gender: data.gender,
+      date_of_birth: data.date_of_birth,
+      nck_number: data.nck_number,
+      identification_type: data.identification_type,
+      identification_number: data.identification_number,
+      professional_qualification: data.professional_qualification,
+      designation: data.designation,
+      place_of_work: data.place_of_work,
+      county: data.county,
+      employer_type: data.employer_type,
+    }).catch(() => null);
+    if (r) router.push("/nnak/members");
+  };
+
+  const idTypeOptions = useMemo(() => ID_TYPE_OPTS, []);
+  const countyOptions = useMemo(() => COUNTY_OPTS, []);
   const employerTypeOptions = useMemo(
     () => employerTypes.map((t) => ({ value: t, label: t })),
     [employerTypes],
   );
 
-  const [form, setForm] = useState({
-    name: "", email: "", phone: "",
-    date_of_birth: "", gender: "",
-    identification_type: "National ID", identification_number: "",
-    nck_number: "", professional_qualification: "",
-    designation: "", place_of_work: "",
-    county: "", employer_type: "",
-    branch_id: "",
-  });
-  const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isBranchManager) {
-      const r = await addBranchMember.mutateAsync({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        gender: form.gender,
-        date_of_birth: form.date_of_birth,
-        nck_number: form.nck_number,
-        identification_type: form.identification_type,
-        identification_number: form.identification_number,
-        professional_qualification: form.professional_qualification,
-        designation: form.designation || undefined,
-        place_of_work: form.place_of_work || undefined,
-        county: form.county || undefined,
-        employer_type: form.employer_type || undefined,
-      }).catch(() => null);
-      if (r) router.push("/nnak/members");
-    } else {
-      const r = await create.mutateAsync({
-        name: form.name,
-        email: form.email,
-        profile: {
-          phone: form.phone || null,
-          identification_number: form.identification_number || null,
-          gender: (form.gender as "male" | "female") || "female",
-          employer_type: form.employer_type || null,
-          branch_id: form.branch_id || null,
-          county: form.county || null,
-        },
-      }).catch(() => null);
-      if (r) router.push(`/nnak/members/${r.id}`);
-    }
-  };
-
-  const isPending = isBranchManager ? addBranchMember.isPending : create.isPending;
-
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader title="New Member" description="Register a new NNAK member" back={() => router.back()} />
-      <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl">
-        {([
-          ["name","Full Name","text",true],
-          ["email","Email","email",true],
-          ["phone","Phone (+254...)","tel",true],
-          ["date_of_birth","Date of Birth","date",isBranchManager],
-          ["identification_type","Identification Type","text",isBranchManager],
-          ["identification_number","Identification Number","text",isBranchManager],
-          ["nck_number","NCK License Number","text",isBranchManager],
-          ["professional_qualification","Professional Qualification","text",isBranchManager],
-          ["designation","Designation","text",false],
-          ["place_of_work","Place of Work","text",false],
-        ] as const).map(([k, l, t, req]) => (
-          <div key={k}>
-            <label className="block text-xs font-medium text-slate-600 mb-1">{l}</label>
-            <input
-              type={t}
-              required={req}
-              value={form[k]}
-              onChange={(e) => set(k, e.target.value)}
-              placeholder={k.replace(/_/g, " ")}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-            />
-          </div>
-        ))}
 
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Gender</label>
-          <select value={form.gender} onChange={(e) => set("gender", e.target.value)} required={isBranchManager} disabled={gendersLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="">{gendersLoading ? "Loading…" : "— Select —"}</option>
-            {genders.map((g) => (
-              <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>
+      <form
+        onSubmit={handleSubmit(onSubmit, (errs) => {
+          const first = Object.values(errs)[0];
+          toast.error((first?.message as string) || "Please fix the highlighted fields");
+        })}
+        className="bg-white border border-slate-200 rounded-lg p-6 max-w-xl space-y-5"
+      >
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            {STEPS.map((s) => (
+              <div key={s.id} className={`flex-1 h-1 rounded-full ${step >= s.id ? "bg-primary" : "bg-slate-200"}`} />
             ))}
-          </select>
+          </div>
+          <div className="flex justify-between text-xs">
+            {STEPS.map((s) => (
+              <span key={s.id} className={step === s.id ? "text-primary font-semibold" : step > s.id ? "text-slate-700" : "text-slate-400"}>
+                {s.label}
+              </span>
+            ))}
+          </div>
         </div>
 
-        {isBranchManager && (
-          <div className="md:col-span-2 grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">County</label>
-              <select value={form.county} onChange={(e) => set("county", e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-                <option value="">— Select —</option>
-                {COUNTY_OPTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+        {step === 1 && (
+          <div className="space-y-4">
+            <InputField label="Full Name" type="text" placeholder="e.g. Jane Achieng Omondi" register={register("name")} error={errors.name?.message} required />
+            <InputField label="Email" type="email" placeholder="e.g. jane.omondi@example.com" register={register("email")} error={errors.email?.message} required />
+            <Controller control={control} name="phone" render={({ field }) => (
+              <PhoneInputField label="Phone" required value={field.value} onChange={field.onChange} defaultCountry="KE" error={errors.phone?.message} />
+            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <Controller control={control} name="date_of_birth" render={({ field }) => (
+                <DatePicker label="Date of Birth" required value={field.value} onChange={field.onChange} maxDate={new Date()} error={errors.date_of_birth?.message} />
+              )} />
+              <Controller control={control} name="gender" render={({ field }) => (
+                <SearchableSelect label="Gender" required options={GENDER_OPTS} value={field.value} onChange={field.onChange} placeholder="Select gender" error={errors.gender?.message} />
+              )} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Employer Type</label>
-              <select value={form.employer_type} onChange={(e) => set("employer_type", e.target.value)} disabled={typesLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-                <option value="">{typesLoading ? "Loading…" : "— Select —"}</option>
-                {employerTypeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <Controller control={control} name="identification_type" render={({ field }) => (
+                <SearchableSelect label="Identification Type" required options={idTypeOptions} value={field.value} onChange={field.onChange} placeholder="Select ID type" error={errors.identification_type?.message} />
+              )} />
+              <InputField label="Identification Number" type="text" placeholder="e.g. 34567890" register={register("identification_number")} error={errors.identification_number?.message} required />
             </div>
+            <button type="button" onClick={() => handleNext(2, step1Fields)} className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90">
+              Continue
+            </button>
           </div>
         )}
 
-        {!isBranchManager && (
-          <>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Category (Employer Type)</label>
-              <select value={form.employer_type} onChange={(e) => set("employer_type", e.target.value)} disabled={typesLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-                <option value="">{typesLoading ? "Loading…" : "— Select —"}</option>
-                {employerTypeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+        {step === 2 && (
+          <div className="space-y-4">
+            <InputField label="NCK License Number" type="text" placeholder="e.g. NCK/2024/98765" register={register("nck_number")} error={errors.nck_number?.message} required />
+            <InputField label="Designation" type="text" placeholder="e.g. Registered Nurse" register={register("designation")} error={errors.designation?.message} required />
+            <InputField label="Professional Qualification" type="text" placeholder="e.g. Bachelor of Science in Nursing" register={register("professional_qualification")} error={errors.professional_qualification?.message} required />
+            <InputField label="Place of Work" type="text" placeholder="e.g. Kenyatta National Hospital" register={register("place_of_work")} error={errors.place_of_work?.message} required />
+            <div className="grid grid-cols-2 gap-4">
+              <Controller control={control} name="county" render={({ field }) => (
+                <SearchableSelect label="County" required options={countyOptions} value={field.value} onChange={field.onChange} placeholder="Select county" searchPlaceholder="Search counties…" error={errors.county?.message} />
+              )} />
+              <Controller control={control} name="employer_type" render={({ field }) => (
+                <SearchableSelect label="Employer Type" required options={employerTypeOptions} value={field.value} onChange={field.onChange} placeholder="Select employer type" error={errors.employer_type?.message} />
+              )} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>
-              <select value={form.branch_id} onChange={(e) => set("branch_id", e.target.value)} disabled={branchesLoading} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-                <option value="">{branchesLoading ? "Loading branches…" : "— Select —"}</option>
-                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.employer_type ? ` (${b.employer_type})` : ""}</option>)}
-              </select>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep(1)} className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50">
+                Back
+              </button>
+              <button type="submit" disabled={addBranchMember.isPending} className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
+                {addBranchMember.isPending ? "Saving..." : "Create Member"}
+              </button>
             </div>
-          </>
+          </div>
         )}
-
-        <div className="md:col-span-2 flex justify-end">
-          <button type="submit" disabled={isPending} className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
-            {isPending ? "Saving..." : "Create Member"}
-          </button>
-        </div>
       </form>
     </div>
   );
