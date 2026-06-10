@@ -735,14 +735,18 @@ export interface ByProductUploadInput {
 }
 export interface ByProductUploadRecord {
   id: string;
+  uploaded_by?: string;
+  branch_id?: string | null;
   file_name?: string;
+  file_path?: string;
+  status: string;
   start_date: string;
   end_date: string;
-  status: string;
-  total_records?: number;
-  matched?: number;
-  flagged?: number;
-  total_amount?: number;
+  total_rows?: number;
+  processed_rows?: number;
+  failed_rows?: number;
+  skipped_count?: number;
+  errors?: string | null;
   created_at: string;
   updated_at: string;
 }

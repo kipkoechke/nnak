@@ -122,20 +122,23 @@ export default function ByProductPage() {
             <tr>
               <th className="px-3 py-2">File</th>
               <th className="px-3 py-2">Period</th>
-              <th className="px-3 py-2">Records</th>
+              <th className="px-3 py-2">Total</th>
+              <th className="px-3 py-2">Processed</th>
+              <th className="px-3 py-2">Failed</th>
               <th className="px-3 py-2">Status</th>
-              <th></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {uploads.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
             )}
             {uploads.map((u) => (
               <tr key={u.id}>
-                <td className="px-3 py-2 text-xs font-medium">{u.file_name || "—"}</td>
-                <td className="px-3 py-2 text-xs">{u.start_date} — {u.end_date}</td>
-                <td className="px-3 py-2">{u.total_records || 0}</td>
+                <td className="px-3 py-2 text-xs font-medium max-w-[200px] truncate" title={u.file_name}>{u.file_name || "—"}</td>
+                <td className="px-3 py-2 text-xs whitespace-nowrap">{new Date(u.start_date).toLocaleDateString()} — {new Date(u.end_date).toLocaleDateString()}</td>
+                <td className="px-3 py-2">{u.total_rows || 0}</td>
+                <td className="px-3 py-2 text-emerald-700">{u.processed_rows || 0}</td>
+                <td className="px-3 py-2 text-red-600">{u.failed_rows || 0}</td>
                 <td className="px-3 py-2">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${
                     u.status === "completed" ? "bg-emerald-50 text-emerald-700" :
