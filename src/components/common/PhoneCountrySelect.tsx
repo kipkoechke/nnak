@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import * as Flags from "country-flag-icons/react/3x2";
 import { getCountryCallingCode, type Country } from "react-phone-number-input";
 import { MdSearch, MdExpandMore, MdCheck } from "react-icons/md";
 
@@ -25,6 +24,16 @@ export interface PhoneCountrySelectProps {
   className?: string;
   unicodeFlags?: boolean;
 }
+
+/**
+ * Convert an ISO 3166-1 alpha-2 country code (e.g. "KE") to its unicode
+ * flag emoji ("🇰🇪"). Avoids the country-flag-icons dependency so the
+ * Vercel build stays clean of unresolved modules.
+ */
+const flagEmoji = (cc: string): string =>
+  cc
+    .toUpperCase()
+    .replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)));
 
 export function PhoneCountrySelect({
   value,
@@ -93,28 +102,23 @@ export function PhoneCountrySelect({
         aria-label="Select phone country code"
         className="flex items-center gap-1.5 pr-2 shrink-0 cursor-pointer disabled:cursor-not-allowed"
       >
-        {value && Flags[value as keyof typeof Flags] ? (
-          (() => {
-            const FlagIcon = Flags[value as keyof typeof Flags];
-            return (
-              <FlagIcon
-                className="w-5.5 h-4 shrink-0 rounded-sm overflow-hidden"
-                title={value}
-              />
-            );
-          })()
+        {value ? (
+          <span className="text-base leading-none" title={value}>
+            {flagEmoji(value)}
+          </span>
         ) : (
-          <span className="w-5 h-3.5 rounded-sm bg-gray-200 shrink-0" />
+          <span className="w-5 h-3.5 rounded-sm bg-slate-200 shrink-0" />
         )}
         <MdExpandMore
-          className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
       {/* Thin divider between dial-code button and phone input */}
-      <span className="w-px h-5 bg-gray-200 shrink-0" aria-hidden="true" />
+      <span className="w-px h-5 bg-slate-200 shrink-0" aria-hidden="true" />
 
       {isOpen &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             ref={dropdownRef}
@@ -126,19 +130,19 @@ export function PhoneCountrySelect({
               zIndex: 9999,
               minWidth: 240,
             }}
-            className="bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden"
+            className="bg-white border border-slate-300 rounded-lg shadow-lg max-h-64 overflow-hidden"
           >
             {/* Search */}
-            <div className="p-2 border-b border-gray-200">
+            <div className="p-2 border-b border-slate-200">
               <div className="relative">
-                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search countries…"
-                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-pink focus:border-brand-pink text-sm text-gray-900 placeholder:text-gray-500"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm text-slate-900 placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -146,7 +150,7 @@ export function PhoneCountrySelect({
             {/* Options */}
             <div className="max-h-48 overflow-y-auto">
               {filtered.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-gray-500 text-center">
+                <p className="px-3 py-3 text-sm text-slate-500 text-center">
                   No countries found
                 </p>
               ) : (
@@ -164,28 +168,19 @@ export function PhoneCountrySelect({
                       }}
                       className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors ${
                         isSelected
-                          ? "bg-brand-pink-light text-brand-pink"
-                          : "text-gray-700 hover:bg-gray-50"
+                          ? "bg-primary/10 text-primary"
+                          : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      {(() => {
-                        const FlagIcon =
-                          Flags[option.value as keyof typeof Flags];
-                        return FlagIcon ? (
-                          <FlagIcon
-                            className="w-5 h-[0.9rem] shrink-0 rounded-sm overflow-hidden"
-                            title={option.label}
-                          />
-                        ) : (
-                          <span className="w-5 h-3.5 rounded-sm bg-gray-200 shrink-0" />
-                        );
-                      })()}
+                      <span className="text-base leading-none" title={option.label}>
+                        {flagEmoji(option.value)}
+                      </span>
                       <span className="flex-1 truncate">{option.label}</span>
-                      <span className="text-gray-400 text-xs tabular-nums shrink-0">
+                      <span className="text-slate-400 text-xs tabular-nums shrink-0">
                         {dial}
                       </span>
                       {isSelected && (
-                        <MdCheck className="w-4 h-4 shrink-0 text-brand-pink" />
+                        <MdCheck className="w-4 h-4 shrink-0 text-primary" />
                       )}
                     </button>
                   );

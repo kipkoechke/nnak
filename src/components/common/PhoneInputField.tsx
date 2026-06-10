@@ -32,8 +32,8 @@ export function PhoneInputField({
         {required && <span className="ml-1 text-red-500">*</span>}
       </label>
       <div
-        className={`booking-phone-input h-10 rounded-lg border bg-white transition-all duration-300 hover:border-gray-400 focus-within:border-brand-pink focus-within:ring-1 focus-within:ring-brand-pink ${
-          error ? "border-red-500" : "border-gray-300"
+        className={`booking-phone-input h-10 px-3 rounded-lg border bg-white flex items-center transition-all duration-300 hover:border-slate-400 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary ${
+          error ? "border-red-500" : "border-slate-300"
         }`}
       >
         <PhoneInput
