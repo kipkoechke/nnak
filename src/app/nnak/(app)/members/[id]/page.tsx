@@ -43,7 +43,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title={member.name}
-        description={`Member ${member.profile?.account_number || "—"}`}
+        description={`Member ${member.profile?.membership_number || member.profile?.account_number || "—"}`}
         back={() => router.back()}
       />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -51,6 +51,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-2 gap-2">
             <Field label="Email" value={member.email} />
             <Field label="Phone" value={member.profile?.phone} />
+            <Field label="Membership Number" value={member.profile?.membership_number} />
             <Field label="NCK License Number" value={member.profile?.nck_number} />
             <Field label="National ID" value={member.profile?.identification_number} />
             <Field label="Designation" value={member.profile?.designation} />

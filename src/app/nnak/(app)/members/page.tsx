@@ -78,7 +78,7 @@ export default function MembersPage() {
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search name, licence, ID..."
+            placeholder="Search name, membership no, ID..."
             className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm"
           />
         </div>
@@ -114,7 +114,7 @@ export default function MembersPage() {
                 <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 sticky top-0">
                   <tr>
                     <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2 hidden md:table-cell">Licence #</th>
+                    <th className="px-4 py-2 hidden md:table-cell">NCK License #</th>
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>
                     <th className="px-4 py-2">Status</th>
@@ -130,7 +130,7 @@ export default function MembersPage() {
                         </Link>
                         <div className="text-xs text-slate-500">{m.email}</div>
                       </td>
-                      <td className="px-4 py-2 hidden md:table-cell">{m.profile?.license_number || "—"}</td>
+                      <td className="px-4 py-2 hidden md:table-cell">{m.profile?.nck_number || "—"}</td>
                       <td className="px-4 py-2 hidden md:table-cell">
                         {m.profile?.member_category?.name ||
                           cats.find((c) => c.id === m.profile?.member_category_id)?.name ||
