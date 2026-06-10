@@ -127,25 +127,51 @@ export interface Branch {
 export type EventType = "conference" | "workshop" | "cpd" | "agm" | "training";
 export type EventStatus = "draft" | "published" | "closed" | "completed" | "cancelled";
 
+export interface EventLocationCoordinates {
+  lat: number;
+  lng: number;
+}
+
 export interface NnakEvent {
   id: string;
-  name: string;
+  code: string;
+  title: string;
+  theme?: string | null;
   description: string;
   type: EventType;
   status: EventStatus;
-  starts_at: string;
-  ends_at: string;
-  venue: string;
-  capacity: number;
+  start_date: string;
+  end_date: string;
+  location: string;
+  location_coordinates?: EventLocationCoordinates | null;
+  metadata?: Record<string, unknown> | null;
   cover_image_url?: string | null;
-  pricing: EventPricingTier[];
+  banner_image_url?: string | null;
+  pricing?: EventPricingTier[];
   speakers?: EventSpeaker[];
+  agendas?: Agenda[];
+  sponsors?: Sponsor[];
+  exhibitors?: Exhibitor[];
   registrants_count?: number;
   attended_count?: number;
   revenue_total?: number;
-  multi_day?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateEventInput {
+  code: string;
+  title: string;
+  theme?: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  location_coordinates?: EventLocationCoordinates;
+  type: EventType;
+  metadata?: Record<string, unknown>;
+  cover_image_url?: string;
+  banner_image_url?: string;
 }
 
 export interface EventPricingTier {
@@ -174,6 +200,172 @@ export interface EventRegistration {
   certificate_issued: boolean;
   certificate_url?: string | null;
   created_at: string;
+}
+
+// ── Agendas ──────────────────────────────────────────────
+export interface Agenda {
+  id: string;
+  event_id: string;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  type: "keynote" | "panel" | "workshop" | "breakout" | "general";
+  metadata?: Record<string, unknown> | null;
+  event?: NnakEvent;
+  speakers?: AgendaSpeaker[];
+  breakout_rooms?: BreakoutRoom[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAgendaInput {
+  event_id: string;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  type: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ── Speakers ─────────────────────────────────────────────
+export interface Speaker {
+  id: string;
+  name: string;
+  title: string;
+  organization: string;
+  bio: string;
+  photo_url?: string | null;
+  links?: Record<string, string> | null;
+  event_id: string;
+  metadata?: Record<string, unknown> | null;
+  event?: NnakEvent;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSpeakerInput {
+  name: string;
+  title: string;
+  organization: string;
+  bio: string;
+  photo_url?: string;
+  links?: Record<string, string>;
+  event_id: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ── Agenda Speakers ──────────────────────────────────────
+export interface AgendaSpeaker {
+  id: string;
+  agenda_id: string;
+  speaker_id: string;
+  role: string;
+  metadata?: Record<string, unknown> | null;
+  agenda?: Agenda;
+  speaker?: Speaker;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAgendaSpeakerInput {
+  agenda_id: string;
+  speaker_id: string;
+  role: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ── Breakout Rooms ───────────────────────────────────────
+export interface BreakoutRoom {
+  id: string;
+  name: string;
+  description: string;
+  tag: string;
+  location: string;
+  metadata?: Record<string, unknown> | null;
+  agenda_id: string;
+  agenda?: Agenda;
+  speakers?: BreakoutSpeaker[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateBreakoutRoomInput {
+  name: string;
+  description: string;
+  tag: string;
+  location: string;
+  metadata?: Record<string, unknown>;
+  agenda_id: string;
+}
+
+// ── Breakout Room Speakers ───────────────────────────────
+export interface BreakoutSpeaker {
+  id: string;
+  breakout_room_id: string;
+  speaker_id: string;
+  role: string;
+  metadata?: Record<string, unknown> | null;
+  breakout_room?: BreakoutRoom;
+  speaker?: Speaker;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateBreakoutSpeakerInput {
+  breakout_room_id: string;
+  speaker_id: string;
+  role: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ── Sponsors ─────────────────────────────────────────────
+export interface Sponsor {
+  id: string;
+  name: string;
+  website_url?: string | null;
+  category: string;
+  is_partner: boolean;
+  description: string;
+  logo_url?: string | null;
+  metadata?: Record<string, unknown> | null;
+  event_id: string;
+  event?: NnakEvent;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSponsorInput {
+  name: string;
+  website_url?: string;
+  category: string;
+  is_partner: boolean;
+  description: string;
+  logo_url?: string;
+  metadata?: Record<string, unknown>;
+  event_id: string;
+}
+
+// ── Exhibitors ───────────────────────────────────────────
+export interface Exhibitor {
+  id: string;
+  name: string;
+  description: string;
+  logo_url?: string | null;
+  metadata?: Record<string, unknown> | null;
+  event_id: string;
+  event?: NnakEvent;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateExhibitorInput {
+  name: string;
+  description: string;
+  logo_url?: string;
+  metadata?: Record<string, unknown>;
+  event_id: string;
 }
 
 // Payments ------------------------------------------------

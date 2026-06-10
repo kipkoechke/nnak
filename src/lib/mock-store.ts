@@ -376,7 +376,7 @@ export const mockStore = {
   // ---- events ----
   listEvents: (params: { page?: number; per_page?: number; status?: string } = {}) => {
     const s = read();
-    let items = [...s.events].sort((a, b) => b.starts_at.localeCompare(a.starts_at));
+    let items = [...s.events].sort((a, b) => b.start_date.localeCompare(a.start_date));
     if (params.status) items = items.filter((e) => e.status === params.status);
     return paginate(items, params.page, params.per_page);
   },
@@ -392,18 +392,19 @@ export const mockStore = {
     }
     const event: NnakEvent = {
       id: uid(),
-      name: input.name || "Untitled",
+      code: (input as Record<string, unknown>).code as string || "",
+      title: input.title || (input as Record<string, unknown>).name as string || "Untitled",
       description: input.description || "",
       type: input.type || "cpd",
       status: input.status || "draft",
-      starts_at: input.starts_at || now(),
-      ends_at: input.ends_at || now(),
-      venue: input.venue || "",
-      capacity: input.capacity || 0,
+      start_date: input.start_date || (input as Record<string, unknown>).starts_at as string || now(),
+      end_date: input.end_date || (input as Record<string, unknown>).ends_at as string || now(),
+      location: input.location || (input as Record<string, unknown>).venue as string || "",
+      theme: input.theme || null,
+      cover_image_url: input.cover_image_url || null,
+      banner_image_url: input.banner_image_url || null,
       pricing: input.pricing || [],
       speakers: input.speakers || [],
-      cover_image_url: input.cover_image_url || null,
-      multi_day: input.multi_day || false,
       registrants_count: 0,
       attended_count: 0,
       revenue_total: 0,
@@ -477,7 +478,7 @@ export const mockStore = {
     return s.registrations
       .filter((r) => r.user_id === userId)
       .map((r) => ({ ...r, event: s.events.find((e) => e.id === r.event_id) ?? null }))
-      .sort((a, b) => (b.event?.starts_at || "").localeCompare(a.event?.starts_at || ""));
+      .sort((a, b) => (b.event?.start_date || "").localeCompare(a.event?.start_date || ""));
   },
 
   // Ensure a demo user exists as a real member record so the portal has
@@ -586,9 +587,9 @@ export const mockStore = {
     });
 
     // Seed one past event registration the member already paid for + attended.
-    const pastEvent = s.events.find((e) => new Date(e.starts_at) < new Date());
+    const pastEvent = s.events.find((e) => new Date(e.start_date) < new Date());
     if (pastEvent) {
-      const fee = pastEvent.pricing.find((p) => p.category_code === (cat?.code || "individual"))?.fee ?? 500;
+      const fee = pastEvent.pricing?.find((p) => p.category_code === (cat?.code || "individual"))?.fee ?? 500;
       const reg: EventRegistration = {
         id: uid(),
         event_id: pastEvent.id,
@@ -597,10 +598,10 @@ export const mockStore = {
         payment_status: "successful",
         qr_token: uid(),
         attended: true,
-        attended_at: pastEvent.starts_at,
+        attended_at: pastEvent.start_date,
         certificate_issued: true,
         certificate_url: `/api/mock/certificate/${uid()}`,
-        created_at: new Date(new Date(pastEvent.starts_at).getTime() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+        created_at: new Date(new Date(pastEvent.start_date).getTime() - 1000 * 60 * 60 * 24 * 14).toISOString(),
       };
       s.registrations.push(reg);
       s.payments.unshift({
@@ -733,7 +734,7 @@ export const mockStore = {
         new Date(m.profile.subscription_expires_at).getTime() < Date.now(),
     ).length;
     const upcoming = s.events.filter(
-      (e) => new Date(e.starts_at).getTime() > Date.now() && e.status === "published",
+      (e) => new Date(e.start_date).getTime() > Date.now() && e.status === "published",
     ).length;
 
     // group by category

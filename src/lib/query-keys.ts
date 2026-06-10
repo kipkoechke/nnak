@@ -41,6 +41,31 @@ export const nqk = {
     detail: (id: string) => ["nnak", "events", "detail", id] as const,
     registrants: (id: string) => ["nnak", "events", id, "registrants"] as const,
   },
+  agendas: {
+    all: ["nnak", "agendas"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "agendas", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "agendas", "detail", id] as const,
+  },
+  speakers: {
+    all: ["nnak", "speakers"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "speakers", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "speakers", "detail", id] as const,
+  },
+  breakoutRooms: {
+    all: ["nnak", "breakout-rooms"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "breakout-rooms", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "breakout-rooms", "detail", id] as const,
+  },
+  sponsors: {
+    all: ["nnak", "sponsors"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "sponsors", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "sponsors", "detail", id] as const,
+  },
+  exhibitors: {
+    all: ["nnak", "exhibitors"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "exhibitors", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "exhibitors", "detail", id] as const,
+  },
   payments: {
     all: ["nnak", "payments"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "payments", "list", p ?? {}] as const,

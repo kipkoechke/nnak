@@ -49,12 +49,12 @@ export default function EventsPage() {
               {data.data.map((e) => (
                 <tr key={e.id} className="hover:bg-slate-50">
                   <td className="px-3 py-2">
-                    <Link href={`/nnak/events/${e.id}`} className="font-semibold text-primary hover:underline">{e.name}</Link>
-                    <div className="text-xs text-slate-500 capitalize">{e.type} · {e.venue}</div>
+                    <Link href={`/nnak/events/${e.id}`} className="font-semibold text-primary hover:underline">{e.title}</Link>
+                    <div className="text-xs text-slate-500 capitalize">{e.type} · {e.location}</div>
                   </td>
-                  <td className="px-3 py-2 text-slate-600">{new Date(e.starts_at).toLocaleDateString()}</td>
+                  <td className="px-3 py-2 text-slate-600">{new Date(e.start_date).toLocaleDateString()}</td>
                   <td className="px-3 py-2"><span className={`text-[11px] px-2 py-0.5 rounded-full ${STATUS[e.status]}`}>{e.status}</span></td>
-                  <td className="px-3 py-2">{e.registrants_count || 0}/{e.capacity}</td>
+                  <td className="px-3 py-2">{e.registrants_count || 0}{e.registrants_count != null ? "" : ""}</td>
                   <td className="px-3 py-2">KES {(e.revenue_total || 0).toLocaleString()}</td>
                 </tr>
               ))}

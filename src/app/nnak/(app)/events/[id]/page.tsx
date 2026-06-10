@@ -21,8 +21,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const registerAndPay = async (userId: string) => {
     const m = members?.data.find((x) => x.id === userId);
-    const cat = event.pricing.find((p) => p.category_code === (m?.profile.member_category_id ? "individual" : "non_member"));
-    const fee = cat?.fee || event.pricing[0]?.fee || 0;
+    const cat = event.pricing?.find((p) => p.category_code === (m?.profile.member_category_id ? "individual" : "non_member"));
+    const fee = cat?.fee || event.pricing?.[0]?.fee || 0;
     await register.mutateAsync({ eventId: id, userId, fee });
     if (fee > 0) {
       stk.mutate({ user_id: userId, amount: fee, purpose: "event", related_id: id, phone: m?.profile.phone || "" });
@@ -31,23 +31,25 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title={event.name} description={`${event.type} · ${event.venue}`} back={() => router.back()} />
+      <PageHeader title={event.title} description={`${event.type} · ${event.location}`} back={() => router.back()} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-1 bg-white border border-slate-200 rounded-lg p-4 space-y-2 text-sm">
           <div><b>Status:</b> <span className="capitalize">{event.status}</span></div>
-          <div><b>Starts:</b> {new Date(event.starts_at).toLocaleString()}</div>
-          <div><b>Ends:</b> {new Date(event.ends_at).toLocaleString()}</div>
-          <div><b>Capacity:</b> {event.registrants_count || 0}/{event.capacity}</div>
+          <div><b>Starts:</b> {new Date(event.start_date).toLocaleString()}</div>
+          <div><b>Ends:</b> {new Date(event.end_date).toLocaleString()}</div>
+          <div><b>Capacity:</b> {event.registrants_count || 0}{event.registrants_count != null ? "" : ""}</div>
           <div><b>Revenue:</b> KES {(event.revenue_total || 0).toLocaleString()}</div>
           <div><b>Attendance:</b> {event.attended_count || 0}</div>
-          <div className="pt-2">
-            <div className="font-semibold mb-1">Tiered Pricing</div>
-            <ul className="text-xs space-y-0.5">
-              {event.pricing.map((p, i) => (
-                <li key={i}>{p.category_code} — KES {p.fee}</li>
-              ))}
-            </ul>
-          </div>
+          {event.pricing && event.pricing.length > 0 && (
+            <div className="pt-2">
+              <div className="font-semibold mb-1">Tiered Pricing</div>
+              <ul className="text-xs space-y-0.5">
+                {event.pricing.map((p, i) => (
+                  <li key={i}>{p.category_code} — KES {p.fee}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-lg overflow-hidden">

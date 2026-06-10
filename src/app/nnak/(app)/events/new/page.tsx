@@ -13,7 +13,7 @@ export default function NewEventPage() {
       <EventForm
         onSubmit={async (data) => {
           const e = await upsert.mutateAsync(data);
-          router.push(`/nnak/events/${e.id}`);
+          if (e) router.push(`/nnak/events/${e.id}`);
         }}
         submitting={upsert.isPending}
       />
