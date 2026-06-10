@@ -647,6 +647,46 @@ export interface AdminDashboardCategoryRow {
   category_name: string | null;
   total_members: number;
 }
+export interface AdminDashboardChapterRow {
+  chapter: string;
+  chapter_label: string;
+  total_members: number;
+}
+export interface RecentPendingMember {
+  id: string;
+  name: string;
+  email: string;
+  email_verified_at: string | null;
+  profile: {
+    id: string;
+    account_number: string;
+    phone?: string | null;
+    nck_number?: string | null;
+    membership_number?: string | null;
+    identification_type?: string | null;
+    identification_number?: string | null;
+    professional_qualification?: string | null;
+    designation?: string | null;
+    date_of_birth?: string | null;
+    gender?: string | null;
+    chapter?: string;
+    chapter_label?: string;
+    member_category_id?: string;
+    member_category?: { id: string; name: string } | null;
+    is_approved: boolean;
+    approved_at: string | null;
+    user_id: string;
+    branch_id: string | null;
+    branch?: { id: string; name: string; employer_type?: string; employer_type_label?: string } | null;
+    subscription_active: boolean;
+    subscription_expires_at: string | null;
+    active_subscription: unknown;
+    created_at: string;
+    updated_at: string;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
 export interface AdminDashboardData {
   start_date: string;
   end_date: string;
@@ -658,7 +698,9 @@ export interface AdminDashboardData {
   pending_approval_members: number;
   new_members_in_range: number;
   member_category_totals: AdminDashboardCategoryRow[];
-  total_collected_amount: number;
+  chapter_totals: AdminDashboardChapterRow[];
+  recent_pending_members: RecentPendingMember[];
+  total_collected_amount: string | number;
 }
 
 // ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)
