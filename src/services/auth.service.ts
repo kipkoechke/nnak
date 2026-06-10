@@ -31,13 +31,16 @@ export interface RegisterPayload {
   password: string;
   password_confirmation: string;
   phone: string;
-  license_number: string;
   identification_type: string;
   identification_number: string;
   date_of_birth: string;
   gender: string;
+  /** NCK License Number (treated as the licence on the backend). */
   nck_number?: string;
   professional_qualification?: string;
+  place_of_work?: string;
+  designation?: string;
+  county?: string;
 }
 
 export const nnakAuth = {
