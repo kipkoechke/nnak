@@ -111,7 +111,7 @@ export default function NewMemberPage() {
     [employerTypes],
   );
   const chapterOptions = useMemo(
-    () => chapters.map((c) => ({ value: c.name, label: c.name })),
+    () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
   );
 

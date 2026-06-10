@@ -43,8 +43,8 @@ const FALLBACK_USER_ROLES: string[] = [
 ];
 
 export interface Chapter {
-  id?: string;
-  name: string;
+  value: string;
+  label: string;
   [k: string]: unknown;
 }
 
@@ -77,10 +77,7 @@ export const enumsService = {
   /** Backend may return either string[] or a structured Chapter[]. */
   chapters: async (): Promise<Chapter[]> => {
     if (isDemoSession()) return [];
-    const r = await nnakApi.get<EnumResponse<Chapter | string>>("/chapters");
-    const data = r.data?.data ?? [];
-    return data.map((c) =>
-      typeof c === "string" ? ({ name: c } as Chapter) : (c as Chapter),
-    );
+    const r = await nnakApi.get<EnumResponse<Chapter>>("/chapters");
+    return r.data?.data ?? [];
   },
 };
