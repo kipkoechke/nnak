@@ -30,19 +30,14 @@ export interface RegisterPayload {
   email: string;
   password: string;
   password_confirmation: string;
-  phone?: string;
-  license_number?: string | null;
-  identification_type?: string | null;
-  identification_number?: string | null;
-  date_of_birth?: string | null;
-  gender?: string;
-  nck_number?: string | null;
-  professional_qualification?: string | null;
-  /** String from GET /employer-types (e.g. "Parastatal", "MOH"). */
-  employer_type?: string;
-  /** Optional — backend may derive this from employer_type. */
-  member_category_id?: string | null;
-  branch_id?: string | null;
+  phone: string;
+  license_number: string;
+  identification_type: string;
+  identification_number: string;
+  date_of_birth: string;
+  gender: string;
+  nck_number?: string;
+  professional_qualification?: string;
 }
 
 export const nnakAuth = {
