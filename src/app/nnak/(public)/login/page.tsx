@@ -20,8 +20,6 @@ export default function NnakLoginPage() {
     e.preventDefault();
     const res = await login.mutateAsync({ email, password }).catch(() => null);
     if (!res) return;
-    // POST /login always returns a pending_token; the user must verify
-    // the OTP to receive the actual Sanctum bearer token.
     const params = new URLSearchParams({
       token: res.pending_token,
       email,

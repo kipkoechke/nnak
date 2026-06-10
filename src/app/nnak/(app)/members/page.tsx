@@ -61,7 +61,7 @@ export default function MembersPage() {
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
       <PageHeader
         title="Members"
-        description="NNAK member register (FR-RA-003)"
+        description="NNAK member register"
         action={
           <Link
             href="/nnak/members/new"

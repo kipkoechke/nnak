@@ -72,7 +72,7 @@ export default function NnakRegisterPage() {
   return (
     <form onSubmit={submit} className="space-y-3">
       <h2 className="text-lg font-semibold text-slate-900">Register</h2>
-      <p className="text-xs text-slate-500">NNAK self-registration (per SRS §3.2 FR-MP-001)</p>
+      <p className="text-xs text-slate-500">NNAK self-registration</p>
 
       {(
         [

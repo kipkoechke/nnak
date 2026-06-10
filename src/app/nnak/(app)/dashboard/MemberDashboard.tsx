@@ -20,17 +20,6 @@ const daysUntil = (iso?: string | null) => {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 };
 
-/**
- * Member portal dashboard.
- *
- * Per the agreed contract this view only calls the member-allowed
- * endpoints:
- *   GET /profile             (via useNnakMe)
- *   GET /member/dashboard    (via useMemberDashboardApi)
- *   GET /member/workstations (via useMyWorkstations)
- *
- * No /branches, /categories, /employer-types, /payments, /events.
- */
 export default function MemberDashboard() {
   const { data: me } = useNnakMe();
   const { data: apiDash } = useMemberDashboardApi();

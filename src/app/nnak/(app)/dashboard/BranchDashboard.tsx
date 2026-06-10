@@ -50,9 +50,6 @@ export default function BranchDashboard() {
             className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
           />
         </div>
-        <span className="text-[11px] text-slate-500 ml-auto">
-          GET /branch/dashboard?start_date={start}&end_date={end}
-        </span>
       </div>
 
       {isLoading && !data ? (

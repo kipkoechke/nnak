@@ -38,7 +38,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="Membership Categories" description="Tiered pricing per SRS FR-MP-002" />
+      <PageHeader title="Membership Categories" description="Tiered pricing" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
           <div className="text-sm font-semibold">{editing ? "Edit" : "New"} Category</div>

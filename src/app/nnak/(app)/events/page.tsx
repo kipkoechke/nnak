@@ -21,7 +21,7 @@ export default function EventsPage() {
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Events"
-        description="NNAK event management (FR-EM-001..013)"
+        description="NNAK event management"
         action={
           <Link href="/nnak/events/new" className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm">
             <MdAdd className="w-4 h-4" /> New Event

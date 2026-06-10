@@ -27,7 +27,7 @@ export default function PendingMembersPage() {
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Pending Approvals"
-        description="Newly registered members awaiting HQ approval (FR-MP-001 / FR-MP-015)"
+        description="Newly registered members awaiting HQ approval"
       />
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">

@@ -7,15 +7,6 @@ import MemberDashboard from "./MemberDashboard";
 import AdminDashboard from "./AdminDashboard";
 import BranchDashboard from "./BranchDashboard";
 
-/**
- * Single /nnak/dashboard route, dispatched by the authenticated user's
- * role so each persona only hits their own backend dashboard endpoint:
- *
- *   member  / student         -> GET /member/dashboard
- *   branch_manager / branch   -> GET /branch/dashboard
- *   super_admin / admin / finance / executive / events
- *                             -> GET /admin/dashboard
- */
 export default function NnakDashboardPage() {
   const { data: user } = useNnakMe();
 

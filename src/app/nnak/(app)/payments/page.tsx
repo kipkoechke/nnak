@@ -11,7 +11,7 @@ export default function PaymentsPage() {
   const { data } = usePayments({ page, per_page: 20, purpose: purpose || undefined, status: status || undefined });
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="Payments" description="Subscriptions & event collections (FR-RA-005)" />
+      <PageHeader title="Payments" description="Subscriptions & event collections" />
       <div className="flex gap-2">
         <select value={purpose} onChange={(e) => { setPurpose(e.target.value); setPage(1); }} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
           <option value="">All purposes</option><option value="subscription">Subscription</option><option value="event">Event</option><option value="other">Other</option>

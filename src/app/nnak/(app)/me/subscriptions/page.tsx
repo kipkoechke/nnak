@@ -9,14 +9,6 @@ import {
 } from "@/hooks/use-subscriptions";
 import type { MemberSubscription } from "@/types/nnak";
 
-/**
- * Member portal — Subscriptions list & details.
- * Only calls:
- *   GET  /member/subscriptions       (useMySubscriptions)
- *   GET  /member/subscriptions/{id}  (useMySubscription)
- *   POST /member/subscriptions       (useCreateSubscription)
- */
-
 const fmtDate = (iso?: string | null) =>
   iso
     ? new Date(iso).toLocaleDateString("en-GB", {

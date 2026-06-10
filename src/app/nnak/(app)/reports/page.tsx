@@ -45,7 +45,7 @@ export default function ReportsPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="Reports & Analytics" description="FR-RA-005..009" />
+      <PageHeader title="Reports & Analytics" description="Member, financial and event analytics" />
       <div className="flex gap-2">
         {(["members","financial","events"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`text-xs px-3 py-1.5 rounded-full border ${tab === t ? "bg-primary text-white border-primary" : "bg-white border-slate-200"}`}>

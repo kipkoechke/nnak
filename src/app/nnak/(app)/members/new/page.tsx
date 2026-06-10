@@ -42,7 +42,7 @@ export default function NewMemberPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="New Member" description="Register a new NNAK member (FR-MP-001)" back={() => router.back()} />
+      <PageHeader title="New Member" description="Register a new NNAK member" back={() => router.back()} />
       <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl">
         {([
           ["name","Full Name", true],

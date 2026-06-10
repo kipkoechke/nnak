@@ -46,7 +46,7 @@ export default function ByProductPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="By-Product Reconciliation" description="Upload branch monthly remittance (FR-MP-010)" />
+      <PageHeader title="By-Product Reconciliation" description="Upload branch monthly remittance" />
       <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>

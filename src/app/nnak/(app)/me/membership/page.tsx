@@ -13,14 +13,6 @@ import DigitalIdCard, {
 import { MdDownload } from "react-icons/md";
 import type { MemberStatus, NnakProfile, NnakUser } from "@/types/nnak";
 
-/**
- * Member portal — Membership page.
- * Only calls the member-allowed endpoints:
- *   GET /profile               (via useNnakMe)
- *   GET /member/dashboard      (via useMemberDashboardApi)
- *   POST /member/subscriptions (via useCreateSubscription, on Renew)
- */
-
 const STATUS_TONE: Record<MemberStatus, string> = {
   active: "bg-emerald-100 text-emerald-800",
   pending: "bg-amber-100 text-amber-800",
@@ -70,7 +62,7 @@ export default function MyMembershipPage() {
   const subAmount = apiSub ? Number(apiSub.amount) : 0;
   const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
   const expiresIn = daysUntil(subExpiry);
-  const restricted = expiresIn !== null && expiresIn < -30; // FR-MP-017
+  const restricted = expiresIn !== null && expiresIn < -30;
 
   const apiStatus = dash?.subscription_status;
   const status: MemberStatus =
@@ -92,7 +84,7 @@ export default function MyMembershipPage() {
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
         title="My Membership"
-        description="Your NNAK digital membership and subscription status (FR-MP-009, FR-MP-013)"
+        description="Your NNAK digital membership and subscription status"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4">
@@ -183,7 +175,7 @@ export default function MyMembershipPage() {
             </dl>
           </div>
 
-          {/* Renewal panel — POST /member/subscriptions (no payload) */}
+          {/* Renewal panel */}
           {!isStudent && (
             <div className="bg-white border border-slate-200 rounded-lg p-4">
               <div className="text-sm font-semibold text-slate-900">
@@ -207,16 +199,12 @@ export default function MyMembershipPage() {
                     ? `Renew · KES ${subAmount.toLocaleString()}`
                     : "Start subscription"}
               </button>
-              <div className="text-[11px] text-slate-400 mt-2">
-                POST /member/subscriptions — backend issues the invoice; pay via the
-                invoice link the secretariat shares.
-              </div>
             </div>
           )}
 
           {expiresIn !== null && expiresIn <= 60 && expiresIn >= 0 && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-lg p-3">
-              Renewal reminder: your subscription expires in {expiresIn} days (FR-MP-012).
+              Renewal reminder: your subscription expires in {expiresIn} days.
             </div>
           )}
 

@@ -64,7 +64,7 @@ export default function NnakBranchesPage() {
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Branches"
-        description="NNAK branches & geographic drill-down (FR-RA-004)"
+        description="NNAK branches & geographic drill-down"
       />
 
       <div className="flex flex-wrap items-center gap-2">
