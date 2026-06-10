@@ -75,38 +75,6 @@ export default function BranchDashboard() {
               value={Number(data.total_collected_amount || 0).toLocaleString()}
             />
           </div>
-
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
-              Members by category
-            </div>
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs text-slate-500">
-                <tr>
-                  <th className="px-4 py-2">Category</th>
-                  <th className="px-4 py-2 text-right">Members</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.member_category_totals.length === 0 ? (
-                  <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-slate-500">
-                      No category breakdown available.
-                    </td>
-                  </tr>
-                ) : (
-                  data.member_category_totals.map((row) => (
-                    <tr key={row.category_id ?? "uncategorised"}>
-                      <td className="px-4 py-2 font-medium text-slate-900">
-                        {row.category_name ?? <span className="italic text-slate-400">All categories</span>}
-                      </td>
-                      <td className="px-4 py-2 text-right">{row.total_members}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </>
       )}
     </div>
