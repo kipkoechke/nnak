@@ -32,7 +32,7 @@ export function PhoneInputField({
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <div
-        className={`booking-phone-input h-[46px] px-3 rounded-lg border bg-white flex items-center transition-colors shadow-sm hover:border-gray-400 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary ${
+        className={`booking-phone-input h-[46px] px-3 rounded-lg border bg-white flex items-center transition-colors shadow-sm hover:border-gray-400 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:shadow-none [&_.PhoneInputInput]:ring-0 ${
           error ? "border-red-500" : "border-gray-300"
         }`}
       >

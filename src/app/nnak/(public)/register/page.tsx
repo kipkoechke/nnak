@@ -3,11 +3,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useNnakRegister } from "@/hooks/use-auth";
+import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
-
-/* ── Static option sets ─────────────────────────────────────── */
+import { registerSchema, type RegisterFormValues } from "@/schemas/auth.schema";
 
 const GENDER_OPTS = [
   { value: "Female", label: "Female" },
@@ -22,7 +24,6 @@ const ID_TYPE_OPTS = [
   { value: "Birth Certificate", label: "Birth Certificate", description: "For minors / students" },
 ];
 
-// 47 Kenyan counties — official NNAK handout.
 const COUNTY_OPTS = [
   "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
   "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
@@ -34,135 +35,96 @@ const COUNTY_OPTS = [
   "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
+const CATEGORY_OPTS = [
+  { value: "individual", label: "Individual" },
+  { value: "student", label: "Student" },
+  { value: "moh", label: "MOH" },
+  { value: "county", label: "County" },
+  { value: "parastatal", label: "Parastatal" },
+  { value: "private", label: "Private" },
+  { value: "fbo", label: "FBO" },
+];
+
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
   { id: 3, label: "Account Details" },
 ] as const;
 
-/* ── Shared visual primitives (match SearchableSelect / InputField) ── */
-
-const FIELD_INPUT_CLS =
-  "w-full px-3 py-3 border rounded-lg shadow-sm text-sm bg-white text-gray-900 placeholder:text-gray-500 " +
-  "border-gray-300 hover:border-gray-400 transition-colors " +
-  "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary";
-
-const FIELD_LABEL_CLS = "block text-sm font-bold text-gray-700 mb-2";
-
-const FormInput = ({
-  label,
-  required,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-  minLength,
-}: {
-  label: string;
-  required?: boolean;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoComplete?: string;
-  minLength?: number;
-}) => (
-  <div>
-    <label className={FIELD_LABEL_CLS}>
-      {label}
-      {required && <span className="text-red-500 ml-1">*</span>}
-    </label>
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      autoComplete={autoComplete}
-      minLength={minLength}
-      className={FIELD_INPUT_CLS}
-    />
-  </div>
-);
-
-/* ── Page ───────────────────────────────────────────────────── */
-
 export default function NnakRegisterPage() {
   const router = useRouter();
   const reg = useNnakRegister();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    date_of_birth: "",
-    gender: "",
-    identification_type: "National ID",
-    identification_number: "",
-    nck_number: "",
-    professional_qualification: "",
-    place_of_work: "",
-    designation: "",
-    county: "",
-    password: "",
-    password_confirmation: "",
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    trigger,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      date_of_birth: "",
+      gender: "",
+      identification_type: "National ID",
+      identification_number: "",
+      license_number: "",
+      nck_number: "",
+      professional_qualification: "",
+      designation: "",
+      place_of_work: "",
+      county: "",
+      category: "",
+      password: "",
+      password_confirmation: "",
+    },
   });
 
-  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm((s) => ({ ...s, [k]: v }));
+  const step1Fields: (keyof RegisterFormValues)[] = [
+    "name", "email", "phone", "date_of_birth", "gender",
+    "identification_type", "identification_number",
+  ];
+  const step2Fields: (keyof RegisterFormValues)[] = [
+    "license_number", "nck_number", "professional_qualification",
+    "designation", "place_of_work", "county", "category",
+  ];
 
-  const step1Valid =
-    !!form.name.trim() &&
-    !!form.email.trim() &&
-    !!form.phone.trim() &&
-    !!form.date_of_birth &&
-    !!form.gender &&
-    !!form.identification_type &&
-    !!form.identification_number.trim();
-
-  const step2Valid =
-    !!form.nck_number.trim() &&
-    !!form.professional_qualification.trim() &&
-    !!form.place_of_work.trim() &&
-    !!form.designation.trim() &&
-    !!form.county;
-
-  const passwordsMatch =
-    !!form.password &&
-    !!form.password_confirmation &&
-    form.password === form.password_confirmation;
-
-  const step3Valid = passwordsMatch && form.password.length >= 8;
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!step3Valid) {
-      toast.error("Please make sure both passwords match (min 8 characters)");
-      return;
+  const handleNext = async (target: number, fields: (keyof RegisterFormValues)[]) => {
+    const valid = await trigger(fields);
+    if (valid) setStep(target as 1 | 2 | 3);
+    else {
+      const first = fields.find((f) => errors[f]);
+      if (first) toast.error(errors[first]?.message as string || "Please fix the highlighted field");
     }
-    const r = await reg
-      .mutateAsync({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-        phone: form.phone,
-        identification_type: form.identification_type,
-        identification_number: form.identification_number,
-        date_of_birth: form.date_of_birth,
-        gender: form.gender,
-        nck_number: form.nck_number,
-        professional_qualification: form.professional_qualification,
-        place_of_work: form.place_of_work,
-        designation: form.designation,
-        county: form.county,
-      })
-      .catch(() => null);
+  };
+
+  const onSubmit = async (data: RegisterFormValues) => {
+    const r = await reg.mutateAsync({
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      password_confirmation: data.password_confirmation,
+      phone: data.phone,
+      license_number: data.license_number,
+      identification_type: data.identification_type,
+      identification_number: data.identification_number,
+      date_of_birth: data.date_of_birth,
+      gender: data.gender,
+      nck_number: data.nck_number,
+      professional_qualification: data.professional_qualification,
+      designation: data.designation,
+      place_of_work: data.place_of_work,
+      county: data.county,
+      category: data.category,
+    }).catch(() => null);
     if (!r) return;
     const params = new URLSearchParams({
       token: r.pending_token,
-      email: form.email,
+      email: data.email,
       redirect: "/nnak/dashboard",
     });
     if (r.otp) params.set("hint", r.otp);
@@ -171,9 +133,16 @@ export default function NnakRegisterPage() {
 
   const idTypeOptions = useMemo(() => ID_TYPE_OPTS, []);
   const countyOptions = useMemo(() => COUNTY_OPTS, []);
+  const categoryOptions = useMemo(() => CATEGORY_OPTS, []);
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form
+      onSubmit={handleSubmit(onSubmit, (errs) => {
+        const first = Object.values(errs)[0];
+        toast.error((first?.message as string) || "Please fix the highlighted fields");
+      })}
+      className="space-y-5"
+    >
       <p className="text-xs text-slate-500">NNAK self-registration</p>
 
       {/* Step indicator */}
@@ -206,125 +175,183 @@ export default function NnakRegisterPage() {
         </div>
       </div>
 
-      {/* ── Step 1 — Personal Details ─────────────────── */}
+      {/* Step 1 — Personal Details */}
       {step === 1 && (
         <div className="space-y-4">
-          <FormInput
+          <InputField
             label="Full Name"
-            required
-            value={form.name}
-            onChange={(v) => set("name", v)}
+            type="text"
             placeholder="e.g. Jane Achieng Omondi"
-            autoComplete="name"
+            register={register("name")}
+            error={errors.name?.message}
+            required
           />
-          <FormInput
+          <InputField
             label="Email"
             type="email"
-            required
-            value={form.email}
-            onChange={(v) => set("email", v)}
             placeholder="e.g. jane.omondi@example.com"
-            autoComplete="email"
+            register={register("email")}
+            error={errors.email?.message}
+            required
           />
 
-          <PhoneInputField
-            label="Phone"
-            required
-            value={form.phone}
-            onChange={(v) => set("phone", v ?? "")}
-            defaultCountry="KE"
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field }) => (
+              <PhoneInputField
+                label="Phone"
+                required
+                value={field.value}
+                onChange={field.onChange}
+                defaultCountry="KE"
+                error={errors.phone?.message}
+              />
+            )}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormInput
+            <InputField
               label="Date of Birth"
               type="date"
+              placeholder=""
+              register={register("date_of_birth")}
+              error={errors.date_of_birth?.message}
               required
-              value={form.date_of_birth}
-              onChange={(v) => set("date_of_birth", v)}
             />
-            <SearchableSelect
-              label="Gender"
-              required
-              options={GENDER_OPTS}
-              value={form.gender}
-              onChange={(v) => set("gender", v)}
-              placeholder="Select gender"
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Gender"
+                  required
+                  options={GENDER_OPTS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select gender"
+                  error={errors.gender?.message}
+                />
+              )}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SearchableSelect
-              label="Identification Type"
-              required
-              options={idTypeOptions}
-              value={form.identification_type}
-              onChange={(v) => set("identification_type", v)}
-              placeholder="Select ID type"
+            <Controller
+              control={control}
+              name="identification_type"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Identification Type"
+                  required
+                  options={idTypeOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select ID type"
+                  error={errors.identification_type?.message}
+                />
+              )}
             />
-            <FormInput
+            <InputField
               label="Identification Number"
-              required
-              value={form.identification_number}
-              onChange={(v) => set("identification_number", v)}
+              type="text"
               placeholder="e.g. 34567890"
+              register={register("identification_number")}
+              error={errors.identification_number?.message}
+              required
             />
           </div>
 
           <button
             type="button"
-            onClick={() => setStep(2)}
-            disabled={!step1Valid}
-            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+            onClick={() => handleNext(2, step1Fields)}
+            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90"
           >
             Continue
           </button>
         </div>
       )}
 
-      {/* ── Step 2 — Professional ──────────────────── */}
+      {/* Step 2 — Professional */}
       {step === 2 && (
         <div className="space-y-4">
-          <FormInput
-            label="NCK License Number"
-            required
-            value={form.nck_number}
-            onChange={(v) => set("nck_number", v)}
-            placeholder="e.g. NCK/2024/98765"
-          />
-          <FormInput
-            label="Professional Qualification"
-            required
-            value={form.professional_qualification}
-            onChange={(v) => set("professional_qualification", v)}
-            placeholder="e.g. Bachelor of Science in Nursing"
-          />
-          <FormInput
-            label="Place of Work"
-            required
-            value={form.place_of_work}
-            onChange={(v) => set("place_of_work", v)}
-            placeholder="e.g. Kenyatta National Hospital"
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormInput
-              label="Designation"
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <InputField
+              label="NCK License"
+              type="text"
+              placeholder="e.g. NCK/2024/98765"
+              register={register("nck_number")}
+              error={errors.nck_number?.message}
               required
-              value={form.designation}
-              onChange={(v) => set("designation", v)}
-              placeholder="e.g. Registered Nurse"
             />
-            <SearchableSelect
-              label="County"
+            <InputField
+              label="Designation"
+              type="text"
+              placeholder="e.g. Registered Nurse"
+              register={register("designation")}
+              error={errors.designation?.message}
               required
-              options={countyOptions}
-              value={form.county}
-              onChange={(v) => set("county", v)}
-              placeholder="Select county"
-              searchPlaceholder="Search counties…"
+            />
+            <InputField
+              label="Place of Work"
+              type="text"
+              placeholder="e.g. Kenyatta National Hospital"
+              register={register("place_of_work")}
+              error={errors.place_of_work?.message}
+              required
             />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller
+              control={control}
+              name="county"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="County"
+                  required
+                  options={countyOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select county"
+                  searchPlaceholder="Search counties…"
+                  error={errors.county?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="category"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Category"
+                  required
+                  options={categoryOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select category"
+                  error={errors.category?.message}
+                />
+              )}
+            />
+          </div>
+
+          <InputField
+            label="Licence Number"
+            type="text"
+            placeholder="e.g. NCI/2024/12345"
+            register={register("license_number")}
+            error={errors.license_number?.message}
+            required
+          />
+          <InputField
+            label="Professional Qualification"
+            type="text"
+            placeholder="e.g. Bachelor of Science in Nursing"
+            register={register("professional_qualification")}
+            error={errors.professional_qualification?.message}
+            required
+          />
 
           <div className="flex gap-2">
             <button
@@ -336,9 +363,8 @@ export default function NnakRegisterPage() {
             </button>
             <button
               type="button"
-              onClick={() => setStep(3)}
-              disabled={!step2Valid}
-              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+              onClick={() => handleNext(3, step2Fields)}
+              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90"
             >
               Continue
             </button>
@@ -346,35 +372,25 @@ export default function NnakRegisterPage() {
         </div>
       )}
 
-      {/* ── Step 3 — Account Details ──────────────── */}
+      {/* Step 3 — Account Details */}
       {step === 3 && (
         <div className="space-y-4">
-          <FormInput
+          <InputField
             label="Password"
             type="password"
-            required
-            value={form.password}
-            onChange={(v) => set("password", v)}
             placeholder="••••••••"
-            autoComplete="new-password"
-            minLength={8}
+            register={register("password")}
+            error={errors.password?.message}
+            required
           />
-          <FormInput
+          <InputField
             label="Confirm Password"
             type="password"
-            required
-            value={form.password_confirmation}
-            onChange={(v) => set("password_confirmation", v)}
             placeholder="••••••••"
-            autoComplete="new-password"
-            minLength={8}
+            register={register("password_confirmation")}
+            error={errors.password_confirmation?.message}
+            required
           />
-
-          {form.password &&
-            form.password_confirmation &&
-            form.password !== form.password_confirmation && (
-              <div className="text-xs text-red-600">Passwords do not match.</div>
-            )}
 
           <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
             Use 8 characters or more, mixing letters, numbers and symbols for a
@@ -391,7 +407,7 @@ export default function NnakRegisterPage() {
             </button>
             <button
               type="submit"
-              disabled={reg.isPending || !step3Valid}
+              disabled={reg.isPending}
               className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
               {reg.isPending ? "Registering..." : "Create account"}
