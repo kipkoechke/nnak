@@ -57,7 +57,8 @@ export interface NnakProfile {
   account_number: string;
   phone: string | null;
   nck_number: string | null;
-  license_number: string | null;
+  license_number?: string | null;
+  membership_number?: string | null;
   /** Backend may send canonical lower-case or human-friendly "National ID". */
   identification_type: string | null;
   identification_number: string | null;
@@ -65,8 +66,6 @@ export interface NnakProfile {
   date_of_birth: string | null;
   /** Backend currently sends "male" | "female" | "other"; future may extend. */
   gender: string;
-  /** Member's NNAK membership number, distinct from account_number. */
-  membership_number?: string | null;
   /** Approval flags from /members + /members/pending. */
   is_approved?: boolean;
   approved_at?: string | null;
@@ -74,12 +73,14 @@ export interface NnakProfile {
   is_verified?: boolean;
   verified_at?: string | null;
   verified_by?: string | null;
+  designation?: string | null;
+  chapter?: string | null;
   /** /member/dashboard surfaces these too. */
   subscription_active?: boolean;
   active_subscription?: unknown | null;
   /** Matches /employer-types API values (MOH | Parastatal | Private | FBO | Other).
    *  Falls back to plain string so legacy mock data and future values still type-check. */
-  employer_type: string | null;
+  employer_type?: string | null;
   employer_name?: string | null;
   county?: string | null;
   photo_url?: string | null;
@@ -92,6 +93,7 @@ export interface NnakProfile {
   subscription_expires_at?: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface MemberCategory {

@@ -151,13 +151,12 @@ export default function MyMembershipPage() {
 
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <Item label="Account number" value={accountNumber} />
-              <Item label="Licence number" value={profile.license_number || "—"} />
-              <Item label="NCK number" value={profile.nck_number || "—"} />
+              <Item label="NCK License Number" value={profile.nck_number || "—"} />
               <Item label="National ID" value={profile.identification_number || "—"} />
               <Item label="Phone" value={profile.phone || "—"} />
-              <Item label="Category" value={categoryLabel} />
-              <Item label="Employer type" value={profile.employer_type || "—"} />
               <Item label="Gender" value={profile.gender || "—"} />
+              <Item label="Designation" value={profile.designation || "—"} />
+              <Item label="Verification" value={profile.is_verified ? "Verified" : "Pending"} />
               <Item label="Member since" value={fmtDate(profile.created_at)} />
               <Item
                 label="Subscription valid until"
