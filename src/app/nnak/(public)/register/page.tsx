@@ -275,32 +275,30 @@ export default function NnakRegisterPage() {
       {/* Step 2 — Professional */}
       {step === 2 && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <InputField
-              label="NCK License"
-              type="text"
-              placeholder="e.g. NCK/2024/98765"
-              register={register("nck_number")}
-              error={errors.nck_number?.message}
-              required
-            />
-            <InputField
-              label="Designation"
-              type="text"
-              placeholder="e.g. Registered Nurse"
-              register={register("designation")}
-              error={errors.designation?.message}
-              required
-            />
-            <InputField
-              label="Place of Work"
-              type="text"
-              placeholder="e.g. Kenyatta National Hospital"
-              register={register("place_of_work")}
-              error={errors.place_of_work?.message}
-              required
-            />
-          </div>
+          <InputField
+            label="NCK License"
+            type="text"
+            placeholder="e.g. NCK/2024/98765"
+            register={register("nck_number")}
+            error={errors.nck_number?.message}
+            required
+          />
+          <InputField
+            label="Designation"
+            type="text"
+            placeholder="e.g. Registered Nurse"
+            register={register("designation")}
+            error={errors.designation?.message}
+            required
+          />
+          <InputField
+            label="Place of Work"
+            type="text"
+            placeholder="e.g. Kenyatta National Hospital"
+            register={register("place_of_work")}
+            error={errors.place_of_work?.message}
+            required
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Controller
