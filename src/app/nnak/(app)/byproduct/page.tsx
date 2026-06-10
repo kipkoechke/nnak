@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductUploads, useUploadByProduct } from "@/hooks/use-byproduct";
+import { useByProductUploads, useUploadByProduct, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
 import { useNnakBranches } from "@/hooks/use-branches";
 import { useNnakMe } from "@/hooks/use-auth";
 
@@ -24,6 +24,7 @@ export default function ByProductPage() {
   const { data: branches = [] } = useNnakBranches();
   const { data: uploads = [] } = useByProductUploads();
   const upload = useUploadByProduct();
+  const downloadTemplate = useDownloadByProductTemplate();
   const [branchId, setBranchId] = useState("");
   const [period, setPeriod] = useState(() => {
     const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -46,7 +47,19 @@ export default function ByProductPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="By-Product Reconciliation" description="Upload branch monthly remittance" />
+      <PageHeader
+        title="By-Product Reconciliation"
+        description="Upload branch monthly remittance"
+        action={
+          <button
+            onClick={() => downloadTemplate.mutate()}
+            disabled={downloadTemplate.isPending}
+            className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm"
+          >
+            {downloadTemplate.isPending ? "Downloading..." : "Download Template"}
+          </button>
+        }
+      />
       <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>
