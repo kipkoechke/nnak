@@ -33,15 +33,14 @@ export const registerSchema = z
     identification_number: z
       .string()
       .min(1, "Identification number is required"),
-    license_number: z.string().min(1, "Licence number is required"),
-    nck_number: z.string().min(1, "NCK number is required"),
+    nck_number: z.string().min(1, "NCK license number is required"),
     professional_qualification: z
       .string()
       .min(1, "Professional qualification is required"),
     designation: z.string().min(1, "Designation is required"),
     place_of_work: z.string().min(1, "Place of work is required"),
     county: z.string().min(1, "County is required"),
-    category: z.string().min(1, "Category is required"),
+    employer_type: z.string().min(1, "Employer type is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
   })

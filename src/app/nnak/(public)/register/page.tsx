@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNnakRegister } from "@/hooks/use-auth";
+import { useEmployerTypes } from "@/hooks/use-enums";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
@@ -36,16 +37,6 @@ const COUNTY_OPTS = [
   "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
-const CATEGORY_OPTS = [
-  { value: "individual", label: "Individual" },
-  { value: "student", label: "Student" },
-  { value: "moh", label: "MOH" },
-  { value: "county", label: "County" },
-  { value: "parastatal", label: "Parastatal" },
-  { value: "private", label: "Private" },
-  { value: "fbo", label: "FBO" },
-];
-
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
@@ -55,7 +46,13 @@ const STEPS = [
 export default function NnakRegisterPage() {
   const router = useRouter();
   const reg = useNnakRegister();
+  const { data: employerTypes = [] } = useEmployerTypes();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  const employerTypeOptions = useMemo(
+    () => employerTypes.map((t) => ({ value: t, label: t })),
+    [employerTypes],
+  );
 
   const {
     register,
@@ -73,13 +70,12 @@ export default function NnakRegisterPage() {
       gender: "",
       identification_type: "National ID",
       identification_number: "",
-      license_number: "",
       nck_number: "",
       professional_qualification: "",
       designation: "",
       place_of_work: "",
       county: "",
-      category: "",
+      employer_type: "",
       password: "",
       password_confirmation: "",
     },
@@ -90,8 +86,8 @@ export default function NnakRegisterPage() {
     "identification_type", "identification_number",
   ];
   const step2Fields: (keyof RegisterFormValues)[] = [
-    "license_number", "nck_number", "professional_qualification",
-    "designation", "place_of_work", "county", "category",
+    "nck_number", "professional_qualification",
+    "designation", "place_of_work", "county", "employer_type",
   ];
 
   const handleNext = async (target: number, fields: (keyof RegisterFormValues)[]) => {
@@ -110,7 +106,6 @@ export default function NnakRegisterPage() {
       password: data.password,
       password_confirmation: data.password_confirmation,
       phone: data.phone,
-      license_number: data.license_number,
       identification_type: data.identification_type,
       identification_number: data.identification_number,
       date_of_birth: data.date_of_birth,
@@ -120,7 +115,7 @@ export default function NnakRegisterPage() {
       designation: data.designation,
       place_of_work: data.place_of_work,
       county: data.county,
-      category: data.category,
+      employer_type: data.employer_type,
     }).catch(() => null);
     if (!r) return;
     const params = new URLSearchParams({
@@ -134,7 +129,6 @@ export default function NnakRegisterPage() {
 
   const idTypeOptions = useMemo(() => ID_TYPE_OPTS, []);
   const countyOptions = useMemo(() => COUNTY_OPTS, []);
-  const categoryOptions = useMemo(() => CATEGORY_OPTS, []);
 
   return (
     <form
@@ -283,7 +277,7 @@ export default function NnakRegisterPage() {
       {step === 2 && (
         <div className="space-y-4">
           <InputField
-            label="NCK License"
+            label="NCK License Number"
             type="text"
             placeholder="e.g. NCK/2024/98765"
             register={register("nck_number")}
@@ -296,6 +290,14 @@ export default function NnakRegisterPage() {
             placeholder="e.g. Registered Nurse"
             register={register("designation")}
             error={errors.designation?.message}
+            required
+          />
+          <InputField
+            label="Professional Qualification"
+            type="text"
+            placeholder="e.g. Bachelor of Science in Nursing"
+            register={register("professional_qualification")}
+            error={errors.professional_qualification?.message}
             required
           />
           <InputField
@@ -326,37 +328,20 @@ export default function NnakRegisterPage() {
             />
             <Controller
               control={control}
-              name="category"
+              name="employer_type"
               render={({ field }) => (
                 <SearchableSelect
-                  label="Category"
+                  label="Employer Type"
                   required
-                  options={categoryOptions}
+                  options={employerTypeOptions}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select category"
-                  error={errors.category?.message}
+                  placeholder="Select employer type"
+                  error={errors.employer_type?.message}
                 />
               )}
             />
           </div>
-
-          <InputField
-            label="Licence Number"
-            type="text"
-            placeholder="e.g. NCI/2024/12345"
-            register={register("license_number")}
-            error={errors.license_number?.message}
-            required
-          />
-          <InputField
-            label="Professional Qualification"
-            type="text"
-            placeholder="e.g. Bachelor of Science in Nursing"
-            register={register("professional_qualification")}
-            error={errors.professional_qualification?.message}
-            required
-          />
 
           <div className="flex gap-2">
             <button

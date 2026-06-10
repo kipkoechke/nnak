@@ -31,7 +31,6 @@ export interface RegisterPayload {
   password: string;
   password_confirmation: string;
   phone: string;
-  license_number: string;
   identification_type: string;
   identification_number: string;
   date_of_birth: string;
@@ -41,7 +40,7 @@ export interface RegisterPayload {
   designation?: string;
   place_of_work?: string;
   county?: string;
-  category?: string;
+  employer_type?: string;
 }
 
 export const nnakAuth = {
