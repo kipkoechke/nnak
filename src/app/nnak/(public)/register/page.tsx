@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useNnakRegister } from "@/hooks/use-auth";
+import { PhoneField } from "@/components/common/PhoneField";
 
 const GENDERS = ["Female", "Male", "Other"];
 
@@ -97,11 +98,9 @@ export default function NnakRegisterPage() {
       {step === 1 && (
         <div className="space-y-3">
           {([
-            ["name", "Full Name", "text"],
-            ["email", "Email", "email"],
-            ["phone", "Phone (+254...)", "tel"],
-            ["date_of_birth", "Date of Birth", "date"],
-          ] as const).map(([key, label, type]) => (
+            ["name", "Full Name", "text", "e.g. Jane Achieng Omondi"],
+            ["email", "Email", "email", "e.g. jane.omondi@example.com"],
+          ] as const).map(([key, label, type, placeholder]) => (
             <div key={key}>
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 {label}
@@ -110,27 +109,51 @@ export default function NnakRegisterPage() {
                 type={type}
                 value={form[key]}
                 onChange={(e) => set(key, e.target.value)}
+                placeholder={placeholder}
                 required
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           ))}
 
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              Gender
-            </label>
-            <select
-              value={form.gender}
-              onChange={(e) => set("gender", e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">— Select —</option>
-              {GENDERS.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+          <PhoneField
+            label="Phone"
+            value={form.phone}
+            onChange={(v) => set("phone", v ?? "")}
+            placeholder="+254 712 345 678"
+            required
+            defaultCountry="KE"
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                value={form.date_of_birth}
+                onChange={(e) => set("date_of_birth", e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Gender
+              </label>
+              <select
+                value={form.gender}
+                onChange={(e) => set("gender", e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              >
+                <option value="">— Select —</option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button
@@ -147,12 +170,12 @@ export default function NnakRegisterPage() {
       {step === 2 && (
         <div className="space-y-3">
           {([
-            ["identification_type", "Identification Type", "text"],
-            ["identification_number", "Identification Number", "text"],
-            ["license_number", "Licence Number", "text"],
-            ["nck_number", "NCK Number", "text"],
-            ["professional_qualification", "Professional Qualification", "text"],
-          ] as const).map(([key, label, type]) => (
+            ["identification_type", "Identification Type", "text", "e.g. National ID"],
+            ["identification_number", "Identification Number", "text", "e.g. 34567890"],
+            ["license_number", "Licence Number", "text", "e.g. NCI/2024/12345"],
+            ["nck_number", "NCK Number", "text", "e.g. NCK/2024/98765"],
+            ["professional_qualification", "Professional Qualification", "text", "e.g. Bachelor of Science in Nursing"],
+          ] as const).map(([key, label, type, placeholder]) => (
             <div key={key}>
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 {label}
@@ -161,6 +184,7 @@ export default function NnakRegisterPage() {
                 type={type}
                 value={form[key]}
                 onChange={(e) => set(key, e.target.value)}
+                placeholder={placeholder}
                 required={key === "license_number" || key === "identification_number"}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -170,9 +194,9 @@ export default function NnakRegisterPage() {
           <hr className="border-slate-200" />
 
           {([
-            ["password", "Password", "password"],
-            ["password_confirmation", "Confirm Password", "password"],
-          ] as const).map(([key, label, type]) => (
+            ["password", "Password", "password", "••••••••"],
+            ["password_confirmation", "Confirm Password", "password", "••••••••"],
+          ] as const).map(([key, label, type, placeholder]) => (
             <div key={key}>
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 {label}
@@ -181,6 +205,7 @@ export default function NnakRegisterPage() {
                 type={type}
                 value={form[key]}
                 onChange={(e) => set(key, e.target.value)}
+                placeholder={placeholder}
                 required
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
