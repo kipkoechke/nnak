@@ -10,4 +10,5 @@ export type ApiError =
       stack?: string;
     }
   | { message: string }
-  | { errors: Record<string, string[]> };
+  | { errors: Record<string, string[]> }
+  | { success: false; message: string; errors: string[]; code: number };
