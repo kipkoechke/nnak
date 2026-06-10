@@ -175,7 +175,7 @@ export default function MembersPage() {
                         )}
                         {canApprove && m.profile?.is_approved && (
                           <button
-                            onClick={() => setStatusM.mutate({ id: m.id, status: "suspended" })}
+                            onClick={() => { if (confirm(`Suspend ${m.name}?`)) setStatusM.mutate({ id: m.id, status: "suspended" }); }}
                             className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
                           >
                             Suspend

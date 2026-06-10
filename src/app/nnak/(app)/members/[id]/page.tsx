@@ -67,7 +67,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 <button onClick={() => setStatusM.mutate({ id, status: "active", reason: "approved" })} className="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded">Approve</button>
               )}
               {member.profile?.status === "active" && (
-                <button onClick={() => setStatusM.mutate({ id, status: "suspended" })} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Suspend</button>
+                <button onClick={() => { if (confirm(`Suspend ${member.name}?`)) setStatusM.mutate({ id, status: "suspended" }); }} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Suspend</button>
               )}
               {category && (
                 <button onClick={collectAnnual} disabled={stk.isPending} className="bg-primary text-white text-xs px-3 py-1.5 rounded">
