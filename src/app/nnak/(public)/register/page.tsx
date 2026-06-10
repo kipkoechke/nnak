@@ -14,27 +14,82 @@ import { DatePicker } from "@/components/common/DatePicker";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth.schema";
 
 const GENDER_OPTS = [
-  { value: "Female", label: "Female" },
-  { value: "Male", label: "Male" },
-  { value: "Other", label: "Other" },
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "other", label: "Other" },
 ];
 
 const ID_TYPE_OPTS = [
-  { value: "National ID", label: "National ID", description: "Kenyan citizens" },
-  { value: "Passport", label: "Passport", description: "Non-citizens / international" },
-  { value: "Alien ID", label: "Alien ID", description: "Foreign nationals resident in Kenya" },
-  { value: "Birth Certificate", label: "Birth Certificate", description: "For minors / students" },
+  {
+    value: "National ID",
+    label: "National ID",
+    description: "Kenyan citizens",
+  },
+  {
+    value: "Passport",
+    label: "Passport",
+    description: "Non-citizens / international",
+  },
+  {
+    value: "Alien ID",
+    label: "Alien ID",
+    description: "Foreign nationals resident in Kenya",
+  },
+  {
+    value: "Birth Certificate",
+    label: "Birth Certificate",
+    description: "For minors / students",
+  },
 ];
 
 const COUNTY_OPTS = [
-  "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
-  "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
-  "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui",
-  "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera",
-  "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi",
-  "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri",
-  "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi",
-  "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+  "Baringo",
+  "Bomet",
+  "Bungoma",
+  "Busia",
+  "Elgeyo Marakwet",
+  "Embu",
+  "Garissa",
+  "Homa Bay",
+  "Isiolo",
+  "Kajiado",
+  "Kakamega",
+  "Kericho",
+  "Kiambu",
+  "Kilifi",
+  "Kirinyaga",
+  "Kisii",
+  "Kisumu",
+  "Kitui",
+  "Kwale",
+  "Laikipia",
+  "Lamu",
+  "Machakos",
+  "Makueni",
+  "Mandera",
+  "Marsabit",
+  "Meru",
+  "Migori",
+  "Mombasa",
+  "Murang'a",
+  "Nairobi",
+  "Nakuru",
+  "Nandi",
+  "Narok",
+  "Nyamira",
+  "Nyandarua",
+  "Nyeri",
+  "Samburu",
+  "Siaya",
+  "Taita Taveta",
+  "Tana River",
+  "Tharaka Nithi",
+  "Trans Nzoia",
+  "Turkana",
+  "Uasin Gishu",
+  "Vihiga",
+  "Wajir",
+  "West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
 const STEPS = [
@@ -82,41 +137,59 @@ export default function NnakRegisterPage() {
   });
 
   const step1Fields: (keyof RegisterFormValues)[] = [
-    "name", "email", "phone", "date_of_birth", "gender",
-    "identification_type", "identification_number",
+    "name",
+    "email",
+    "phone",
+    "date_of_birth",
+    "gender",
+    "identification_type",
+    "identification_number",
   ];
   const step2Fields: (keyof RegisterFormValues)[] = [
-    "nck_number", "professional_qualification",
-    "designation", "place_of_work", "county", "employer_type",
+    "nck_number",
+    "professional_qualification",
+    "designation",
+    "place_of_work",
+    "county",
+    "employer_type",
   ];
 
-  const handleNext = async (target: number, fields: (keyof RegisterFormValues)[]) => {
+  const handleNext = async (
+    target: number,
+    fields: (keyof RegisterFormValues)[],
+  ) => {
     const valid = await trigger(fields);
     if (valid) setStep(target as 1 | 2 | 3);
     else {
       const first = fields.find((f) => errors[f]);
-      if (first) toast.error(errors[first]?.message as string || "Please fix the highlighted field");
+      if (first)
+        toast.error(
+          (errors[first]?.message as string) ||
+            "Please fix the highlighted field",
+        );
     }
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    const r = await reg.mutateAsync({
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      password_confirmation: data.password_confirmation,
-      phone: data.phone,
-      identification_type: data.identification_type,
-      identification_number: data.identification_number,
-      date_of_birth: data.date_of_birth,
-      gender: data.gender,
-      nck_number: data.nck_number,
-      professional_qualification: data.professional_qualification,
-      designation: data.designation,
-      place_of_work: data.place_of_work,
-      county: data.county,
-      employer_type: data.employer_type,
-    }).catch(() => null);
+    const r = await reg
+      .mutateAsync({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        password_confirmation: data.password_confirmation,
+        phone: data.phone,
+        identification_type: data.identification_type,
+        identification_number: data.identification_number,
+        date_of_birth: data.date_of_birth,
+        gender: data.gender,
+        nck_number: data.nck_number,
+        professional_qualification: data.professional_qualification,
+        designation: data.designation,
+        place_of_work: data.place_of_work,
+        county: data.county,
+        employer_type: data.employer_type,
+      })
+      .catch(() => null);
     if (!r) return;
     const params = new URLSearchParams({
       token: r.pending_token,
@@ -134,7 +207,9 @@ export default function NnakRegisterPage() {
     <form
       onSubmit={handleSubmit(onSubmit, (errs) => {
         const first = Object.values(errs)[0];
-        toast.error((first?.message as string) || "Please fix the highlighted fields");
+        toast.error(
+          (first?.message as string) || "Please fix the highlighted fields",
+        );
       })}
       className="space-y-5"
     >
