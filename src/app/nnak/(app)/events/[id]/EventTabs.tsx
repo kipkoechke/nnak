@@ -874,7 +874,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
                     <button
                       onClick={() => {
                         if (confirm(`Delete agenda "${a.title}"?`))
-                          deleteAgenda.mutate(a.id);
+                          deleteAgenda.mutate({ eventId, id: a.id });
                       }}
                       className="p-2 rounded-md hover:bg-red-50 text-slate-500 hover:text-red-600"
                       title="Delete"
