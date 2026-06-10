@@ -6,7 +6,7 @@ import type { MpesaTransactionListParams } from "@/types/nnak";
 
 export const useMpesaTransactions = (params?: MpesaTransactionListParams) =>
   useQuery({
-    queryKey: nqk.mpesaTransactions.list(params ?? {}),
+    queryKey: nqk.mpesaTransactions.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => mpesaTransactionService.list(params),
     placeholderData: (prev) => prev,
   });

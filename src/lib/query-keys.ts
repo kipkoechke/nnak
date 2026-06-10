@@ -56,6 +56,16 @@ export const nqk = {
     list: (p?: Record<string, unknown>) => ["nnak", "breakout-rooms", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "breakout-rooms", "detail", id] as const,
   },
+  agendaSpeakers: {
+    all: ["nnak", "agenda-speakers"] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "agenda-speakers", "list", p ?? {}] as const,
+  },
+  breakoutSpeakers: {
+    all: ["nnak", "breakout-speakers"] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "breakout-speakers", "list", p ?? {}] as const,
+  },
   sponsors: {
     all: ["nnak", "sponsors"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "sponsors", "list", p ?? {}] as const,
