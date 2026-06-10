@@ -715,6 +715,7 @@ export interface BranchAddMemberInput {
   place_of_work?: string;
   county?: string;
   employer_type?: string;
+  chapter?: string;
 }
 
 // ── Branch manager: verify member (POST /branch/members/verify) ───

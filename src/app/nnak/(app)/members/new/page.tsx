@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAddBranchMember } from "@/hooks/use-branch-manager";
-import { useEmployerTypes } from "@/hooks/use-enums";
+import { useEmployerTypes, useChapters } from "@/hooks/use-enums";
 import PageHeader from "@/components/common/PageHeader";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
@@ -46,6 +46,7 @@ export default function NewMemberPage() {
   const router = useRouter();
   const addBranchMember = useAddBranchMember();
   const { data: employerTypes = [] } = useEmployerTypes();
+  const { data: chapters = [] } = useChapters();
   const [step, setStep] = useState<1 | 2>(1);
 
   const {
@@ -61,7 +62,7 @@ export default function NewMemberPage() {
       date_of_birth: "", gender: "",
       identification_type: "National ID", identification_number: "",
       nck_number: "", professional_qualification: "",
-      designation: "", place_of_work: "", county: "", employer_type: "",
+      designation: "", place_of_work: "", county: "", employer_type: "", chapter: "",
     },
   });
 
@@ -98,6 +99,7 @@ export default function NewMemberPage() {
       place_of_work: data.place_of_work,
       county: data.county,
       employer_type: data.employer_type,
+      chapter: data.chapter || undefined,
     }).catch(() => null);
     if (r) router.push("/nnak/members");
   };
@@ -107,6 +109,10 @@ export default function NewMemberPage() {
   const employerTypeOptions = useMemo(
     () => employerTypes.map((t) => ({ value: t, label: t })),
     [employerTypes],
+  );
+  const chapterOptions = useMemo(
+    () => chapters.map((c) => ({ value: c.name, label: c.name })),
+    [chapters],
   );
 
   return (
@@ -176,6 +182,9 @@ export default function NewMemberPage() {
                 <SearchableSelect label="Employer Type" required options={employerTypeOptions} value={field.value} onChange={field.onChange} placeholder="Select employer type" error={errors.employer_type?.message} />
               )} />
             </div>
+            <Controller control={control} name="chapter" render={({ field }) => (
+              <SearchableSelect label="Chapter" options={chapterOptions} value={field.value} onChange={field.onChange} placeholder="Select chapter (optional)" searchPlaceholder="Search chapters…" />
+            )} />
             <div className="flex gap-2">
               <button type="button" onClick={() => setStep(1)} className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50">
                 Back

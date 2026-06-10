@@ -41,6 +41,7 @@ export const registerSchema = z
     place_of_work: z.string().min(1, "Place of work is required"),
     county: z.string().min(1, "County is required"),
     employer_type: z.string().min(1, "Employer type is required"),
+    chapter: z.string().optional(),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
   })
@@ -74,7 +75,8 @@ export const branchMemberSchema = z.object({
   designation: z.string().min(1, "Designation is required"),
   place_of_work: z.string().min(1, "Place of work is required"),
   county: z.string().min(1, "County is required"),
-  employer_type: z.string().min(1, "Employer type is required"),
-});
+    employer_type: z.string().min(1, "Employer type is required"),
+    chapter: z.string().optional(),
+  });
 
 export type BranchMemberFormValues = z.infer<typeof branchMemberSchema>;
