@@ -2,47 +2,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductUploads, useUploadByProduct, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
-import { useNnakBranches } from "@/hooks/use-branches";
-import { useNnakMe } from "@/hooks/use-auth";
+import { useByProductApiList, useUploadByProductFile, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
+import { MdUpload, MdClose } from "react-icons/md";
 
-/** Parse simple CSV: national_id,name,amount */
-function parseCsv(text: string) {
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .filter((l, i) => !(i === 0 && /national_?id/i.test(l)))
-    .map((line) => {
-      const [national_id, name, amount] = line.split(",").map((s) => s.trim());
-      return { national_id, name, amount: Number(amount) || 0 };
-    });
-}
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const monthsAgoIso = (n: number) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return d.toISOString().slice(0, 10);
+};
 
 export default function ByProductPage() {
-  const { data: me } = useNnakMe();
-  const { data: branches = [] } = useNnakBranches();
-  const { data: uploads = [] } = useByProductUploads();
-  const upload = useUploadByProduct();
+  const { data: uploadsData } = useByProductApiList();
+  const uploads = uploadsData?.data ?? [];
+  const uploadMutation = useUploadByProductFile();
   const downloadTemplate = useDownloadByProductTemplate();
-  const [branchId, setBranchId] = useState("");
-  const [period, setPeriod] = useState(() => {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const [csvText, setCsvText] = useState("");
+
+  const [file, setFile] = useState<File | null>(null);
+  const [startDate, setStartDate] = useState(monthsAgoIso(1));
+  const [endDate, setEndDate] = useState(todayIso());
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!branchId || !me) return;
-    const lines = parseCsv(csvText);
-    if (!lines.length) { alert("CSV has no lines"); return; }
-    await upload.mutateAsync({ branch_id: branchId, period_month: period, uploaded_by: me.id, lines });
-    setCsvText("");
-  };
-
-  const onFile = async (f?: File) => {
-    if (!f) return;
-    setCsvText(await f.text());
+    if (!file) return;
+    await uploadMutation.mutateAsync({ file, start_date: startDate, end_date: endDate });
+    setFile(null);
   };
 
   return (
@@ -54,41 +38,80 @@ export default function ByProductPage() {
           <button
             onClick={() => downloadTemplate.mutate()}
             disabled={downloadTemplate.isPending}
-            className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm"
+            className="inline-flex items-center gap-1 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-50"
           >
             {downloadTemplate.isPending ? "Downloading..." : "Download Template"}
           </button>
         }
       />
-      <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Branch</label>
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} required className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
-            <option value="">— Select —</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+
+      <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Start Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={uploadMutation.isPending || !file}
+              className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {uploadMutation.isPending ? "Uploading..." : "Upload File"}
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Period (YYYY-MM)</label>
-          <input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">CSV File (national_id,name,amount)</label>
-          <input type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} className="w-full text-sm" />
-        </div>
-        <div className="md:col-span-3">
-          <textarea
-            value={csvText}
-            onChange={(e) => setCsvText(e.target.value)}
-            rows={6}
-            placeholder="Paste CSV here:&#10;national_id,name,amount&#10;12345678,Jane Doe,500"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono"
-          />
-        </div>
-        <div className="md:col-span-3 flex justify-end">
-          <button disabled={upload.isPending} className="bg-primary text-white px-4 py-2 rounded text-sm">
-            {upload.isPending ? "Processing..." : "Upload & Reconcile"}
-          </button>
+
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-slate-600 mb-2">
+            Upload Remittance File (.csv, .xlsx, .xls)
+          </label>
+          {file ? (
+            <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-3">
+                <MdUpload className="w-5 h-5 text-primary" />
+                <div>
+                  <div className="text-sm font-medium text-slate-900">{file.name}</div>
+                  <div className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFile(null)}
+                className="text-slate-400 hover:text-red-600 p-1"
+              >
+                <MdClose className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+              <MdUpload className="w-8 h-8 text-slate-400 mb-2" />
+              <span className="text-sm text-slate-500">Click to browse or drag and drop</span>
+              <span className="text-xs text-slate-400 mt-1">CSV, XLSX, or XLS files</span>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </label>
+          )}
         </div>
       </form>
 
@@ -96,20 +119,30 @@ export default function ByProductPage() {
         <div className="p-3 text-sm font-semibold border-b">Recent uploads</div>
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr><th className="px-3 py-2">Period</th><th className="px-3 py-2">Branch</th><th className="px-3 py-2">Records</th><th className="px-3 py-2">Matched</th><th className="px-3 py-2">Flagged</th><th className="px-3 py-2">Amount</th><th></th></tr>
+            <tr>
+              <th className="px-3 py-2">File</th>
+              <th className="px-3 py-2">Period</th>
+              <th className="px-3 py-2">Records</th>
+              <th className="px-3 py-2">Status</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {uploads.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
             )}
             {uploads.map((u) => (
               <tr key={u.id}>
-                <td className="px-3 py-2">{u.period_month}</td>
-                <td className="px-3 py-2">{branches.find((b) => b.id === u.branch_id)?.name || "—"}</td>
-                <td className="px-3 py-2">{u.total_records}</td>
-                <td className="px-3 py-2 text-emerald-700">{u.matched}</td>
-                <td className="px-3 py-2 text-red-700">{u.flagged}</td>
-                <td className="px-3 py-2">KES {u.total_amount.toLocaleString()}</td>
+                <td className="px-3 py-2 text-xs font-medium">{u.file_name || "—"}</td>
+                <td className="px-3 py-2 text-xs">{u.start_date} — {u.end_date}</td>
+                <td className="px-3 py-2">{u.total_records || 0}</td>
+                <td className="px-3 py-2">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                    u.status === "completed" ? "bg-emerald-50 text-emerald-700" :
+                    u.status === "processing" ? "bg-amber-50 text-amber-700" :
+                    "bg-slate-100 text-slate-600"
+                  }`}>{u.status}</span>
+                </td>
                 <td className="px-3 py-2"><Link href={`/nnak/byproduct/${u.id}`} className="text-xs text-primary">Details</Link></td>
               </tr>
             ))}
