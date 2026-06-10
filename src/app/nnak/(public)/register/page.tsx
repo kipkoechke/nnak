@@ -177,7 +177,7 @@ export default function NnakRegisterPage() {
         email: data.email,
         password: data.password,
         password_confirmation: data.password_confirmation,
-        phone: data.phone,
+        phone: data.phone.replace(/^\+/, ""),
         identification_type: data.identification_type,
         identification_number: data.identification_number,
         date_of_birth: data.date_of_birth,
