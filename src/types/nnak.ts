@@ -530,8 +530,9 @@ export interface NnakLoginResponse {
 export interface PendingOtpResponse {
   pending_token: string;
   expires_in: number;
-  /** OTP returned in dev for testing; production hides it. */
   otp?: string | null;
+  email_otp?: string | null;
+  phone_otp?: string | null;
   user?: { id: string; name: string; email: string };
 }
 

@@ -101,7 +101,15 @@ export default function NewMemberPage() {
       employer_type: data.employer_type,
       chapter: data.chapter || undefined,
     }).catch(() => null);
-    if (r) router.push("/nnak/members");
+    if (r) {
+      const params = new URLSearchParams({
+        token: r.pending_token,
+        email: data.email,
+      });
+      if (r.email_otp) params.set("email_otp", r.email_otp);
+      if (r.phone_otp) params.set("phone_otp", r.phone_otp);
+      router.push(`/nnak/branch/verify?${params.toString()}`);
+    }
   };
 
   const idTypeOptions = useMemo(() => ID_TYPE_OPTS, []);
