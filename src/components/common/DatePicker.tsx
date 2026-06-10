@@ -26,9 +26,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   error,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selected = value ? new Date(value + "T00:00:00") : undefined;
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < 360);
+    }
+  }, [isOpen]);
 
   const handleSelect = (date: Date | undefined) => {
     if (!date) {
@@ -90,7 +99,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+        <div className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 ${
+          dropUp ? "bottom-full mb-1" : "mt-1"
+        }`}>
           <DayPicker
             mode="single"
             selected={selected}

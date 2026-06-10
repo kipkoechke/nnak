@@ -57,8 +57,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useOutsideClick(() => setIsOpen(false));
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Compute whether dropdown should open upward
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < 320);
+    }
+  }, [isOpen]);
 
   // Focus search input when dropdown opens
   useEffect(() => {
@@ -131,6 +142,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       )}
       {/* Select Button */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -175,7 +187,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+        <div className={`absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg ${
+          dropUp ? "bottom-full mb-1" : "mt-1"
+        }`}>
           {/* Search Input */}
           <div className="p-2 border-b border-gray-200 bg-white">
             <div className="relative">
