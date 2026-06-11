@@ -69,7 +69,6 @@ export default function MyMembershipPage() {
   if (!profile) {
     return <div className="px-4 py-6 text-sm text-slate-500">Setting up your membership…</div>;
   }
-  }, [stkQuery.data]);
 
   const effectiveMember: NnakUser & { profile: NnakProfile } = { ...me, profile };
   const apiSub = dash?.subscription ?? null;
