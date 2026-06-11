@@ -100,9 +100,9 @@ export default function MyMembershipPage() {
   const subAmount = apiSub ? Number(apiSub.amount) : 0;
   const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
   const expiresIn = daysUntil(subExpiry);
-  const restricted = apiStatus !== "active";
 
   const apiStatus = dash?.subscription_status;
+  const restricted = apiStatus !== "active";
   const status: MemberStatus =
     apiStatus === "active"
       ? "active"
