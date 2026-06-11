@@ -6,21 +6,37 @@ import { useMpesaTransactions } from "@/hooks/use-mpesa-transactions";
 
 export default function PaymentsPage() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("success");
+  const [status, setStatus] = useState("");
+  const [transactionType, setTransactionType] = useState("");
+  const [used, setUsed] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const { data, isLoading } = useMpesaTransactions({
     page,
     per_page: 20,
-    transaction_type: "stk_push_callback",
+    transaction_type: transactionType || undefined,
     status: status || undefined,
     date_from: dateFrom || undefined,
-    used: true,
+    used: used === "" ? undefined : used === "true",
   });
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader title="Payments" description="Subscriptions & event collections" />
-      <div className="flex gap-2 items-end">
+      <div className="flex flex-wrap gap-2 items-end">
+        <div>
+          <label className="text-[11px] text-slate-500 block mb-1">Type</label>
+          <select
+            value={transactionType}
+            onChange={(e) => { setTransactionType(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">All</option>
+            <option value="stk_push_callback">STK Push Callback</option>
+            <option value="stk_push_request">STK Push Request</option>
+            <option value="stk_query">STK Query</option>
+            <option value="c2b_confirmation">C2B Confirmation</option>
+          </select>
+        </div>
         <div>
           <label className="text-[11px] text-slate-500 block mb-1">Status</label>
           <select
@@ -32,6 +48,18 @@ export default function PaymentsPage() {
             <option value="success">Success</option>
             <option value="failed">Failed</option>
             <option value="pending">Pending</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[11px] text-slate-500 block mb-1">Used</label>
+          <select
+            value={used}
+            onChange={(e) => { setUsed(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">All</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
           </select>
         </div>
         <div>
