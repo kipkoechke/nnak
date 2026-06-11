@@ -13,8 +13,8 @@ export default function AnalyticsPage() {
       </div>
       <h1 className="text-xl font-semibold text-slate-900 mb-2">Analytics</h1>
       <p className="text-sm text-slate-500 text-center max-w-sm">
-        Advanced analytics and insights are coming soon. Stay tuned for
-        detailed reports, trends, and visualisations.
+        Advanced analytics and insights are coming soon. Stay tuned for detailed
+        reports, trends, and visualisations.
       </p>
     </div>
   );
