@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { useNnakMe } from "@/hooks/use-auth";
 import {
@@ -7,6 +7,7 @@ import {
   useMemberDashboardApi,
 } from "@/hooks/use-subscriptions";
 import { useInvoiceStkPush, useInvoiceStkQuery } from "@/hooks/use-member-payments";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
 import DigitalIdCard, {
   downloadDigitalIdPdf,
 } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
@@ -42,10 +43,24 @@ export default function MyMembershipPage() {
   const { data: dash } = useMemberDashboardApi();
   const subscribe = useCreateSubscription();
   const stkPush = useInvoiceStkPush();
-  const [stkPhone, setStkPhone] = useState("");
+  const [stkPhone, setStkPhone] = useState(me?.profile?.phone || "");
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const stkQuery = useInvoiceStkQuery(activeInvoiceId);
+
+  // Auto-close payment modal when status check returns success
+  useEffect(() => {
+    if (
+      stkQuery.data &&
+      (stkQuery.data.status === "successful" || stkQuery.data.status === "success")
+    ) {
+      const timer = setTimeout(() => {
+        setShowPayModal(false);
+        setActiveInvoiceId(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [stkQuery.data]);
 
   if (!me) {
     return <div className="px-4 py-6 text-sm text-slate-500">Loading membership…</div>;
@@ -54,6 +69,7 @@ export default function MyMembershipPage() {
   if (!profile) {
     return <div className="px-4 py-6 text-sm text-slate-500">Setting up your membership…</div>;
   }
+  }, [stkQuery.data]);
 
   const effectiveMember: NnakUser & { profile: NnakProfile } = { ...me, profile };
   const apiSub = dash?.subscription ?? null;
@@ -218,13 +234,11 @@ export default function MyMembershipPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">M-Pesa Phone Number</label>
-              <input
-                type="tel"
-                value={stkPhone}
-                onChange={(e) => setStkPhone(e.target.value)}
-                placeholder={profile.phone || "254700000000"}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              <PhoneInputField
+                label="M-Pesa Phone Number"
+                value={stkPhone || profile.phone || ""}
+                onChange={(val) => setStkPhone(val || "")}
+                defaultCountry="KE"
               />
             </div>
 

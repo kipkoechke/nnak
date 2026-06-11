@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   MdBadge,
@@ -9,11 +9,21 @@ import {
 } from "react-icons/md";
 import { useNnakMe } from "@/hooks/use-auth";
 import { useMemberDashboardApi } from "@/hooks/use-subscriptions";
-import { useInvoiceStkPush, useInvoiceStkQuery } from "@/hooks/use-member-payments";
+import {
+  useInvoiceStkPush,
+  useInvoiceStkQuery,
+} from "@/hooks/use-member-payments";
 import { useMyWorkstations } from "@/hooks/use-workstations";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
 
 const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  iso
+    ? new Date(iso).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
 const daysUntil = (iso?: string | null) => {
   if (!iso) return null;
@@ -25,17 +35,34 @@ export default function MemberDashboard() {
   const { data: apiDash } = useMemberDashboardApi();
   const { data: workstations = [] } = useMyWorkstations();
   const stkPush = useInvoiceStkPush();
-  const [stkPhone, setStkPhone] = useState("");
+  const [stkPhone, setStkPhone] = useState(me?.profile?.phone || "");
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const stkQuery = useInvoiceStkQuery(activeInvoiceId);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  if (!me) return <div className="text-sm text-slate-500">Loading your portal…</div>;
+  // Auto-close payment modal when status check returns success
+  useEffect(() => {
+    if (
+      stkQuery.data &&
+      (stkQuery.data.status === "successful" ||
+        stkQuery.data.status === "success")
+    ) {
+      const timer = setTimeout(() => {
+        setShowPayModal(false);
+        setActiveInvoiceId(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [stkQuery.data]);
+
+  if (!me)
+    return <div className="text-sm text-slate-500">Loading your portal…</div>;
   const profile = me.profile;
 
   // Profile-derived (no extra fetch): use employer_type from /profile as
   // the "category" label rather than calling /categories or /branches.
-  const accountNumber = apiDash?.account_number || profile?.account_number || "—";
+  const accountNumber =
+    apiDash?.account_number || profile?.account_number || "—";
   const categoryLabel =
     apiDash?.subscription?.member_category?.name ||
     profile?.employer_type ||
@@ -54,7 +81,7 @@ export default function MemberDashboard() {
         ? "pending"
         : apiStatus === "expired" || apiStatus === "cancelled"
           ? "inactive"
-          : (profile?.status || "pending");
+          : profile?.status || "pending";
 
   const currentWorkstation = workstations[0];
   const invoice = apiDash?.subscription?.invoice;
@@ -73,11 +100,14 @@ export default function MemberDashboard() {
           <div className="text-sm opacity-80">Welcome back,</div>
           <div className="text-xl font-semibold">{me.name}</div>
           <div className="text-[11px] opacity-80 mt-1">
-            Member #{profile?.membership_number || accountNumber} · {categoryLabel}
+            Member #{profile?.membership_number || accountNumber} ·{" "}
+            {categoryLabel}
           </div>
         </div>
         <div className="flex flex-row items-center gap-2 flex-wrap">
-          <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}>
+          <span
+            className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${statusTone}`}
+          >
             {status}
           </span>
           {apiStatus === "pending_payment" && invoice && !invoice.status ? (
@@ -87,7 +117,7 @@ export default function MemberDashboard() {
             >
               Pay now <MdArrowForward className="w-3.5 h-3.5" />
             </button>
-          ) : (status !== "active" || (expiresIn !== null && expiresIn < 30)) ? (
+          ) : status !== "active" || (expiresIn !== null && expiresIn < 30) ? (
             <Link
               href="/nnak/me/membership"
               className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
@@ -111,7 +141,13 @@ export default function MemberDashboard() {
                 ? `${Math.abs(expiresIn)}d overdue — renew now`
                 : `${expiresIn}d until renewal`
           }
-          tone={expiresIn !== null && expiresIn < 0 ? "danger" : expiresIn !== null && expiresIn <= 60 ? "warn" : "ok"}
+          tone={
+            expiresIn !== null && expiresIn < 0
+              ? "danger"
+              : expiresIn !== null && expiresIn <= 60
+                ? "warn"
+                : "ok"
+          }
         />
         <PortalCard
           href="/nnak/me/subscriptions"
@@ -132,7 +168,9 @@ export default function MemberDashboard() {
           href="/nnak/me/workstations"
           icon={MdWorkOutline}
           title="Workstations"
-          primary={currentWorkstation ? currentWorkstation.name : "None on file"}
+          primary={
+            currentWorkstation ? currentWorkstation.name : "None on file"
+          }
           subtitle={
             currentWorkstation
               ? `${currentWorkstation.county}, ${currentWorkstation.country}`
@@ -143,21 +181,38 @@ export default function MemberDashboard() {
 
       {/* Payment Modal */}
       {showPayModal && invoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPayModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowPayModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">Pay Invoice</h3>
-              <button onClick={() => setShowPayModal(false)} className="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Pay Invoice
+              </h3>
+              <button
+                onClick={() => setShowPayModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-xl"
+              >
+                &times;
+              </button>
             </div>
 
             <div className="bg-slate-50 rounded-lg p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-600">Invoice</span>
-                <span className="font-mono font-semibold">{invoice.invoice_number}</span>
+                <span className="font-mono font-semibold">
+                  {invoice.invoice_number}
+                </span>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-slate-600">Amount</span>
-                <span className="font-semibold">KES {Number(invoice.amount).toLocaleString()}</span>
+                <span className="font-semibold">
+                  KES {Number(invoice.amount).toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-slate-600">Due</span>
@@ -166,13 +221,11 @@ export default function MemberDashboard() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">M-Pesa Phone Number</label>
-              <input
-                type="tel"
-                value={stkPhone}
-                onChange={(e) => setStkPhone(e.target.value)}
-                placeholder={profile?.phone || "254700000000"}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              <PhoneInputField
+                label="M-Pesa Phone Number"
+                value={stkPhone || profile?.phone || ""}
+                onChange={(val) => setStkPhone(val || "")}
+                defaultCountry="KE"
               />
             </div>
 
@@ -181,8 +234,16 @@ export default function MemberDashboard() {
                 const phone = stkPhone || profile?.phone || "";
                 if (!phone) return;
                 stkPush.mutate(
-                  { invoiceId: invoice.id, body: { phone_number: phone.replace(/^\+/, "") } },
-                  { onSuccess: (data) => { setStkPhone(""); setActiveInvoiceId(data.invoice_id); } },
+                  {
+                    invoiceId: invoice.id,
+                    body: { phone_number: phone.replace(/^\+/, "") },
+                  },
+                  {
+                    onSuccess: (data) => {
+                      setStkPhone("");
+                      setActiveInvoiceId(data.invoice_id);
+                    },
+                  },
                 );
               }}
               disabled={stkPush.isPending}
@@ -208,12 +269,16 @@ export default function MemberDashboard() {
             )}
 
             {stkQuery.data && (
-              <div className={`text-xs rounded-md px-3 py-2 text-center font-medium ${
-                stkQuery.data.status === "successful" || stkQuery.data.status === "success"
-                  ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                  : "bg-red-50 border border-red-200 text-red-700"
-              }`}>
-                {stkQuery.data.status === "successful" || stkQuery.data.status === "success"
+              <div
+                className={`text-xs rounded-md px-3 py-2 text-center font-medium ${
+                  stkQuery.data.status === "successful" ||
+                  stkQuery.data.status === "success"
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}
+              >
+                {stkQuery.data.status === "successful" ||
+                stkQuery.data.status === "success"
                   ? "Payment successful!"
                   : `Status: ${stkQuery.data.status}`}
               </div>
@@ -234,7 +299,14 @@ interface PortalCardProps {
   tone?: "ok" | "warn" | "danger";
 }
 
-const PortalCard = ({ href, icon: Icon, title, primary, subtitle, tone = "ok" }: PortalCardProps) => {
+const PortalCard = ({
+  href,
+  icon: Icon,
+  title,
+  primary,
+  subtitle,
+  tone = "ok",
+}: PortalCardProps) => {
   const toneCls =
     tone === "danger"
       ? "border-red-200 bg-red-50"
@@ -250,9 +322,15 @@ const PortalCard = ({ href, icon: Icon, title, primary, subtitle, tone = "ok" }:
         <Icon className="w-5 h-5 text-primary" />
         <MdArrowForward className="w-4 h-4 text-slate-400" />
       </div>
-      <div className="text-xs uppercase tracking-wide text-slate-500 mt-3">{title}</div>
-      <div className="text-base font-semibold text-slate-900 mt-1 truncate">{primary}</div>
-      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{subtitle}</div>
+      <div className="text-xs uppercase tracking-wide text-slate-500 mt-3">
+        {title}
+      </div>
+      <div className="text-base font-semibold text-slate-900 mt-1 truncate">
+        {primary}
+      </div>
+      <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+        {subtitle}
+      </div>
     </Link>
   );
 };
