@@ -100,7 +100,7 @@ export default function MyMembershipPage() {
   const subAmount = apiSub ? Number(apiSub.amount) : 0;
   const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
   const expiresIn = daysUntil(subExpiry);
-  const restricted = expiresIn !== null && expiresIn < -30;
+  const restricted = apiStatus !== "active";
 
   const apiStatus = dash?.subscription_status;
   const status: MemberStatus =
@@ -165,11 +165,13 @@ export default function MyMembershipPage() {
           {restricted ? (
             <div className="w-[344px] h-[216px] bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-center p-4">
               <div className="text-sm font-semibold text-slate-700">
-                ID download restricted
+                Digital ID unavailable
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Subscription is more than 30 days overdue. Renew to restore your
-                digital ID.
+                An active subscription is required to access your digital ID.
+                {apiStatus === "pending_payment"
+                  ? " Complete your payment to unlock."
+                  : " Renew your membership to continue."}
               </div>
             </div>
           ) : (
