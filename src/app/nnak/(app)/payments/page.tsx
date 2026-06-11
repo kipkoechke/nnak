@@ -6,9 +6,9 @@ import { useMpesaTransactions } from "@/hooks/use-mpesa-transactions";
 
 export default function PaymentsPage() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("success");
   const [transactionType, setTransactionType] = useState("");
-  const [used, setUsed] = useState("");
+  const [used, setUsed] = useState("true");
   const [dateFrom, setDateFrom] = useState("");
   const { data, isLoading } = useMpesaTransactions({
     page,
@@ -21,13 +21,19 @@ export default function PaymentsPage() {
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="Payments" description="Subscriptions & event collections" />
+      <PageHeader
+        title="Payments"
+        description="Subscriptions & event collections"
+      />
       <div className="flex flex-wrap gap-2 items-end">
         <div>
           <label className="text-[11px] text-slate-500 block mb-1">Type</label>
           <select
             value={transactionType}
-            onChange={(e) => { setTransactionType(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setTransactionType(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All</option>
@@ -38,10 +44,15 @@ export default function PaymentsPage() {
           </select>
         </div>
         <div>
-          <label className="text-[11px] text-slate-500 block mb-1">Status</label>
+          <label className="text-[11px] text-slate-500 block mb-1">
+            Status
+          </label>
           <select
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All</option>
@@ -54,7 +65,10 @@ export default function PaymentsPage() {
           <label className="text-[11px] text-slate-500 block mb-1">Used</label>
           <select
             value={used}
-            onChange={(e) => { setUsed(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setUsed(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All</option>
@@ -67,7 +81,10 @@ export default function PaymentsPage() {
           <input
             type="date"
             value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           />
         </div>
@@ -77,7 +94,9 @@ export default function PaymentsPage() {
         {isLoading ? (
           <div className="p-6 text-sm text-slate-500">Loading…</div>
         ) : !data?.data.length ? (
-          <div className="p-6 text-sm text-center text-slate-500">No transactions found</div>
+          <div className="p-6 text-sm text-center text-slate-500">
+            No transactions found
+          </div>
         ) : (
           <>
             <table className="w-full text-sm">
@@ -96,13 +115,21 @@ export default function PaymentsPage() {
                 {data.data.map((t) => (
                   <tr key={t.id}>
                     <td className="px-3 py-2 text-xs">
-                      {t.TransTime ? new Date(t.TransTime).toLocaleString() : new Date(t.created_at).toLocaleString()}
+                      {t.TransTime
+                        ? new Date(t.TransTime).toLocaleString()
+                        : new Date(t.created_at).toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-xs font-mono">{t.MSISDN}</td>
                     <td className="px-3 py-2 text-xs">{t.FirstName || "—"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{t.MpesaReceiptNumber}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{t.InvoiceNumber || "—"}</td>
-                    <td className="px-3 py-2">KES {Number(t.TransAmount).toLocaleString()}</td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {t.MpesaReceiptNumber}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {t.InvoiceNumber || "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      KES {Number(t.TransAmount).toLocaleString()}
+                    </td>
                     <td className="px-3 py-2">
                       <span
                         className={`text-[11px] px-2 py-0.5 rounded-full ${
