@@ -246,7 +246,7 @@ export default function MemberDashboard() {
                   },
                 );
               }}
-              disabled={stkPush.isPending}
+              disabled={stkPush.isPending || (stkPush.isSuccess && stkQuery.data?.status !== "failed")}
               className="w-full bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50"
             >
               {stkPush.isPending ? "Sending..." : "Pay via M-Pesa"}
