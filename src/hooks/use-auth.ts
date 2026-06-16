@@ -56,6 +56,13 @@ export const useVerifyOtp = () => {
   });
 };
 
+export const useResendOtp = () =>
+  useMutation({
+    mutationFn: nnakAuth.resendOtp,
+    onSuccess: () => toast.success("A new code has been sent"),
+    onError: (e) => toast.error(extractApiError(e, "Could not resend code")),
+  });
+
 export const useNnakForgotPassword = () =>
   useMutation({
     mutationFn: nnakAuth.forgotPassword,

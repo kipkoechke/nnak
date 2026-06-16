@@ -47,6 +47,14 @@ export const useAddBranchMember = () => {
   });
 };
 
+export const useResendBranchMemberOtp = () =>
+  useMutation({
+    mutationFn: (body: { pending_token: string }) =>
+      branchManagerService.resendMemberOtp(body),
+    onSuccess: () => toast.success("New verification codes sent"),
+    onError: (e) => toast.error(extractApiError(e, "Could not resend codes")),
+  });
+
 export const useVerifyBranchMember = () => {
   const qc = useQueryClient();
   return useMutation({

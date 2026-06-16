@@ -58,6 +58,10 @@ export const nnakAuth = {
   verifyOtp: (body: { pending_token: string; otp: string }) =>
     unwrap<NnakLoginResponse>(nnakApi.post("/verify-otp", body)),
 
+  /** Request a fresh OTP for an existing pending_token. */
+  resendOtp: (body: { pending_token: string }) =>
+    unwrap<PendingOtpResponse>(nnakApi.post("/resend-otp", body)),
+
   forgotPassword: (body: { email: string }) =>
     unwrap<{ token?: string }>(nnakApi.post("/forgot-password", body)),
 

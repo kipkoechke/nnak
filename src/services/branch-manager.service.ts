@@ -70,4 +70,10 @@ export const branchManagerService = {
     unwrap<NnakUser & { profile?: NnakProfile }>(
       nnakApi.post("/branch/members/verify", body),
     ),
+
+  /** Re-issue email + phone OTPs for a pending member verification. */
+  resendMemberOtp: async (body: { pending_token: string }) =>
+    unwrap<PendingOtpResponse>(
+      nnakApi.post("/branch/members/resend-otp", body),
+    ),
 };

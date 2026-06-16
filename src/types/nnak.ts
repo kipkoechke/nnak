@@ -838,6 +838,9 @@ export interface InvoiceStkQueryResponse {
     invoice_id: string;
     checkout_request_id: string;
     status: string;
+    ResultCode?: number | string | null;
+    ResultDesc?: string | null;
+    message?: string | null;
   };
 }
 
