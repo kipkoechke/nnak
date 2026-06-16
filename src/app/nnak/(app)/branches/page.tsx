@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -147,24 +148,48 @@ export default function NnakBranchesPage() {
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-2">Branch</th>
+              <th className="px-4 py-2 hidden md:table-cell">County</th>
               <th className="px-4 py-2">Employer Type</th>
+              <th className="px-4 py-2 text-right">Members</th>
+              <th className="px-4 py-2 w-24"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map((b) => (
               <tr key={b.id} className="hover:bg-slate-50">
-                <td className="px-4 py-2 font-medium">{b.name}</td>
+                <td className="px-4 py-2 font-medium text-slate-900">
+                  <Link
+                    href={`/nnak/branches/${b.id}`}
+                    className="hover:text-primary hover:underline"
+                  >
+                    {b.name}
+                  </Link>
+                </td>
+                <td className="px-4 py-2 text-slate-600 hidden md:table-cell">
+                  {b.county || "—"}
+                </td>
                 <td className="px-4 py-2">
                   <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-700">
                     {b.employer_type_label || b.employer_type || "—"}
                   </span>
+                </td>
+                <td className="px-4 py-2 text-right font-medium">
+                  {(b.member_count ?? 0).toLocaleString()}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <Link
+                    href={`/nnak/branches/${b.id}`}
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    Details
+                  </Link>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={2}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-slate-500 text-sm"
                 >
                   No branches match the filter.

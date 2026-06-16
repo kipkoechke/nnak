@@ -39,3 +39,10 @@ export const useResendBranchManagerOtp = () =>
     mutationFn: (body: { pending_token: string }) =>
       nnakBranchesService.resendOtp(body),
   });
+
+export const useBranch = (id: string | undefined) =>
+  useQuery({
+    queryKey: nqk.branches.detail(id ?? ""),
+    queryFn: () => nnakBranchesService.getById(id!),
+    enabled: !!id,
+  });

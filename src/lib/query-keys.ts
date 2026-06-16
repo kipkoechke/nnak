@@ -22,6 +22,7 @@ export const nqk = {
   branches: {
     all: ["nnak", "branches"] as const,
     list: () => ["nnak", "branches", "list"] as const,
+    detail: (id: string) => ["nnak", "branches", "detail", id] as const,
   },
   workstations: {
     all: ["nnak", "workstations"] as const,

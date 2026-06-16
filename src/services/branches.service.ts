@@ -68,4 +68,19 @@ export const nnakBranchesService = {
     }>("/branches/resend-otp", body);
     return r.data?.data;
   },
+
+  /** GET /branches/{id} — single branch detail. */
+  getById: async (id: string): Promise<Branch | null> => {
+    if (isDemoSession()) {
+      return mockStore.listBranches().find((b) => b.id === id) ?? null;
+    }
+    try {
+      const r = await nnakApi.get<{ success: boolean; data: Branch }>(
+        `/branches/${id}`,
+      );
+      return r.data?.data ?? null;
+    } catch {
+      return null;
+    }
+  },
 };
