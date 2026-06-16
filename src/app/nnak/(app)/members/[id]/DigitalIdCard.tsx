@@ -196,7 +196,7 @@ function DigitalIdPdf({ member, qrDataUrl }: Props & { qrDataUrl: string }) {
             <Text style={pdfStyles.name}>{member.name}</Text>
             <Text style={pdfStyles.label}>Member ID</Text>
             <Text style={pdfStyles.value}>{(member.profile.membership_number || member.profile.account_number)}</Text>
-            <Text style={pdfStyles.label}>NCK License Number</Text>
+            <Text style={pdfStyles.label}>NCK Registration Number</Text>
             <Text style={pdfStyles.value}>{member.profile.nck_number || "—"}</Text>
           </View>
 
@@ -288,7 +288,7 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
           </div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4 }}>Member ID</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{(member.profile.membership_number || member.profile.account_number)}</div>
-          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK License Number</div>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK Registration Number</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.nck_number || "—"}</div>
         </div>
 

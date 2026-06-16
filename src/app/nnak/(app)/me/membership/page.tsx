@@ -219,7 +219,7 @@ export default function MyMembershipPage() {
               />
               <Item label="Account number" value={accountNumber} />
               <Item
-                label="NCK License Number"
+                label="NCK Registration Number"
                 value={profile.nck_number || "—"}
               />
               <Item

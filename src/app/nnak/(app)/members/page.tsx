@@ -174,7 +174,7 @@ export default function MembersPage() {
                   <tr>
                     <th className="px-4 py-2">Name</th>
                     <th className="px-4 py-2 hidden md:table-cell">
-                      NCK License #
+                      NCK Reg #
                     </th>
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>

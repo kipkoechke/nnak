@@ -375,7 +375,7 @@ export default function NnakRegisterPage() {
       {step === 2 && (
         <div className="space-y-4">
           <InputField
-            label="NCK License Number"
+            label="NCK Registration Number"
             type="text"
             placeholder="e.g. NCK/2024/98765"
             register={register("nck_number")}
