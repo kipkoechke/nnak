@@ -1,18 +1,50 @@
 "use client";
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import PageHeader from "@/components/common/PageHeader";
+import { InputField } from "@/components/common/InputField";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { useCreateBranch, useNnakBranches } from "@/hooks/use-branches";
-import { useEmployerTypes } from "@/hooks/use-enums";
+import {
+  useCommissionTypes,
+  useEmployerTypes,
+} from "@/hooks/use-enums";
 import { useNnakMe } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
 import { MdAdd, MdClose } from "react-icons/md";
 import type { CreateBranchInput } from "@/types/nnak";
 
-const emptyBranch: CreateBranchInput = {
+const branchSchema = z.object({
+  name: z.string().min(1, "Branch name is required"),
+  employer_type: z.string().min(1, "Employer type is required"),
+  commission_type: z.string().min(1, "Commission type is required"),
+  commission_value: z
+    .string()
+    .min(1, "Commission value is required")
+    .refine((v) => !Number.isNaN(Number(v)) && Number(v) >= 0, {
+      message: "Enter a valid amount",
+    }),
+  branch_manager_name: z.string().min(1, "Manager name is required"),
+  branch_manager_email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email"),
+  branch_manager_phone: z.string().min(1, "Phone number is required"),
+});
+
+type BranchFormValues = z.infer<typeof branchSchema>;
+
+const defaultValues: BranchFormValues = {
   name: "",
   employer_type: "",
-  branch_manager_email: "",
+  commission_type: "",
+  commission_value: "",
   branch_manager_name: "",
+  branch_manager_email: "",
   branch_manager_phone: "",
 };
 
@@ -20,12 +52,23 @@ export default function NnakBranchesPage() {
   const { data: me } = useNnakMe();
   const { data: branches = [] } = useNnakBranches();
   const { data: employerTypes = [] } = useEmployerTypes();
+  const { data: commissionTypes = [] } = useCommissionTypes();
   const create = useCreateBranch();
 
   const [filterType, setFilterType] = useState<string>("");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<CreateBranchInput>(emptyBranch);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<BranchFormValues>({
+    resolver: zodResolver(branchSchema),
+    defaultValues,
+  });
 
   const canCreate = nnakCan.manageBranches(me);
 
@@ -38,12 +81,16 @@ export default function NnakBranchesPage() {
     });
   }, [branches, filterType, search]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const r = await create.mutateAsync(form).catch(() => null);
+  const onSubmit = async (data: BranchFormValues) => {
+    const payload: CreateBranchInput = {
+      ...data,
+      commission_value: Number(data.commission_value).toFixed(2),
+      branch_manager_phone: data.branch_manager_phone.replace(/^\+/, ""),
+    };
+    const r = await create.mutateAsync(payload).catch(() => null);
     if (r) {
       setOpen(false);
-      setForm(emptyBranch);
+      reset(defaultValues);
     }
   };
 
@@ -68,7 +115,9 @@ export default function NnakBranchesPage() {
         >
           <option value="">All employer types</option>
           {employerTypes.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
           ))}
         </select>
         <span className="text-xs text-slate-500 ml-auto">
@@ -94,17 +143,24 @@ export default function NnakBranchesPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map((b) => (
-                <tr key={b.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-2 font-medium">{b.name}</td>
-                  <td className="px-4 py-2">
-                    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-700">
-                      {b.employer_type_label || b.employer_type || "—"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              <tr key={b.id} className="hover:bg-slate-50">
+                <td className="px-4 py-2 font-medium">{b.name}</td>
+                <td className="px-4 py-2">
+                  <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-700">
+                    {b.employer_type_label || b.employer_type || "—"}
+                  </span>
+                </td>
+              </tr>
+            ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={2} className="px-4 py-8 text-center text-slate-500 text-sm">No branches match the filter.</td></tr>
+              <tr>
+                <td
+                  colSpan={2}
+                  className="px-4 py-8 text-center text-slate-500 text-sm"
+                >
+                  No branches match the filter.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -116,75 +172,132 @@ export default function NnakBranchesPage() {
           onClick={() => setOpen(false)}
         >
           <form
-            onSubmit={submit}
+            onSubmit={handleSubmit(onSubmit, (errs) => {
+              const first = Object.values(errs)[0];
+              toast.error(
+                (first?.message as string) ||
+                  "Please fix the highlighted fields",
+              );
+            })}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-lg shadow-xl w-full max-w-lg p-5 space-y-3"
+            className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">Create branch</h3>
-              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700">
+              <h3 className="text-base font-semibold text-slate-900">
+                Create branch
+              </h3>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
                 <MdClose className="w-5 h-5" />
               </button>
             </div>
 
-            <Field
-              label="Branch name"
-              value={form.name}
-              onChange={(v) => setForm({ ...form, name: v })}
-              required
-            />
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Employer Type</label>
-              <select
-                value={form.employer_type}
-                onChange={(e) => setForm({ ...form, employer_type: e.target.value })}
+            <div className="space-y-4">
+              <InputField
+                label="Branch name"
+                type="text"
+                placeholder="e.g. Kenyatta National Hospital"
+                register={register("name")}
+                error={errors.name?.message}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-              >
-                <option value="">— Select —</option>
-                {employerTypes.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+              />
+              <Controller
+                control={control}
+                name="employer_type"
+                render={({ field }) => (
+                  <SearchableSelect
+                    label="Employer Type"
+                    required
+                    options={employerTypes}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select employer type"
+                    error={errors.employer_type?.message}
+                  />
+                )}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Controller
+                  control={control}
+                  name="commission_type"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Commission Type"
+                      required
+                      options={commissionTypes}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select commission type"
+                      error={errors.commission_type?.message}
+                    />
+                  )}
+                />
+                <InputField
+                  label="Commission Value"
+                  type="number"
+                  placeholder="e.g. 5.00"
+                  register={register("commission_value")}
+                  error={errors.commission_value?.message}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="pt-2 text-[11px] uppercase tracking-wide text-slate-500">
-              Branch manager
-            </div>
-            <Field
-              label="Name"
-              value={form.branch_manager_name}
-              onChange={(v) => setForm({ ...form, branch_manager_name: v })}
-              required
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Field
-                label="Email"
-                type="email"
-                value={form.branch_manager_email}
-                onChange={(v) => setForm({ ...form, branch_manager_email: v })}
-                required
-              />
-              <Field
-                label="Phone"
-                value={form.branch_manager_phone}
-                onChange={(v) => setForm({ ...form, branch_manager_phone: v })}
-                required
-              />
+            <div className="pt-2 border-t border-slate-100">
+              <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold mb-3">
+                Branch manager
+              </div>
+              <div className="space-y-4">
+                <InputField
+                  label="Full Name"
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                  register={register("branch_manager_name")}
+                  error={errors.branch_manager_name?.message}
+                  required
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputField
+                    label="Email"
+                    type="email"
+                    placeholder="e.g. jane.doe@example.com"
+                    register={register("branch_manager_email")}
+                    error={errors.branch_manager_email?.message}
+                    required
+                  />
+                  <Controller
+                    control={control}
+                    name="branch_manager_phone"
+                    render={({ field }) => (
+                      <PhoneInputField
+                        label="Phone"
+                        required
+                        defaultCountry="KE"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={errors.branch_manager_phone?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-3 py-2 border border-slate-300 rounded text-sm"
+                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={create.isPending}
-                className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
                 {create.isPending ? "Creating…" : "Create branch"}
               </button>
@@ -195,28 +308,3 @@ export default function NnakBranchesPage() {
     </div>
   );
 }
-
-const Field = ({
-  label,
-  value,
-  onChange,
-  required,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  type?: string;
-}) => (
-  <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      required={required}
-      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-    />
-  </div>
-);

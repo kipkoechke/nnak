@@ -65,11 +65,16 @@ export const nnakCan = {
   manageRoles: (u?: NnakUser | null) => has(u, ["super_admin"]),
 
   // Member self-service portal (FR-MP-002, 004, 005, 006, 009, 013, FR-EM-005)
-  viewMyMembership: (u?: NnakUser | null) => has(u, ["member", "student"]),
-  viewMyEvents: (u?: NnakUser | null) => has(u, ["member", "student"]),
-  viewMyPayments: (u?: NnakUser | null) => has(u, ["member"]),
-  payMySubscription: (u?: NnakUser | null) => has(u, ["member"]),
-  viewMyWorkstations: (u?: NnakUser | null) => has(u, ["member", "student"]),
+  viewMyMembership: (u?: NnakUser | null) =>
+    has(u, ["member", "student", "branch_manager"]),
+  viewMyEvents: (u?: NnakUser | null) =>
+    has(u, ["member", "student", "branch_manager"]),
+  viewMyPayments: (u?: NnakUser | null) =>
+    has(u, ["member", "branch_manager"]),
+  payMySubscription: (u?: NnakUser | null) =>
+    has(u, ["member", "branch_manager"]),
+  viewMyWorkstations: (u?: NnakUser | null) =>
+    has(u, ["member", "student", "branch_manager"]),
 };
 
 export const isStaff = (u?: NnakUser | null) =>

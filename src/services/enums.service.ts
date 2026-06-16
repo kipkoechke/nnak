@@ -75,6 +75,30 @@ const FALLBACK_USER_ROLES: string[] = [
   "student",
 ];
 
+const FALLBACK_PROFESSIONAL_CADRES: EmployerTypeOption[] = [
+  { value: "PhD", label: "PhD" },
+  { value: "MSCN", label: "MSCN" },
+  { value: "BSCN", label: "BSCN" },
+  { value: "HND", label: "HND" },
+  { value: "KRCHN", label: "KRCHN" },
+  { value: "ECHN", label: "ECHN" },
+];
+
+const FALLBACK_PROFESSIONAL_QUALIFICATIONS: EmployerTypeOption[] = [
+  { value: "PhD", label: "PhD" },
+  { value: "Masters", label: "Masters" },
+  { value: "Bachelors in Nursing", label: "Bachelors in Nursing" },
+  { value: "Higher National Diploma", label: "Higher National Diploma" },
+  { value: "Diploma", label: "Diploma" },
+  { value: "Certificate", label: "Certificate" },
+];
+
+const FALLBACK_COMMISSION_TYPES: EmployerTypeOption[] = [
+  { value: "gross_percentage", label: "Gross Percentage" },
+  { value: "net_percentage", label: "Net Percentage" },
+  { value: "flat_amount", label: "Flat Amount" },
+];
+
 export interface Chapter {
   value: string;
   label: string;
@@ -118,5 +142,32 @@ export const enumsService = {
     if (isDemoSession()) return [];
     const r = await nnakApi.get<EnumResponse<Chapter>>("/chapters");
     return r.data?.data ?? [];
+  },
+
+  professionalCadres: async (): Promise<EmployerTypeOption[]> => {
+    if (isDemoSession()) return FALLBACK_PROFESSIONAL_CADRES;
+    const r = await nnakApi.get<
+      EnumResponse<string | EmployerTypeBackendObject>
+    >("/professional-cadres");
+    const raw = r.data?.data ?? [];
+    return raw.map(normaliseEmployerType).filter((o) => !!o.value);
+  },
+
+  professionalQualifications: async (): Promise<EmployerTypeOption[]> => {
+    if (isDemoSession()) return FALLBACK_PROFESSIONAL_QUALIFICATIONS;
+    const r = await nnakApi.get<
+      EnumResponse<string | EmployerTypeBackendObject>
+    >("/professional-qualifications");
+    const raw = r.data?.data ?? [];
+    return raw.map(normaliseEmployerType).filter((o) => !!o.value);
+  },
+
+  commissionTypes: async (): Promise<EmployerTypeOption[]> => {
+    if (isDemoSession()) return FALLBACK_COMMISSION_TYPES;
+    const r = await nnakApi.get<
+      EnumResponse<string | EmployerTypeBackendObject>
+    >("/commission-types");
+    const raw = r.data?.data ?? [];
+    return raw.map(normaliseEmployerType).filter((o) => !!o.value);
   },
 };

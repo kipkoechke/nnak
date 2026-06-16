@@ -630,6 +630,8 @@ export interface MemberDashboardData {
 export interface CreateBranchInput {
   name: string;
   employer_type: EmployerType | string;
+  commission_type: string;
+  commission_value: string;
   branch_manager_email: string;
   branch_manager_name: string;
   branch_manager_phone: string;

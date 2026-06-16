@@ -148,7 +148,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
   const logoutMutation = useLogout();
 
   const menuItems = useMemo(() => {
-    const source = isMemberRole(user) ? MEMBER_ITEMS : STAFF_ITEMS;
+    // Members & students see only the member portal. Branch managers run a
+    // branch *and* hold a membership, so they see both — with duplicate
+    // entries (e.g. dashboard) collapsed.
+    const isMember = isMemberRole(user);
+    const isBranchManager = user?.role === "branch_manager";
+    let source: MenuItem[];
+    if (isMember) {
+      source = MEMBER_ITEMS;
+    } else if (isBranchManager) {
+      const seen = new Set(STAFF_ITEMS.map((i) => i.href));
+      source = [
+        ...STAFF_ITEMS,
+        ...MEMBER_ITEMS.filter((i) => !seen.has(i.href)),
+      ];
+    } else {
+      source = STAFF_ITEMS;
+    }
     return source
       .filter((i) => (i.show ? i.show(user) : true))
       .map((i) => ({ ...i, active: pathname.startsWith(i.href) }));

@@ -7,6 +7,13 @@ export const nqk = {
     paymentMethods: ["nnak", "enums", "payment-methods"] as const,
     userRoles: ["nnak", "enums", "user-roles"] as const,
     chapters: ["nnak", "enums", "chapters"] as const,
+    professionalCadres: ["nnak", "enums", "professional-cadres"] as const,
+    professionalQualifications: [
+      "nnak",
+      "enums",
+      "professional-qualifications",
+    ] as const,
+    commissionTypes: ["nnak", "enums", "commission-types"] as const,
   },
   categories: {
     all: ["nnak", "categories"] as const,

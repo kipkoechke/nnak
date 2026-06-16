@@ -5,7 +5,12 @@ import toast from "react-hot-toast";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAddBranchMember } from "@/hooks/use-branch-manager";
-import { useEmployerTypes, useChapters } from "@/hooks/use-enums";
+import {
+  useChapters,
+  useEmployerTypes,
+  useProfessionalCadres,
+  useProfessionalQualifications,
+} from "@/hooks/use-enums";
 import PageHeader from "@/components/common/PageHeader";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
@@ -79,24 +84,6 @@ const COUNTY_OPTS = [
   "West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
-const PROFESSIONAL_QUALIFICATION_OPTS = [
-  { value: "PhD", label: "PhD" },
-  { value: "Masters", label: "Masters" },
-  { value: "Bachelors in Nursing", label: "Bachelors in Nursing" },
-  { value: "Higher National Diploma", label: "Higher National Diploma" },
-  { value: "Diploma", label: "Diploma" },
-  { value: "Certificate", label: "Certificate" },
-];
-
-const PROFESSIONAL_CADRE_OPTS = [
-  { value: "PhD", label: "PhD" },
-  { value: "MSCN", label: "MSCN" },
-  { value: "BSCN", label: "BSCN" },
-  { value: "HND", label: "HND" },
-  { value: "KRCHN", label: "KRCHN" },
-  { value: "ECHN", label: "ECHN" },
-];
-
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
@@ -107,6 +94,8 @@ export default function NewMemberPage() {
   const addBranchMember = useAddBranchMember();
   const { data: employerTypes = [] } = useEmployerTypes();
   const { data: chapters = [] } = useChapters();
+  const { data: cadres = [] } = useProfessionalCadres();
+  const { data: qualifications = [] } = useProfessionalQualifications();
   const [step, setStep] = useState<1 | 2>(1);
 
   const {
@@ -144,15 +133,6 @@ export default function NewMemberPage() {
     "identification_type",
     "identification_number",
   ];
-  const step2Fields: (keyof BranchMemberFormValues)[] = [
-    "nck_number",
-    "professional_qualification",
-    "professional_cadre",
-    "place_of_work",
-    "county",
-    "employer_type",
-  ];
-
   const handleNext = async (
     target: number,
     fields: (keyof BranchMemberFormValues)[],
@@ -368,7 +348,7 @@ export default function NewMemberPage() {
                   <SearchableSelect
                     label="Highest Professional Qualification"
                     required
-                    options={PROFESSIONAL_QUALIFICATION_OPTS}
+                    options={qualifications}
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Select qualification"
@@ -383,7 +363,7 @@ export default function NewMemberPage() {
                   <SearchableSelect
                     label="Professional Cadre"
                     required
-                    options={PROFESSIONAL_CADRE_OPTS}
+                    options={cadres}
                     value={field.value}
                     onChange={field.onChange}
                     placeholder="Select cadre"

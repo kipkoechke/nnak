@@ -53,3 +53,24 @@ export const useChapters = () =>
     queryFn: enumsService.chapters,
     ...STATIC_OPTS,
   });
+
+export const useProfessionalCadres = () =>
+  useQuery({
+    queryKey: nqk.enums.professionalCadres,
+    queryFn: enumsService.professionalCadres,
+    ...STATIC_OPTS,
+  });
+
+export const useProfessionalQualifications = () =>
+  useQuery({
+    queryKey: nqk.enums.professionalQualifications,
+    queryFn: enumsService.professionalQualifications,
+    ...STATIC_OPTS,
+  });
+
+export const useCommissionTypes = () =>
+  useQuery({
+    queryKey: nqk.enums.commissionTypes,
+    queryFn: enumsService.commissionTypes,
+    ...STATIC_OPTS,
+  });
