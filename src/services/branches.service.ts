@@ -7,7 +7,7 @@
 import { nnakApi } from "@/lib/api";
 import { isDemoSession } from "@/lib/demo-token";
 import { mockStore } from "@/lib/mock-store";
-import type { Branch } from "@/types/nnak";
+import type { Branch, PendingOtpResponse } from "@/types/nnak";
 
 interface BranchesResponse {
   success: boolean;
@@ -33,11 +33,12 @@ export const nnakBranchesService = {
     });
     return r.data?.data ?? [];
   },
-  /** Admin: POST /branches — create a branch with its primary contact. */
+  /** Admin: POST /branches — create a branch with its primary contact.
+   *  Returns a pending_token; must complete with OTP verification. */
   create: async (
     body: import("@/types/nnak").CreateBranchInput,
-  ): Promise<Branch> => {
-    const r = await nnakApi.post<{ success: boolean; data: Branch }>(
+  ): Promise<PendingOtpResponse> => {
+    const r = await nnakApi.post<{ success: boolean; data: PendingOtpResponse }>(
       "/branches",
       body,
     );
@@ -54,6 +55,17 @@ export const nnakBranchesService = {
       "/branches/verify",
       body,
     );
+    return r.data?.data;
+  },
+
+  /** Admin: POST /branches/resend-otp — resend OTPs for pending branch. */
+  resendOtp: async (body: {
+    pending_token: string;
+  }): Promise<PendingOtpResponse> => {
+    const r = await nnakApi.post<{
+      success: boolean;
+      data: PendingOtpResponse;
+    }>("/branches/resend-otp", body);
     return r.data?.data;
   },
 };

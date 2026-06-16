@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +50,7 @@ const defaultValues: BranchFormValues = {
 };
 
 export default function NnakBranchesPage() {
+  const router = useRouter();
   const { data: me } = useNnakMe();
   const { data: branches = [] } = useNnakBranches();
   const { data: employerTypes = [] } = useEmployerTypes();
@@ -88,9 +90,16 @@ export default function NnakBranchesPage() {
       branch_manager_phone: data.branch_manager_phone.replace(/^\+/, ""),
     };
     const r = await create.mutateAsync(payload).catch(() => null);
-    if (r) {
+    if (r?.pending_token) {
       setOpen(false);
       reset(defaultValues);
+      const params = new URLSearchParams({
+        token: r.pending_token,
+        email: data.branch_manager_email,
+      });
+      if (r.email_otp) params.set("email_otp", r.email_otp);
+      if (r.phone_otp) params.set("phone_otp", r.phone_otp);
+      router.push(`/nnak/branches/verify?${params.toString()}`);
     }
   };
 

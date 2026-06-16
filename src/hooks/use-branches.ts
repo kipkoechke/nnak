@@ -16,10 +16,6 @@ export const useCreateBranch = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: nnakBranchesService.create,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: nqk.branches.all });
-      toast.success("Branch created");
-    },
     onError: (e) => toast.error(extractApiError(e, "Create branch failed")),
   });
 };
@@ -31,9 +27,15 @@ export const useVerifyBranchManager = () => {
       nnakBranchesService.verifyManager(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.branches.all });
-      toast.success("Branch manager verified");
+      toast.success("Branch created — manager verified");
     },
     onError: (e) =>
       toast.error(extractApiError(e, "Branch manager verification failed")),
   });
 };
+
+export const useResendBranchManagerOtp = () =>
+  useMutation({
+    mutationFn: (body: { pending_token: string }) =>
+      nnakBranchesService.resendOtp(body),
+  });
