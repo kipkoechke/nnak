@@ -37,6 +37,7 @@ export interface RegisterPayload {
   gender: string;
   nck_number: string;
   professional_qualification: string;
+  professional_cadre: string;
   designation?: string;
   place_of_work?: string;
   county?: string;

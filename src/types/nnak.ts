@@ -63,6 +63,7 @@ export interface NnakProfile {
   identification_type: string | null;
   identification_number: string | null;
   professional_qualification: string | null;
+  professional_cadre: string | null;
   date_of_birth: string | null;
   /** Backend currently sends "male" | "female" | "other"; future may extend. */
   gender: string;
@@ -666,6 +667,7 @@ export interface RecentPendingMember {
     identification_type?: string | null;
     identification_number?: string | null;
     professional_qualification?: string | null;
+    professional_cadre?: string | null;
     designation?: string | null;
     date_of_birth?: string | null;
     gender?: string | null;
@@ -735,6 +737,7 @@ export interface PendingMemberProfile {
   identification_type?: string | null;
   identification_number?: string | null;
   professional_qualification?: string | null;
+  professional_cadre?: string | null;
   date_of_birth?: string | null;
   gender?: string | null;
   is_verified: boolean;
@@ -772,6 +775,7 @@ export interface BranchAddMemberInput {
   identification_type: string;
   identification_number: string;
   professional_qualification: string;
+  professional_cadre: string;
   designation?: string;
   place_of_work?: string;
   county?: string;

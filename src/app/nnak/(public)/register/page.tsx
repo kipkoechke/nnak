@@ -92,6 +92,24 @@ const COUNTY_OPTS = [
   "West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
+const PROFESSIONAL_QUALIFICATION_OPTS = [
+  { value: "PhD", label: "PhD" },
+  { value: "Masters", label: "Masters" },
+  { value: "Bachelors in Nursing", label: "Bachelors in Nursing" },
+  { value: "Higher National Diploma", label: "Higher National Diploma" },
+  { value: "Diploma", label: "Diploma" },
+  { value: "Certificate", label: "Certificate" },
+];
+
+const PROFESSIONAL_CADRE_OPTS = [
+  { value: "PhD", label: "PhD" },
+  { value: "MSCN", label: "MSCN" },
+  { value: "BSCN", label: "BSCN" },
+  { value: "HND", label: "HND" },
+  { value: "KRCHN", label: "KRCHN" },
+  { value: "ECHN", label: "ECHN" },
+];
+
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
@@ -129,6 +147,7 @@ export default function NnakRegisterPage() {
       identification_number: "",
       nck_number: "",
       professional_qualification: "",
+      professional_cadre: "",
       designation: "",
       place_of_work: "",
       county: "",
@@ -151,6 +170,7 @@ export default function NnakRegisterPage() {
   const step2Fields: (keyof RegisterFormValues)[] = [
     "nck_number",
     "professional_qualification",
+    "professional_cadre",
     "designation",
     "place_of_work",
     "county",
@@ -187,6 +207,7 @@ export default function NnakRegisterPage() {
         gender: data.gender,
         nck_number: data.nck_number,
         professional_qualification: data.professional_qualification,
+        professional_cadre: data.professional_cadre,
         designation: data.designation,
         place_of_work: data.place_of_work,
         county: data.county,
@@ -371,14 +392,38 @@ export default function NnakRegisterPage() {
             error={errors.designation?.message}
             required
           />
-          <InputField
-            label="Professional Qualification"
-            type="text"
-            placeholder="e.g. Bachelor of Science in Nursing"
-            register={register("professional_qualification")}
-            error={errors.professional_qualification?.message}
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller
+              control={control}
+              name="professional_qualification"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Highest Professional Qualification"
+                  required
+                  options={PROFESSIONAL_QUALIFICATION_OPTS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select qualification"
+                  error={errors.professional_qualification?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="professional_cadre"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Professional Cadre"
+                  required
+                  options={PROFESSIONAL_CADRE_OPTS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select cadre"
+                  error={errors.professional_cadre?.message}
+                />
+              )}
+            />
+          </div>
           <InputField
             label="Place of Work"
             type="text"

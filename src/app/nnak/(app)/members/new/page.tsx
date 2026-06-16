@@ -37,6 +37,24 @@ const COUNTY_OPTS = [
   "Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot",
 ].map((c) => ({ value: c, label: c }));
 
+const PROFESSIONAL_QUALIFICATION_OPTS = [
+  { value: "PhD", label: "PhD" },
+  { value: "Masters", label: "Masters" },
+  { value: "Bachelors in Nursing", label: "Bachelors in Nursing" },
+  { value: "Higher National Diploma", label: "Higher National Diploma" },
+  { value: "Diploma", label: "Diploma" },
+  { value: "Certificate", label: "Certificate" },
+];
+
+const PROFESSIONAL_CADRE_OPTS = [
+  { value: "PhD", label: "PhD" },
+  { value: "MSCN", label: "MSCN" },
+  { value: "BSCN", label: "BSCN" },
+  { value: "HND", label: "HND" },
+  { value: "KRCHN", label: "KRCHN" },
+  { value: "ECHN", label: "ECHN" },
+];
+
 const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
@@ -61,7 +79,7 @@ export default function NewMemberPage() {
       name: "", email: "", phone: "",
       date_of_birth: "", gender: "",
       identification_type: "National ID", identification_number: "",
-      nck_number: "", professional_qualification: "",
+      nck_number: "", professional_qualification: "", professional_cadre: "",
       designation: "", place_of_work: "", county: "", employer_type: "", chapter: "",
     },
   });
@@ -71,7 +89,7 @@ export default function NewMemberPage() {
     "identification_type","identification_number",
   ];
   const step2Fields: (keyof BranchMemberFormValues)[] = [
-    "nck_number","professional_qualification",
+    "nck_number","professional_qualification","professional_cadre",
     "designation","place_of_work","county","employer_type",
   ];
 
@@ -95,6 +113,7 @@ export default function NewMemberPage() {
       identification_type: data.identification_type,
       identification_number: data.identification_number,
       professional_qualification: data.professional_qualification,
+      professional_cadre: data.professional_cadre,
       designation: data.designation,
       place_of_work: data.place_of_work,
       county: data.county,
@@ -177,7 +196,14 @@ export default function NewMemberPage() {
           <div className="space-y-4">
             <InputField label="NCK License Number" type="text" placeholder="e.g. NCK/2024/98765" register={register("nck_number")} error={errors.nck_number?.message} required />
             <InputField label="Designation" type="text" placeholder="e.g. Registered Nurse" register={register("designation")} error={errors.designation?.message} required />
-            <InputField label="Professional Qualification" type="text" placeholder="e.g. Bachelor of Science in Nursing" register={register("professional_qualification")} error={errors.professional_qualification?.message} required />
+            <div className="grid grid-cols-2 gap-4">
+              <Controller control={control} name="professional_qualification" render={({ field }) => (
+                <SearchableSelect label="Highest Professional Qualification" required options={PROFESSIONAL_QUALIFICATION_OPTS} value={field.value} onChange={field.onChange} placeholder="Select qualification" error={errors.professional_qualification?.message} />
+              )} />
+              <Controller control={control} name="professional_cadre" render={({ field }) => (
+                <SearchableSelect label="Professional Cadre" required options={PROFESSIONAL_CADRE_OPTS} value={field.value} onChange={field.onChange} placeholder="Select cadre" error={errors.professional_cadre?.message} />
+              )} />
+            </div>
             <InputField label="Place of Work" type="text" placeholder="e.g. Kenyatta National Hospital" register={register("place_of_work")} error={errors.place_of_work?.message} required />
             <div className="grid grid-cols-2 gap-4">
               <Controller control={control} name="county" render={({ field }) => (

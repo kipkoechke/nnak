@@ -75,7 +75,7 @@ function Window({ children, name }: WindowProps) {
     <div className="fixed top-0 left-0 w-full h-screen bg-white/30 backdrop-blur-md z-50 transition-all duration-500">
       <div
         ref={ref}
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg md:rounded-xl shadow-2xl p-4 transition-all duration-500 border border-gray-100 max-w-sm md:max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg md:rounded-xl shadow-2xl p-4 transition-all duration-500 border border-gray-100 max-w-md md:max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
       >
         <button
           onClick={close}

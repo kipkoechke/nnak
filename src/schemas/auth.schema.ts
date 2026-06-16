@@ -37,6 +37,9 @@ export const registerSchema = z
     professional_qualification: z
       .string()
       .min(1, "Professional qualification is required"),
+    professional_cadre: z
+      .string()
+      .min(1, "Professional cadre is required"),
     designation: z.string().min(1, "Designation is required"),
     place_of_work: z.string().min(1, "Place of work is required"),
     county: z.string().min(1, "County is required"),
@@ -70,6 +73,9 @@ export const branchMemberSchema = z.object({
   professional_qualification: z
     .string()
     .min(1, "Professional qualification is required"),
+  professional_cadre: z
+    .string()
+    .min(1, "Professional cadre is required"),
   designation: z.string().min(1, "Designation is required"),
   place_of_work: z.string().min(1, "Place of work is required"),
   county: z.string().min(1, "County is required"),
