@@ -53,4 +53,13 @@ export const subscriptionsService = {
     body: { member_category_id?: string; payment_method?: string } = {},
   ): Promise<MemberSubscription> =>
     unwrap<MemberSubscription>(nnakApi.post("/member/subscriptions", body)),
+
+  /** POST /member/subscriptions/{id}/pay — pay balance on a subscription */
+  payBalance: async (
+    id: string,
+    body: { amount: number; payment_method?: string },
+  ): Promise<MemberSubscription> =>
+    unwrap<MemberSubscription>(
+      nnakApi.post(`/member/subscriptions/${id}/pay`, body),
+    ),
 };

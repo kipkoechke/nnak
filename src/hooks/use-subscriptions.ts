@@ -32,6 +32,27 @@ export const useCreateSubscription = () => {
   });
 };
 
+export const usePaySubscriptionBalance = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      amount,
+      payment_method,
+    }: {
+      id: string;
+      amount: number;
+      payment_method?: string;
+    }) => subscriptionsService.payBalance(id, { amount, payment_method }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.subscriptions.all });
+      qc.invalidateQueries({ queryKey: nqk.memberDashboard });
+      toast.success("Payment submitted successfully");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Payment failed")),
+  });
+};
+
 export const useMemberDashboardApi = () =>
   useQuery({
     queryKey: nqk.memberDashboard,

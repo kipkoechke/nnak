@@ -598,6 +598,8 @@ export interface SubscriptionInvoice {
 export interface SubscriptionPayment {
   id: string;
   amount: string | number;
+  payment_method?: string | null;
+  payment_reference?: string | null;
   reference?: string | null;
   method?: string | null;
   status?: string | null;
