@@ -70,8 +70,8 @@ export default function MyMembershipPage() {
 
   const stkQuery = useInvoiceStkQuery(activeInvoiceId, {
     enabled: !!activeInvoiceId,
-    refetchInterval: (q) => {
-      const s = q.state.data?.status?.toLowerCase();
+    refetchInterval: (data) => {
+      const s = data?.status?.toLowerCase();
       return isTerminal(s) ? false : 3000;
     },
   });

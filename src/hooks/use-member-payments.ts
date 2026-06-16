@@ -24,15 +24,24 @@ export const useInvoiceStkPush = () => {
   });
 };
 
+type StkRefetchInterval =
+  | number
+  | false
+  | ((data: { status?: string } | undefined) => number | false);
+
 export const useInvoiceStkQuery = (
   invoiceId?: string | null,
-  opts?: { enabled?: boolean; refetchInterval?: number | false },
+  opts?: { enabled?: boolean; refetchInterval?: StkRefetchInterval },
 ) =>
   useQuery({
     queryKey: nqk.memberPayments.stkQuery(invoiceId ?? ""),
     queryFn: () => memberPaymentService.stkQuery(invoiceId!),
     enabled: opts?.enabled ?? !!invoiceId,
-    refetchInterval: opts?.refetchInterval ?? false,
+    refetchInterval: (q) => {
+      const ri = opts?.refetchInterval;
+      if (typeof ri === "function") return ri(q.state.data);
+      return ri ?? false;
+    },
     refetchOnWindowFocus: false,
     retry: 0,
   });
