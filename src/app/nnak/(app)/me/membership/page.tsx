@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/common/PageHeader";
 import { useNnakMe } from "@/hooks/use-auth";
 import {
@@ -10,6 +11,7 @@ import {
   useInvoiceStkPush,
   useInvoiceStkQuery,
 } from "@/hooks/use-member-payments";
+import { nqk } from "@/lib/query-keys";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import DigitalIdCard, {
   downloadDigitalIdPdf,
@@ -50,6 +52,7 @@ const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
 );
 
 export default function MyMembershipPage() {
+  const qc = useQueryClient();
   const { data: me } = useNnakMe();
   const { data: dash } = useMemberDashboardApi();
   const subscribe = useCreateSubscription();
@@ -57,22 +60,57 @@ export default function MyMembershipPage() {
   const [stkPhone, setStkPhone] = useState(me?.profile?.phone || "");
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
-  const stkQuery = useInvoiceStkQuery(activeInvoiceId);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Auto-close payment modal when status check returns success
+  const isTerminal = (s?: string | null) =>
+    !!s &&
+    ["successful", "success", "failed", "cancelled", "timeout"].includes(
+      String(s).toLowerCase(),
+    );
+
+  const stkQuery = useInvoiceStkQuery(activeInvoiceId, {
+    enabled: !!activeInvoiceId,
+    refetchInterval: (q) => {
+      const s = q.state.data?.status?.toLowerCase();
+      return isTerminal(s) ? false : 3000;
+    },
+  });
+
+  const stkStatus = stkQuery.data?.status?.toLowerCase();
+  const isSuccess = stkStatus === "successful" || stkStatus === "success";
+  const isFailed =
+    stkStatus === "failed" ||
+    stkStatus === "cancelled" ||
+    stkStatus === "timeout";
+
+  // On success: refresh member dashboard so digital ID unlocks, then close.
   useEffect(() => {
-    if (
-      stkQuery.data &&
-      (stkQuery.data.status === "successful" ||
-        stkQuery.data.status === "success")
-    ) {
-      const timer = setTimeout(() => {
-        setShowPayModal(false);
-        setActiveInvoiceId(null);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [stkQuery.data]);
+    if (!isSuccess) return;
+    qc.invalidateQueries({ queryKey: nqk.memberDashboard });
+    qc.invalidateQueries({ queryKey: nqk.auth.me });
+    const t = setTimeout(() => {
+      setShowPayModal(false);
+      setActiveInvoiceId(null);
+      setPaymentError(null);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isSuccess, qc]);
+
+  // On failure: surface the reason and re-enable the Pay button.
+  useEffect(() => {
+    if (!isFailed) return;
+    const reason =
+      stkQuery.data?.ResultDesc ||
+      stkQuery.data?.message ||
+      (stkStatus === "cancelled"
+        ? "You cancelled the payment on your phone."
+        : stkStatus === "timeout"
+          ? "The payment prompt timed out before you completed it."
+          : "Payment was not completed.");
+    setPaymentError(reason);
+    setActiveInvoiceId(null);
+    stkPush.reset();
+  }, [isFailed, stkQuery.data, stkStatus, stkPush]);
 
   if (!me) {
     return (
@@ -317,6 +355,7 @@ export default function MyMembershipPage() {
               onClick={() => {
                 const phone = stkPhone || profile.phone || "";
                 if (!phone) return;
+                setPaymentError(null);
                 stkPush.mutate(
                   {
                     invoiceId: apiSub.invoice!.id,
@@ -324,47 +363,44 @@ export default function MyMembershipPage() {
                   },
                   {
                     onSuccess: (data) => {
-                      setStkPhone("");
                       setActiveInvoiceId(data.invoice_id);
                     },
                   },
                 );
               }}
-              disabled={stkPush.isPending || (stkPush.isSuccess && stkQuery.data?.status !== "failed")}
-              className="w-full bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50"
+              disabled={
+                stkPush.isPending ||
+                (!!activeInvoiceId && !isFailed && !isSuccess)
+              }
+              className="w-full bg-emerald-600 text-white text-sm font-medium px-4 py-2.5 rounded-md hover:bg-emerald-700 disabled:opacity-50"
             >
-              {stkPush.isPending ? "Sending..." : "Pay via M-Pesa"}
+              {stkPush.isPending
+                ? "Sending..."
+                : activeInvoiceId && !isFailed && !isSuccess
+                  ? "Waiting for confirmation…"
+                  : paymentError
+                    ? "Retry Payment"
+                    : "Pay via M-Pesa"}
             </button>
 
-            {stkPush.isSuccess && !stkQuery.data && (
-              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 text-center">
-                STK Push sent. Check your phone and enter your M-Pesa PIN.
+            {activeInvoiceId && !isSuccess && !isFailed && (
+              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+                <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                STK Push sent. Enter your M-Pesa PIN on your phone — we&apos;ll
+                confirm automatically.
               </div>
             )}
 
-            {activeInvoiceId && (
-              <button
-                onClick={() => stkQuery.refetch()}
-                disabled={stkQuery.isFetching}
-                className="w-full border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-50 disabled:opacity-50"
-              >
-                {stkQuery.isFetching ? "Checking..." : "Check Payment Status"}
-              </button>
+            {isSuccess && (
+              <div className="text-xs rounded-md px-3 py-2 text-center font-medium bg-emerald-50 border border-emerald-200 text-emerald-700">
+                Payment successful! Refreshing your membership…
+              </div>
             )}
 
-            {stkQuery.data && (
-              <div
-                className={`text-xs rounded-md px-3 py-2 text-center font-medium ${
-                  stkQuery.data.status === "successful" ||
-                  stkQuery.data.status === "success"
-                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                    : "bg-red-50 border border-red-200 text-red-700"
-                }`}
-              >
-                {stkQuery.data.status === "successful" ||
-                stkQuery.data.status === "success"
-                  ? "Payment successful!"
-                  : `Status: ${stkQuery.data.status}`}
+            {paymentError && !activeInvoiceId && (
+              <div className="text-xs rounded-md px-3 py-2 bg-red-50 border border-red-200 text-red-700">
+                <div className="font-semibold mb-0.5">Payment failed</div>
+                <div className="text-red-700/90">{paymentError}</div>
               </div>
             )}
           </div>

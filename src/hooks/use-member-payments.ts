@@ -24,11 +24,17 @@ export const useInvoiceStkPush = () => {
   });
 };
 
-export const useInvoiceStkQuery = (invoiceId?: string | null) =>
+export const useInvoiceStkQuery = (
+  invoiceId?: string | null,
+  opts?: { enabled?: boolean; refetchInterval?: number | false },
+) =>
   useQuery({
     queryKey: nqk.memberPayments.stkQuery(invoiceId ?? ""),
     queryFn: () => memberPaymentService.stkQuery(invoiceId!),
-    enabled: false,
+    enabled: opts?.enabled ?? !!invoiceId,
+    refetchInterval: opts?.refetchInterval ?? false,
+    refetchOnWindowFocus: false,
+    retry: 0,
   });
 
 export const useRegisterC2bUrls = () => {
