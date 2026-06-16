@@ -81,9 +81,9 @@ export const nnakAuth = {
     if (isDemoSession()) {
       return getNnakUser() as NnakUserWithProfile | null;
     }
-    return unwrap<{ user: NnakUserWithProfile }>(
-      nnakApi.get("/profile"),
-    ).then((d) => d.user);
+    return unwrap<{ user: NnakUserWithProfile }>(nnakApi.get("/profile")).then(
+      (d) => d.user,
+    );
   },
 
   logout: () => nnakApi.post("/logout").then(() => undefined),

@@ -139,7 +139,10 @@ const seed = (): Store => {
     created_at: now(),
     updated_at: now(),
   });
-  const mkBranch = (name: string, employer_type: Branch["employer_type"]): Branch => ({
+  const mkBranch = (
+    name: string,
+    employer_type: Branch["employer_type"],
+  ): Branch => ({
     id: uid(),
     name,
     employer_type,
@@ -149,14 +152,53 @@ const seed = (): Store => {
   });
 
   const counties = [
-    "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu",
-    "Garissa", "Homabay", "Isiolo", "Kajiado", "Kakamega", "Kericho",
-    "Kiambu", "Kilifi", "Mombasa", "Kirinyaga", "Kisii", "Kisumu",
-    "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni",
-    "Mandera", "Marsabit", "Meru", "Migori", "Muranga", "Nairobi County",
-    "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri",
-    "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi",
-    "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
+    "Baringo",
+    "Bomet",
+    "Bungoma",
+    "Busia",
+    "Elgeyo Marakwet",
+    "Embu",
+    "Garissa",
+    "Homabay",
+    "Isiolo",
+    "Kajiado",
+    "Kakamega",
+    "Kericho",
+    "Kiambu",
+    "Kilifi",
+    "Mombasa",
+    "Kirinyaga",
+    "Kisii",
+    "Kisumu",
+    "Kitui",
+    "Kwale",
+    "Laikipia",
+    "Lamu",
+    "Machakos",
+    "Makueni",
+    "Mandera",
+    "Marsabit",
+    "Meru",
+    "Migori",
+    "Muranga",
+    "Nairobi County",
+    "Nakuru",
+    "Nandi",
+    "Narok",
+    "Nyamira",
+    "Nyandarua",
+    "Nyeri",
+    "Samburu",
+    "Siaya",
+    "Taita Taveta",
+    "Tana River",
+    "Tharaka Nithi",
+    "Trans Nzoia",
+    "Turkana",
+    "Uasin Gishu",
+    "Vihiga",
+    "Wajir",
+    "West Pokot",
   ];
 
   const privateHospitals = [
@@ -236,7 +278,7 @@ const write = (s: Store) => {
     localStorage.setItem(STORE_KEY, JSON.stringify(s));
 };
 
-const paginate = <T,>(items: T[], page = 1, per_page = 15): NnakPaginated<T> => {
+const paginate = <T>(items: T[], page = 1, per_page = 15): NnakPaginated<T> => {
   const total = items.length;
   const last_page = Math.max(1, Math.ceil(total / per_page));
   const from = (page - 1) * per_page;
@@ -264,9 +306,16 @@ const logAudit = (entry: Omit<AuditLogEntry, "id" | "occurred_at">) => {
 export const mockStore = {
   // ---- categories ----
   listCategories: () => read().categories,
-  createCategory: (c: Omit<MemberCategory, "id" | "created_at" | "updated_at">) => {
+  createCategory: (
+    c: Omit<MemberCategory, "id" | "created_at" | "updated_at">,
+  ) => {
     const s = read();
-    const item: MemberCategory = { ...c, id: uid(), created_at: now(), updated_at: now() };
+    const item: MemberCategory = {
+      ...c,
+      id: uid(),
+      created_at: now(),
+      updated_at: now(),
+    };
     s.categories.push(item);
     write(s);
     return item;
@@ -289,7 +338,16 @@ export const mockStore = {
   listBranches: () => read().branches,
 
   // ---- members ----
-  listMembers: (params: { page?: number; per_page?: number; search?: string; status?: string; category_id?: string; branch_id?: string } = {}) => {
+  listMembers: (
+    params: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      status?: string;
+      category_id?: string;
+      branch_id?: string;
+    } = {},
+  ) => {
     const s = read();
     let items = [...s.members];
     if (params.search) {
@@ -302,25 +360,37 @@ export const mockStore = {
           m.profile.account_number?.toLowerCase().includes(q),
       );
     }
-    if (params.status) items = items.filter((m) => m.profile.status === params.status);
-    if (params.category_id) items = items.filter((m) => m.profile.member_category_id === params.category_id);
-    if (params.branch_id) items = items.filter((m) => m.profile.branch_id === params.branch_id);
+    if (params.status)
+      items = items.filter((m) => m.profile.status === params.status);
+    if (params.category_id)
+      items = items.filter(
+        (m) => m.profile.member_category_id === params.category_id,
+      );
+    if (params.branch_id)
+      items = items.filter((m) => m.profile.branch_id === params.branch_id);
     return paginate(items, params.page, params.per_page);
   },
   getMember: (id: string) => read().members.find((m) => m.id === id) || null,
-  createMember: (input: { name: string; email: string; role?: "member" | "student"; profile: Partial<NnakProfile> }) => {
+  createMember: (input: {
+    name: string;
+    email: string;
+    role?: "member" | "student";
+    profile: Partial<NnakProfile>;
+  }) => {
     const s = read();
     const userId = uid();
     const profile: NnakProfile = {
       id: uid(),
       user_id: userId,
-      account_number: "ACC" + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      account_number:
+        "ACC" + Math.random().toString(36).slice(2, 8).toUpperCase(),
       phone: input.profile.phone ?? null,
       nck_number: input.profile.nck_number ?? null,
       license_number: input.profile.license_number ?? null,
       identification_type: input.profile.identification_type ?? "national_id",
       identification_number: input.profile.identification_number ?? null,
-      professional_qualification: input.profile.professional_qualification ?? null,
+      professional_qualification:
+        input.profile.professional_qualification ?? null,
       professional_cadre: input.profile.professional_cadre ?? null,
       date_of_birth: input.profile.date_of_birth ?? null,
       gender: input.profile.gender ?? "female",
@@ -346,10 +416,19 @@ export const mockStore = {
     };
     s.members.push(user);
     write(s);
-    logAudit({ user_id: userId, user_email: user.email, action: "member.created", resource: "member", resource_id: userId });
+    logAudit({
+      user_id: userId,
+      user_email: user.email,
+      action: "member.created",
+      resource: "member",
+      resource_id: userId,
+    });
     return user;
   },
-  updateMember: (id: string, patch: { name?: string; email?: string; profile?: Partial<NnakProfile> }) => {
+  updateMember: (
+    id: string,
+    patch: { name?: string; email?: string; profile?: Partial<NnakProfile> },
+  ) => {
     const s = read();
     const i = s.members.findIndex((m) => m.id === id);
     if (i < 0) throw new Error("Member not found");
@@ -363,21 +442,35 @@ export const mockStore = {
     write(s);
     return s.members[i];
   },
-  setMemberStatus: (id: string, status: NnakProfile["status"], reason?: string) => {
+  setMemberStatus: (
+    id: string,
+    status: NnakProfile["status"],
+    reason?: string,
+  ) => {
     const s = read();
     const m = s.members.find((x) => x.id === id);
     if (!m) throw new Error("Member not found");
     m.profile.status = status;
     m.profile.updated_at = now();
     write(s);
-    logAudit({ user_id: id, action: `member.status.${status}`, resource: "member", resource_id: id, metadata: { reason } });
+    logAudit({
+      user_id: id,
+      action: `member.status.${status}`,
+      resource: "member",
+      resource_id: id,
+      metadata: { reason },
+    });
     return m;
   },
 
   // ---- events ----
-  listEvents: (params: { page?: number; per_page?: number; status?: string } = {}) => {
+  listEvents: (
+    params: { page?: number; per_page?: number; status?: string } = {},
+  ) => {
     const s = read();
-    let items = [...s.events].sort((a, b) => b.start_date.localeCompare(a.start_date));
+    let items = [...s.events].sort((a, b) =>
+      b.start_date.localeCompare(a.start_date),
+    );
     if (params.status) items = items.filter((e) => e.status === params.status);
     return paginate(items, params.page, params.per_page);
   },
@@ -387,20 +480,36 @@ export const mockStore = {
     if (input.id) {
       const i = s.events.findIndex((e) => e.id === input.id);
       if (i < 0) throw new Error("Event not found");
-      s.events[i] = { ...s.events[i], ...input, updated_at: now() } as NnakEvent;
+      s.events[i] = {
+        ...s.events[i],
+        ...input,
+        updated_at: now(),
+      } as NnakEvent;
       write(s);
       return s.events[i];
     }
     const event: NnakEvent = {
       id: uid(),
-      code: (input as Record<string, unknown>).code as string || "",
-      title: input.title || (input as Record<string, unknown>).name as string || "Untitled",
+      code: ((input as Record<string, unknown>).code as string) || "",
+      title:
+        input.title ||
+        ((input as Record<string, unknown>).name as string) ||
+        "Untitled",
       description: input.description || "",
       type: input.type || "cpd",
       status: input.status || "draft",
-      start_date: input.start_date || (input as Record<string, unknown>).starts_at as string || now(),
-      end_date: input.end_date || (input as Record<string, unknown>).ends_at as string || now(),
-      location: input.location || (input as Record<string, unknown>).venue as string || "",
+      start_date:
+        input.start_date ||
+        ((input as Record<string, unknown>).starts_at as string) ||
+        now(),
+      end_date:
+        input.end_date ||
+        ((input as Record<string, unknown>).ends_at as string) ||
+        now(),
+      location:
+        input.location ||
+        ((input as Record<string, unknown>).venue as string) ||
+        "",
       theme: input.theme || null,
       cover_image_url: input.cover_image_url || null,
       banner_image_url: input.banner_image_url || null,
@@ -465,12 +574,24 @@ export const mockStore = {
   },
 
   // ---- payments ----
-  listPayments: (params: { page?: number; per_page?: number; purpose?: string; status?: string; user_id?: string } = {}) => {
+  listPayments: (
+    params: {
+      page?: number;
+      per_page?: number;
+      purpose?: string;
+      status?: string;
+      user_id?: string;
+    } = {},
+  ) => {
     const s = read();
-    let items = [...s.payments].sort((a, b) => b.paid_at.localeCompare(a.paid_at));
-    if (params.purpose) items = items.filter((p) => p.purpose === params.purpose);
+    let items = [...s.payments].sort((a, b) =>
+      b.paid_at.localeCompare(a.paid_at),
+    );
+    if (params.purpose)
+      items = items.filter((p) => p.purpose === params.purpose);
     if (params.status) items = items.filter((p) => p.status === params.status);
-    if (params.user_id) items = items.filter((p) => p.user_id === params.user_id);
+    if (params.user_id)
+      items = items.filter((p) => p.user_id === params.user_id);
     return paginate(items, params.page, params.per_page);
   },
 
@@ -478,8 +599,13 @@ export const mockStore = {
     const s = read();
     return s.registrations
       .filter((r) => r.user_id === userId)
-      .map((r) => ({ ...r, event: s.events.find((e) => e.id === r.event_id) ?? null }))
-      .sort((a, b) => (b.event?.start_date || "").localeCompare(a.event?.start_date || ""));
+      .map((r) => ({
+        ...r,
+        event: s.events.find((e) => e.id === r.event_id) ?? null,
+      }))
+      .sort((a, b) =>
+        (b.event?.start_date || "").localeCompare(a.event?.start_date || ""),
+      );
   },
 
   // Ensure a demo user exists as a real member record so the portal has
@@ -506,7 +632,8 @@ export const mockStore = {
     } else {
       expDate.setFullYear(expDate.getFullYear() + 1);
     }
-    const status: NnakProfile["status"] = state === "overdue" ? "inactive" : "active";
+    const status: NnakProfile["status"] =
+      state === "overdue" ? "inactive" : "active";
 
     const existing = s.members.find((m) => m.id === input.id);
     if (existing) {
@@ -523,13 +650,17 @@ export const mockStore = {
       return existing;
     }
 
-    const wantedCode = input.categoryCode || (input.role === "student" ? "student" : "individual");
-    const cat = s.categories.find((c) => c.code === wantedCode) || s.categories[0];
+    const wantedCode =
+      input.categoryCode ||
+      (input.role === "student" ? "student" : "individual");
+    const cat =
+      s.categories.find((c) => c.code === wantedCode) || s.categories[0];
     // Branch-based members get the first Counties branch for realism;
     // M-Pesa individuals don't need a branch.
     const branch =
       wantedCode === "county"
-        ? s.branches.find((b) => b.county && b.county.length > 0) ?? s.branches[0]
+        ? (s.branches.find((b) => b.county && b.county.length > 0) ??
+          s.branches[0])
         : null;
     const exp = expDate;
 
@@ -539,15 +670,23 @@ export const mockStore = {
       account_number: "ACC" + input.id.slice(-4).toUpperCase(),
       phone: "+254700000000",
       nck_number: null,
-      license_number: input.role === "student" ? null : "LIC" + Math.floor(10000 + Math.random() * 89999),
+      license_number:
+        input.role === "student"
+          ? null
+          : "LIC" + Math.floor(10000 + Math.random() * 89999),
       identification_type: "national_id",
-      identification_number: "3" + Math.floor(1000000 + Math.random() * 8999999),
-      professional_qualification: input.role === "student" ? "Diploma in Nursing (in progress)" : "BScN, Kenya Medical Training College",
+      identification_number:
+        "3" + Math.floor(1000000 + Math.random() * 8999999),
+      professional_qualification:
+        input.role === "student"
+          ? "Diploma in Nursing (in progress)"
+          : "BScN, Kenya Medical Training College",
       professional_cadre: input.role === "student" ? "KRCHN" : "BSCN",
       date_of_birth: "1992-04-12",
       gender: "female",
       employer_type: input.role === "student" ? null : "Parastatal",
-      employer_name: input.role === "student" ? null : "Kenyatta National Hospital",
+      employer_name:
+        input.role === "student" ? null : "Kenyatta National Hospital",
       county: "Nairobi",
       photo_url: null,
       member_category_id: cat?.id ?? null,
@@ -573,7 +712,9 @@ export const mockStore = {
 
     // Seed a few historical payments so the payments page has rows.
     const subAmount = cat?.annual_fee ?? 2000;
-    const lastYear = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30 * 8).toISOString();
+    const lastYear = new Date(
+      Date.now() - 1000 * 60 * 60 * 24 * 30 * 8,
+    ).toISOString();
     s.payments.unshift({
       id: uid(),
       user_id: input.id,
@@ -591,7 +732,10 @@ export const mockStore = {
     // Seed one past event registration the member already paid for + attended.
     const pastEvent = s.events.find((e) => new Date(e.start_date) < new Date());
     if (pastEvent) {
-      const fee = pastEvent.pricing?.find((p) => p.category_code === (cat?.code || "individual"))?.fee ?? 500;
+      const fee =
+        pastEvent.pricing?.find(
+          (p) => p.category_code === (cat?.code || "individual"),
+        )?.fee ?? 500;
       const reg: EventRegistration = {
         id: uid(),
         event_id: pastEvent.id,
@@ -603,7 +747,9 @@ export const mockStore = {
         attended_at: pastEvent.start_date,
         certificate_issued: true,
         certificate_url: `/api/mock/certificate/${uid()}`,
-        created_at: new Date(new Date(pastEvent.start_date).getTime() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+        created_at: new Date(
+          new Date(pastEvent.start_date).getTime() - 1000 * 60 * 60 * 24 * 14,
+        ).toISOString(),
       };
       s.registrations.push(reg);
       s.payments.unshift({
@@ -614,7 +760,8 @@ export const mockStore = {
         method: "mpesa",
         purpose: "event",
         related_id: pastEvent.id,
-        reference: "MPE" + Math.random().toString(36).slice(2, 10).toUpperCase(),
+        reference:
+          "MPE" + Math.random().toString(36).slice(2, 10).toUpperCase(),
         status: "successful",
         paid_at: reg.created_at,
         created_at: reg.created_at,
@@ -625,7 +772,11 @@ export const mockStore = {
     write(s);
     return user;
   },
-  recordPayment: (input: Omit<Payment, "id" | "created_at" | "paid_at" | "currency"> & { paid_at?: string }) => {
+  recordPayment: (
+    input: Omit<Payment, "id" | "created_at" | "paid_at" | "currency"> & {
+      paid_at?: string;
+    },
+  ) => {
     const s = read();
     const p: Payment = {
       ...input,
@@ -669,7 +820,9 @@ export const mockStore = {
     lines: { national_id: string; name: string; amount: number }[];
   }) => {
     const s = read();
-    const branchMembers = s.members.filter((m) => m.profile.branch_id === input.branch_id);
+    const branchMembers = s.members.filter(
+      (m) => m.profile.branch_id === input.branch_id,
+    );
     const upload: ByProductUpload = {
       id: uid(),
       branch_id: input.branch_id,
@@ -683,7 +836,9 @@ export const mockStore = {
       created_at: now(),
     };
     const lines: ByProductLine[] = input.lines.map((l) => {
-      const m = branchMembers.find((bm) => bm.profile.identification_number === l.national_id);
+      const m = branchMembers.find(
+        (bm) => bm.profile.identification_number === l.national_id,
+      );
       return {
         id: uid(),
         upload_id: upload.id,
@@ -697,7 +852,9 @@ export const mockStore = {
     upload.matched = lines.filter((l) => l.matched).length;
     // flag = members in branch NOT included
     const includedIds = new Set(lines.map((l) => l.member_id).filter(Boolean));
-    upload.flagged = branchMembers.filter((bm) => !includedIds.has(bm.id)).length;
+    upload.flagged = branchMembers.filter(
+      (bm) => !includedIds.has(bm.id),
+    ).length;
     s.byproduct_uploads.unshift(upload);
     s.byproduct_lines.push(...lines);
     // mark matched members as active for the period
@@ -725,8 +882,14 @@ export const mockStore = {
     const s = read();
     const active = s.members.filter((m) => m.profile.status === "active");
     const now0 = new Date();
-    const startMonth = new Date(now0.getFullYear(), now0.getMonth(), 1).toISOString();
-    const newThisMonth = s.members.filter((m) => (m.profile.joined_at || "") >= startMonth).length;
+    const startMonth = new Date(
+      now0.getFullYear(),
+      now0.getMonth(),
+      1,
+    ).toISOString();
+    const newThisMonth = s.members.filter(
+      (m) => (m.profile.joined_at || "") >= startMonth,
+    ).length;
     const revenueMtd = s.payments
       .filter((p) => p.status === "successful" && p.paid_at >= startMonth)
       .reduce((a, b) => a + b.amount, 0);
@@ -736,13 +899,16 @@ export const mockStore = {
         new Date(m.profile.subscription_expires_at).getTime() < Date.now(),
     ).length;
     const upcoming = s.events.filter(
-      (e) => new Date(e.start_date).getTime() > Date.now() && e.status === "published",
+      (e) =>
+        new Date(e.start_date).getTime() > Date.now() &&
+        e.status === "published",
     ).length;
 
     // group by category
     const by_category = s.categories.map((c) => ({
       category: c.name,
-      count: s.members.filter((m) => m.profile.member_category_id === c.id).length,
+      count: s.members.filter((m) => m.profile.member_category_id === c.id)
+        .length,
     }));
     // last 6 months revenue
     const trend: { period: string; revenue: number }[] = [];
@@ -760,16 +926,23 @@ export const mockStore = {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const c = s.members.filter((m) => (m.profile.joined_at || "").startsWith(key)).length;
+      const c = s.members.filter((m) =>
+        (m.profile.joined_at || "").startsWith(key),
+      ).length;
       growth.push({ period: key, count: c });
     }
     // attendance last 30d
     const cutoff = Date.now() - 30 * 86_400_000;
-    const recentRegs = s.registrations.filter((r) => new Date(r.created_at).getTime() >= cutoff);
+    const recentRegs = s.registrations.filter(
+      (r) => new Date(r.created_at).getTime() >= cutoff,
+    );
     const attendanceRate =
       recentRegs.length === 0
         ? 0
-        : Math.round((recentRegs.filter((r) => r.attended).length / recentRegs.length) * 100);
+        : Math.round(
+            (recentRegs.filter((r) => r.attended).length / recentRegs.length) *
+              100,
+          );
 
     return {
       total_active_members: active.length,
@@ -789,7 +962,12 @@ export const mockStore = {
     paginate(read().audit, params.page, params.per_page),
 
   listExports: () => read().exports,
-  requestExport: (input: Omit<DataExportRequest, "id" | "status" | "created_at" | "approved_at" | "approved_by">) => {
+  requestExport: (
+    input: Omit<
+      DataExportRequest,
+      "id" | "status" | "created_at" | "approved_at" | "approved_by"
+    >,
+  ) => {
     const s = read();
     const item: DataExportRequest = {
       ...input,
@@ -801,7 +979,13 @@ export const mockStore = {
     };
     s.exports.unshift(item);
     write(s);
-    logAudit({ user_id: input.requested_by, action: "export.requested", resource: "export", resource_id: item.id, metadata: { scope: input.scope } });
+    logAudit({
+      user_id: input.requested_by,
+      action: "export.requested",
+      resource: "export",
+      resource_id: item.id,
+      metadata: { scope: input.scope },
+    });
     return item;
   },
   decideExport: (id: string, approver: string, approve: boolean) => {
@@ -812,12 +996,21 @@ export const mockStore = {
     e.approved_by = approver;
     e.approved_at = now();
     write(s);
-    logAudit({ user_id: approver, action: approve ? "export.approved" : "export.rejected", resource: "export", resource_id: id });
+    logAudit({
+      user_id: approver,
+      action: approve ? "export.approved" : "export.rejected",
+      resource: "export",
+      resource_id: id,
+    });
     return e;
   },
 
   listErasures: () => read().erasures,
-  requestErasure: (input: { user_id: string; user_email?: string; reason?: string }) => {
+  requestErasure: (input: {
+    user_id: string;
+    user_email?: string;
+    reason?: string;
+  }) => {
     const s = read();
     const e: ErasureRequest = {
       id: uid(),
@@ -830,7 +1023,12 @@ export const mockStore = {
     };
     s.erasures.unshift(e);
     write(s);
-    logAudit({ user_id: input.user_id, action: "erasure.requested", resource: "erasure", resource_id: e.id });
+    logAudit({
+      user_id: input.user_id,
+      action: "erasure.requested",
+      resource: "erasure",
+      resource_id: e.id,
+    });
     return e;
   },
   completeErasure: (id: string) => {
@@ -850,7 +1048,12 @@ export const mockStore = {
     e.status = "anonymised";
     e.completed_at = now();
     write(s);
-    logAudit({ user_id: e.user_id, action: "erasure.completed", resource: "erasure", resource_id: id });
+    logAudit({
+      user_id: e.user_id,
+      action: "erasure.completed",
+      resource: "erasure",
+      resource_id: id,
+    });
     return e;
   },
 

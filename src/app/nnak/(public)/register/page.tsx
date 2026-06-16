@@ -148,7 +148,6 @@ export default function NnakRegisterPage() {
       nck_number: "",
       professional_qualification: "",
       professional_cadre: "",
-      designation: "",
       place_of_work: "",
       county: "",
       employer_type: "",
@@ -171,7 +170,6 @@ export default function NnakRegisterPage() {
     "nck_number",
     "professional_qualification",
     "professional_cadre",
-    "designation",
     "place_of_work",
     "county",
     "employer_type",
@@ -208,7 +206,7 @@ export default function NnakRegisterPage() {
         nck_number: data.nck_number,
         professional_qualification: data.professional_qualification,
         professional_cadre: data.professional_cadre,
-        designation: data.designation,
+        designation: data.professional_cadre,
         place_of_work: data.place_of_work,
         county: data.county,
         employer_type: data.employer_type,
@@ -382,14 +380,6 @@ export default function NnakRegisterPage() {
             placeholder="e.g. NCK/2024/98765"
             register={register("nck_number")}
             error={errors.nck_number?.message}
-            required
-          />
-          <InputField
-            label="Designation"
-            type="text"
-            placeholder="e.g. Registered Nurse"
-            register={register("designation")}
-            error={errors.designation?.message}
             required
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
