@@ -21,11 +21,14 @@ import {
   MdSwapHoriz,
   MdMailOutline,
   MdAttachMoney,
+  MdExpandMore,
+  MdExpandLess,
+  MdPersonOutline,
 } from "react-icons/md";
 import { isMemberRole } from "@/lib/rbac";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
 import type { NnakUser } from "@/types/nnak";
@@ -40,6 +43,18 @@ interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
   href: string;
   show?: (u: NnakUser | null | undefined) => boolean;
+}
+
+interface MenuGroup {
+  /** Optional header. When absent, the items render with no separator. */
+  name?: string;
+  items: MenuItem[];
+  /** If true, the group can be expanded / collapsed by the user. */
+  collapsible?: boolean;
+  /** Icon for the collapsible header. */
+  headerIcon?: React.ComponentType<{ className?: string }>;
+  /** Stable key used to persist collapsed state in component state. */
+  key: string;
 }
 
 const STAFF_ITEMS: MenuItem[] = [
@@ -192,28 +207,63 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
   const { data: user } = useMe();
   const logoutMutation = useLogout();
 
-  const menuItems = useMemo(() => {
-    // Members & students see only the member portal. Branch managers run a
-    // branch *and* hold a membership, so they see both — with duplicate
-    // entries (e.g. dashboard) collapsed.
+  const groups = useMemo<MenuGroup[]>(() => {
     const isMember = isMemberRole(user);
     const isBranchManager = user?.role === "branch_manager";
-    let source: MenuItem[];
+
     if (isMember) {
-      source = MEMBER_ITEMS;
-    } else if (isBranchManager) {
-      const seen = new Set(STAFF_ITEMS.map((i) => i.href));
-      source = [
-        ...STAFF_ITEMS,
-        ...MEMBER_ITEMS.filter((i) => !seen.has(i.href)),
-      ];
-    } else {
-      source = STAFF_ITEMS;
+      return [{ key: "member", items: MEMBER_ITEMS }];
     }
-    return source
-      .filter((i) => (i.show ? i.show(user) : true))
-      .map((i) => ({ ...i, active: pathname.startsWith(i.href) }));
-  }, [pathname, user]);
+    if (isBranchManager) {
+      // Member-portal items live alongside the manager's branch items.
+      // Drop the duplicated dashboard entry from the member list — staff
+      // already get one at the top.
+      const memberItems = MEMBER_ITEMS.filter(
+        (i) => i.href !== "/nnak/dashboard",
+      );
+      return [
+        { key: "branch", items: STAFF_ITEMS },
+        {
+          key: "my-portal",
+          name: "My Member Portal",
+          headerIcon: MdPersonOutline,
+          items: memberItems,
+          collapsible: true,
+        },
+      ];
+    }
+    return [{ key: "staff", items: STAFF_ITEMS }];
+  }, [user]);
+
+  // Auto-expand the My Member Portal group when the user is on a /me/* page.
+  const onMyPortalRoute = pathname?.startsWith("/nnak/me/") ?? false;
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const renderItem = (item: MenuItem) => {
+    const active = pathname?.startsWith(item.href) ?? false;
+    return (
+      <li key={item.href}>
+        <Link
+          href={item.href}
+          onClick={() => onClose?.()}
+          className={`group flex items-center gap-2 rounded-lg px-2 py-1 transition-all ${
+            active
+              ? "bg-white text-primary shadow-sm"
+              : "text-white/90 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
+              active ? "bg-primary text-white" : "bg-white/15 text-white"
+            }`}
+          >
+            <item.icon className="w-4 h-4" />
+          </div>
+          <span className="font-medium text-[13px]">{item.name}</span>
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <div
@@ -234,32 +284,64 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
       </div>
 
       <nav className="flex-1 py-2 px-3 overflow-y-auto">
-        <ul className="flex flex-col space-y-0.5">
-          {menuItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => onClose?.()}
-                className={`group flex items-center gap-2 rounded-lg px-2 py-1 transition-all ${
-                  item.active
-                    ? "bg-white text-primary shadow-sm"
-                    : "text-white/90 hover:bg-white/10 hover:text-white"
-                }`}
+        {groups.map((g) => {
+          const visible = g.items.filter((i) =>
+            i.show ? i.show(user) : true,
+          );
+          if (visible.length === 0) return null;
+
+          if (!g.collapsible) {
+            return (
+              <ul key={g.key} className="flex flex-col space-y-0.5 mb-2">
+                {g.name && (
+                  <li className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+                    {g.name}
+                  </li>
+                )}
+                {visible.map(renderItem)}
+              </ul>
+            );
+          }
+
+          // Collapsible: default open if user is on a member-portal route.
+          const isOpen =
+            collapsed[g.key] === undefined
+              ? onMyPortalRoute
+              : !collapsed[g.key];
+          const Icon = g.headerIcon;
+          return (
+            <div key={g.key} className="mt-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsed((c) => ({ ...c, [g.key]: isOpen }))
+                }
+                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition"
               >
-                <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
-                    item.active
-                      ? "bg-primary text-white"
-                      : "bg-white/15 text-white"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                </div>
-                <span className="font-medium text-[13px]">{item.name}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                <span className="flex items-center gap-2">
+                  {Icon && (
+                    <span className="flex items-center justify-center w-6 h-6 rounded-md bg-white/15">
+                      <Icon className="w-4 h-4" />
+                    </span>
+                  )}
+                  <span className="text-[11px] uppercase tracking-wider font-semibold">
+                    {g.name}
+                  </span>
+                </span>
+                {isOpen ? (
+                  <MdExpandLess className="w-4 h-4" />
+                ) : (
+                  <MdExpandMore className="w-4 h-4" />
+                )}
+              </button>
+              {isOpen && (
+                <ul className="flex flex-col space-y-0.5 mt-1 pl-2 border-l border-white/15 ml-3">
+                  {visible.map(renderItem)}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="py-2 px-3 pb-2 border-t border-white/15">

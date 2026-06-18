@@ -817,20 +817,73 @@ export interface AdminDashboardData {
 }
 
 // ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)
+export interface BranchDashboardBranch {
+  id: string;
+  name: string;
+  employer_type?: string | null;
+  commission_type?: string | null;
+  commission_value?: string | null;
+}
+
+export interface BranchDashboardMembers {
+  total: number;
+  active: number;
+  inactive: number;
+  pending_approval: number;
+  new_this_period: number;
+}
+
+export interface BranchDashboardRevenue {
+  collected_this_period: string | number;
+  pending_invoices_count: number;
+  pending_total: string | number;
+}
+
+export interface BranchBatchMetrics {
+  count: number;
+  paid_count: number;
+  pending_count: number;
+  total_collected: string | number;
+  commission: string | number;
+  branch_share: string | number;
+}
+
+export interface BranchPeriodBatch {
+  batch: BranchBatch | null;
+  metrics: BranchBatchMetrics;
+}
+
+export interface BranchAllTimeBatch {
+  total_collected: string | number;
+  total_commission: string | number;
+  total_branch_share: string | number;
+  paid_total: string | number;
+  pending_total: string | number;
+}
+
+export interface BranchDashboardBatches {
+  current_month: BranchPeriodBatch;
+  last_month: BranchPeriodBatch;
+  all_time: BranchAllTimeBatch;
+}
+
+export interface BranchDashboardInvites {
+  pending_invites: number;
+  pending_transfers: number;
+}
+
 export interface BranchDashboardData {
-  branch_id: string;
-  branch_name: string;
-  start_date: string;
-  end_date: string;
+  branch: BranchDashboardBranch;
+  date_range: { start: string; end: string };
+  members: BranchDashboardMembers;
+  revenue: BranchDashboardRevenue;
+  batches: BranchDashboardBatches;
+  byproduct: { recent_uploads: unknown[] };
+  invites: BranchDashboardInvites;
+  chapters: AdminDashboardChapterRow[];
+  recent_members: RecentPendingMember[];
   supported_params: string[];
   applied_filters: Record<string, string>;
-  total_members: number;
-  active_members: number;
-  inactive_members: number;
-  pending_approval_members: number;
-  recent_members: RecentPendingMember[];
-  chapter_totals: AdminDashboardChapterRow[];
-  total_collected_amount: string | number;
 }
 
 // ── Pending profile (GET /members/pending) ────────────────────────
