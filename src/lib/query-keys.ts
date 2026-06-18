@@ -141,4 +141,25 @@ export const nqk = {
     stkQuery: (invoiceId: string) =>
       ["nnak", "member", "payments", "stkquery", invoiceId] as const,
   },
+  invites: {
+    memberAll: ["nnak", "member", "invites"] as const,
+    memberList: (p?: Record<string, unknown>) =>
+      ["nnak", "member", "invites", "list", p ?? {}] as const,
+    branchSent: (p?: Record<string, unknown>) =>
+      ["nnak", "branch", "invites", "sent", p ?? {}] as const,
+    branchTransfersReceived: (p?: Record<string, unknown>) =>
+      ["nnak", "branch", "transfers", "received", p ?? {}] as const,
+    adminInvites: (p?: Record<string, unknown>) =>
+      ["nnak", "admin", "branch-invites", p ?? {}] as const,
+    adminTransfers: (p?: Record<string, unknown>) =>
+      ["nnak", "admin", "branch-transfers", p ?? {}] as const,
+  },
+  batches: {
+    all: ["nnak", "batches"] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "branch", "batches", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "branch", "batches", "detail", id] as const,
+    adminList: (p?: Record<string, unknown>) =>
+      ["nnak", "admin", "branch-batches", p ?? {}] as const,
+  },
 };

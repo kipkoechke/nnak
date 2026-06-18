@@ -16,6 +16,24 @@ const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
   { prefix: "/nnak/checkin", allow: ["super_admin", "admin", "events"] },
   { prefix: "/nnak/payments", allow: ["super_admin", "admin", "finance", "executive"] },
   { prefix: "/nnak/ilm", allow: ["super_admin", "admin"] },
+  { prefix: "/nnak/branch-invites", allow: ["super_admin", "admin"] },
+  { prefix: "/nnak/branch-transfers", allow: ["super_admin", "admin"] },
+  {
+    prefix: "/nnak/finance/batches",
+    allow: ["super_admin", "admin", "finance"],
+  },
+  {
+    prefix: "/nnak/branch/invites",
+    allow: ["branch_manager", "branch"],
+  },
+  {
+    prefix: "/nnak/branch/transfers",
+    allow: ["branch_manager", "branch"],
+  },
+  {
+    prefix: "/nnak/branch/batches",
+    allow: ["branch_manager", "branch"],
+  },
 ];
 
 interface MiniUser {

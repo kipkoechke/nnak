@@ -65,6 +65,19 @@ export const nnakCan = {
   manageRoles: (u?: NnakUser | null) => has(u, ["super_admin"]),
 
   // Member self-service portal (FR-MP-002, 004, 005, 006, 009, 013, FR-EM-005)
+  // Branch invites & transfers (admin/manager pages)
+  viewAdminInvites: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
+  manageBranchInvites: (u?: NnakUser | null) =>
+    has(u, ["branch_manager", "branch"]),
+  /** Branch monthly remittance batches — manager-side. */
+  viewBranchBatches: (u?: NnakUser | null) =>
+    has(u, ["branch_manager", "branch"]),
+  /** Finance reconciliation of branch batches. */
+  reconcileBatches: (u?: NnakUser | null) =>
+    has(u, ["super_admin", "admin", "finance"]),
+
+  viewMyInvites: (u?: NnakUser | null) =>
+    has(u, ["member", "student", "branch_manager"]),
   viewMyMembership: (u?: NnakUser | null) =>
     has(u, ["member", "student", "branch_manager"]),
   viewMyEvents: (u?: NnakUser | null) =>

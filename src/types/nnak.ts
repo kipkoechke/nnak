@@ -646,6 +646,108 @@ export interface BranchVerifyManagerInput {
   phone_otp: string;
 }
 
+// ── Branch invites & transfers ─────────────────────────────────────
+export type InviteStatus = "pending" | "accepted" | "rejected" | "expired";
+
+export interface BranchMemberBrief {
+  id: string;
+  name: string;
+  email?: string | null;
+  membership_number?: string | null;
+}
+
+export interface BranchBrief {
+  id: string;
+  name: string;
+  county?: string | null;
+}
+
+export interface BranchInvite {
+  id: string;
+  status: InviteStatus | string;
+  message?: string | null;
+  created_at: string;
+  expires_at?: string | null;
+  branch?: BranchBrief | null;
+  member?: BranchMemberBrief | null;
+  invited_by?: { id: string; name: string } | null;
+}
+
+export interface BranchTransfer {
+  id: string;
+  status: InviteStatus | string;
+  message?: string | null;
+  created_at: string;
+  member?: BranchMemberBrief | null;
+  from_branch?: BranchBrief | null;
+  to_branch?: BranchBrief | null;
+  requested_by?: { id: string; name: string } | null;
+}
+
+export interface BranchInviteCreateInput {
+  membership_number: string;
+  message?: string;
+}
+
+export interface BranchTransferCreateInput {
+  user_id: string;
+  message?: string;
+}
+
+// ── Branch monthly batches & finance reconciliation ────────────────
+export type BatchStatus =
+  | "draft"
+  | "submitted"
+  | "partially_paid"
+  | "paid"
+  | "overdue"
+  | string;
+
+export interface BranchBatch {
+  id: string;
+  period: string;
+  status: BatchStatus;
+  branch?: BranchBrief | null;
+  member_count?: number;
+  total_amount?: string | number;
+  amount_paid?: string | number;
+  balance?: string | number;
+  due_date?: string | null;
+  submitted_at?: string | null;
+  paid_at?: string | null;
+  created_at: string;
+}
+
+export interface BranchBatchLine {
+  id: string;
+  member_name?: string;
+  membership_number?: string;
+  amount: string | number;
+  status?: string;
+}
+
+export interface BranchBatchDetail extends BranchBatch {
+  lines?: BranchBatchLine[];
+  payments?: {
+    id: string;
+    amount_paid: string | number;
+    payment_reference?: string;
+    payment_method?: string;
+    paid_at?: string;
+    notes?: string | null;
+    attachments?: { id: string; url: string; name?: string }[];
+  }[];
+}
+
+export interface RecordBatchPaymentInput {
+  amount_paid: number | string;
+  payment_reference: string;
+  payment_method: string;
+  notes?: string;
+  paid_at: string;
+  attachments?: File[];
+}
+
 // ── Admin dashboard (GET /admin/dashboard?start_date&end_date) ─────
 export interface AdminDashboardCategoryRow {
   category_id: string | null;

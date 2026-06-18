@@ -18,6 +18,9 @@ import {
   MdBadge,
   MdWorkOutline,
   MdAnalytics,
+  MdSwapHoriz,
+  MdMailOutline,
+  MdAttachMoney,
 } from "react-icons/md";
 import { isMemberRole } from "@/lib/rbac";
 import Link from "next/link";
@@ -83,6 +86,42 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.manageBranches,
   },
   {
+    name: "Branch Invites",
+    icon: MdMailOutline,
+    href: "/nnak/branch-invites",
+    show: nnakCan.viewAdminInvites,
+  },
+  {
+    name: "Member Transfers",
+    icon: MdSwapHoriz,
+    href: "/nnak/branch-transfers",
+    show: nnakCan.viewAdminInvites,
+  },
+  {
+    name: "Branch Batches",
+    icon: MdAttachMoney,
+    href: "/nnak/finance/batches",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "Invite Members",
+    icon: MdMailOutline,
+    href: "/nnak/branch/invites",
+    show: nnakCan.manageBranchInvites,
+  },
+  {
+    name: "Transfers",
+    icon: MdSwapHoriz,
+    href: "/nnak/branch/transfers",
+    show: nnakCan.manageBranchInvites,
+  },
+  {
+    name: "Monthly Batches",
+    icon: MdReceipt,
+    href: "/nnak/branch/batches",
+    show: nnakCan.viewBranchBatches,
+  },
+  {
     name: "Categories",
     icon: MdCategory,
     href: "/nnak/categories",
@@ -127,6 +166,12 @@ const MEMBER_ITEMS: MenuItem[] = [
     icon: MdBadge,
     href: "/nnak/me/membership",
     show: nnakCan.viewMyMembership,
+  },
+  {
+    name: "Invites",
+    icon: MdMailOutline,
+    href: "/nnak/me/invites",
+    show: nnakCan.viewMyInvites,
   },
   {
     name: "Workstations",

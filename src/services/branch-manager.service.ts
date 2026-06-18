@@ -9,6 +9,10 @@ import type {
   ApiEnvelope,
   BranchAddMemberInput,
   BranchDashboardData,
+  BranchInvite,
+  BranchInviteCreateInput,
+  BranchTransfer,
+  BranchTransferCreateInput,
   BranchVerifyMemberInput,
   NnakPagination,
   NnakProfile,
@@ -76,4 +80,38 @@ export const branchManagerService = {
     unwrap<PendingOtpResponse>(
       nnakApi.post("/branch/members/resend-otp", body),
     ),
+
+  /** Invite an existing NNAK member to this branch by membership number. */
+  inviteMember: async (body: BranchInviteCreateInput) =>
+    unwrap<BranchInvite>(nnakApi.post("/branch/members/invite", body)),
+
+  /** Request a transfer of another branch's member into this branch. */
+  transferMember: async (body: BranchTransferCreateInput) =>
+    unwrap<BranchTransfer>(nnakApi.post("/branch/members/transfer", body)),
+
+  acceptTransfer: (id: string) =>
+    unwrap<BranchTransfer>(
+      nnakApi.post(`/branch/members/transfers/${id}/accept`),
+    ),
+
+  rejectTransfer: (id: string) =>
+    unwrap<BranchTransfer>(
+      nnakApi.post(`/branch/members/transfers/${id}/reject`),
+    ),
+
+  listSentInvites: async (params: { status?: string } = {}) => {
+    const r = await nnakApi.get<ApiEnvelope<BranchInvite[]>>(
+      "/branch/members/invites/sent",
+      { params },
+    );
+    return r.data?.data ?? [];
+  },
+
+  listReceivedTransfers: async (params: { status?: string } = {}) => {
+    const r = await nnakApi.get<ApiEnvelope<BranchTransfer[]>>(
+      "/branch/members/transfers/received",
+      { params },
+    );
+    return r.data?.data ?? [];
+  },
 };
