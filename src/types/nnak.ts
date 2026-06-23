@@ -696,6 +696,7 @@ export interface BranchTransferCreateInput {
 
 // ── Branch monthly batches & finance reconciliation ────────────────
 export type BatchStatus =
+  | "pending"
   | "draft"
   | "submitted"
   | "partially_paid"
@@ -705,17 +706,18 @@ export type BatchStatus =
 
 export interface BranchBatch {
   id: string;
+  reference_code: string;
   period: string;
   status: BatchStatus;
   branch?: BranchBrief | null;
-  member_count?: number;
-  total_amount?: string | number;
-  amount_paid?: string | number;
-  balance?: string | number;
-  due_date?: string | null;
-  submitted_at?: string | null;
+  members_count: number;
+  total_collected: string | number;
+  commission_amount: string | number;
+  branch_share: string | number;
+  outstanding: number;
   paid_at?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface BranchBatchLine {

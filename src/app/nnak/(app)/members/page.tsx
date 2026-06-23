@@ -62,7 +62,7 @@ export default function MembersPage() {
     ? branchMembersQuery
     : adminMembersQuery;
   const { data: cats = [] } = useCategories();
-  const { data: branches = [] } = useNnakBranches();
+  const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
   const approve = useApproveMember();
   const reject = useRejectMember();

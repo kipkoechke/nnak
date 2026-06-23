@@ -11,16 +11,8 @@ import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose, MdReceipt } from "react-icons/md";
 import type { BranchBatch } from "@/types/nnak";
 
-const fmt = (s?: string | null) =>
-  s
-    ? new Date(s).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
-
 const STATUS_TONE: Record<string, string> = {
+  pending: "bg-slate-100 text-slate-700",
   draft: "bg-slate-100 text-slate-700",
   submitted: "bg-blue-100 text-blue-700",
   partially_paid: "bg-amber-100 text-amber-800",
@@ -87,6 +79,9 @@ export default function FinanceBranchBatchesPage() {
       .catch(() => null);
     if (r) closeModal();
   };
+
+  const paidAmount = (b: BranchBatch) =>
+    Math.max(0, Number(b.branch_share) - Number(b.outstanding));
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
@@ -156,17 +151,18 @@ export default function FinanceBranchBatchesPage() {
               <tr>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Period</th>
-                <th className="px-3 py-2 text-right">Total</th>
+                <th className="px-3 py-2 text-right">Collected</th>
+                <th className="px-3 py-2 text-right">Branch Share</th>
                 <th className="px-3 py-2 text-right">Paid</th>
-                <th className="px-3 py-2 text-right">Balance</th>
-                <th className="px-3 py-2">Due</th>
+                <th className="px-3 py-2 text-right">Outstanding</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 w-32"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {batches.map((b: BranchBatch) => {
-                const balance = Number(b.balance ?? 0);
+                const outstanding = Number(b.outstanding);
+                const paid = paidAmount(b);
                 return (
                   <tr key={b.id} className="hover:bg-slate-50">
                     <td className="px-3 py-2 font-medium">
@@ -174,19 +170,21 @@ export default function FinanceBranchBatchesPage() {
                     </td>
                     <td className="px-3 py-2">{b.period}</td>
                     <td className="px-3 py-2 text-right">
-                      KES {Number(b.total_amount ?? 0).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 text-right text-emerald-700">
-                      KES {Number(b.amount_paid ?? 0).toLocaleString()}
+                      KES {Number(b.total_collected).toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      KES {balance.toLocaleString()}
+                      KES {Number(b.branch_share).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 text-xs">{fmt(b.due_date)}</td>
+                    <td className="px-3 py-2 text-right text-emerald-700">
+                      KES {paid.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      KES {outstanding.toLocaleString()}
+                    </td>
                     <td className="px-3 py-2">
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-semibold whitespace-nowrap ${
-                          STATUS_TONE[b.status] || STATUS_TONE.draft
+                          STATUS_TONE[b.status] || STATUS_TONE.pending
                         }`}
                       >
                         {String(b.status).replace(/_/g, " ")}
@@ -194,10 +192,10 @@ export default function FinanceBranchBatchesPage() {
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button
-                        disabled={balance <= 0}
+                        disabled={outstanding <= 0}
                         onClick={() => {
                           setOpenFor(b);
-                          setAmount(String(balance));
+                          setAmount(String(outstanding));
                         }}
                         className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
                       >
@@ -242,21 +240,21 @@ export default function FinanceBranchBatchesPage() {
 
             <div className="bg-slate-50 rounded-lg p-3 text-xs grid grid-cols-3 gap-2">
               <div>
-                <div className="text-slate-500">Total</div>
+                <div className="text-slate-500">Branch Share</div>
                 <div className="font-semibold">
-                  KES {Number(openFor.total_amount ?? 0).toLocaleString()}
+                  KES {Number(openFor.branch_share).toLocaleString()}
                 </div>
               </div>
               <div>
                 <div className="text-slate-500">Paid</div>
                 <div className="font-semibold text-emerald-700">
-                  KES {Number(openFor.amount_paid ?? 0).toLocaleString()}
+                  KES {paidAmount(openFor).toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-500">Balance</div>
+                <div className="text-slate-500">Outstanding</div>
                 <div className="font-semibold">
-                  KES {Number(openFor.balance ?? 0).toLocaleString()}
+                  KES {Number(openFor.outstanding).toLocaleString()}
                 </div>
               </div>
             </div>

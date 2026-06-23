@@ -14,6 +14,7 @@ const fmt = (s?: string | null) =>
     : "—";
 
 const STATUS_TONE: Record<string, string> = {
+  pending: "bg-slate-100 text-slate-700",
   draft: "bg-slate-100 text-slate-700",
   submitted: "bg-blue-100 text-blue-700",
   partially_paid: "bg-amber-100 text-amber-800",
@@ -55,7 +56,7 @@ export default function BranchBatchDetailPage({
         action={
           <span
             className={`text-[10px] px-2 py-1 rounded-full uppercase font-semibold ${
-              STATUS_TONE[batch.status] || STATUS_TONE.draft
+              STATUS_TONE[batch.status] || STATUS_TONE.pending
             }`}
           >
             {String(batch.status).replace(/_/g, " ")}
@@ -64,33 +65,27 @@ export default function BranchBatchDetailPage({
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Members" value={(batch.member_count ?? 0).toLocaleString()} />
+        <Stat label="Members" value={batch.members_count.toLocaleString()} />
         <Stat
-          label="Total"
-          value={`KES ${Number(batch.total_amount ?? 0).toLocaleString()}`}
+          label="Collected"
+          value={`KES ${Number(batch.total_collected).toLocaleString()}`}
         />
         <Stat
-          label="Paid"
-          value={`KES ${Number(batch.amount_paid ?? 0).toLocaleString()}`}
+          label="Branch Share"
+          value={`KES ${Number(batch.branch_share).toLocaleString()}`}
         />
         <Stat
-          label="Balance"
-          value={`KES ${Number(batch.balance ?? 0).toLocaleString()}`}
+          label="Outstanding"
+          value={`KES ${Number(batch.outstanding).toLocaleString()}`}
         />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <div className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">
-            Due Date
+            Reference
           </div>
-          <div>{fmt(batch.due_date)}</div>
-        </div>
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-slate-500">
-            Submitted
-          </div>
-          <div>{fmt(batch.submitted_at)}</div>
+          <div className="font-mono text-xs">{batch.reference_code}</div>
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">

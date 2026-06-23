@@ -6,10 +6,11 @@ import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { BranchVerifyManagerInput } from "@/types/nnak";
 
-export const useNnakBranches = () =>
+export const useNnakBranches = (opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.branches.list(),
     queryFn: nnakBranchesService.list,
+    enabled: opts?.enabled ?? true,
   });
 
 export const useCreateBranch = () => {
