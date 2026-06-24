@@ -131,7 +131,7 @@ export default function AdminBatchDetailPage({
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Members" value={batch.members_count.toLocaleString()} />
+        <Stat label="Members" value={(batch.members_count ?? batch.members?.length ?? 0).toLocaleString()} />
         <Stat label="Collected" value={`KES ${Number(batch.total_collected).toLocaleString()}`} />
         <Stat label="Branch Share" value={`KES ${Number(batch.branch_share).toLocaleString()}`} />
         <Stat label="Outstanding" value={`KES ${outstanding.toLocaleString()}`} />

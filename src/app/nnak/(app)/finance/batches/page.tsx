@@ -150,15 +150,16 @@ export default function FinanceBranchBatchesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
+                <th className="px-3 py-2">Batch No</th>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Period</th>
-                <th className="px-3 py-2 hidden lg:table-cell">Commission</th>
+                <th className="px-3 py-2 text-right">Commission</th>
                 <th className="px-3 py-2 text-right">Collected</th>
                 <th className="px-3 py-2 text-right">Branch Share</th>
                 <th className="px-3 py-2 text-right">Paid</th>
                 <th className="px-3 py-2 text-right">Outstanding</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2 w-40"></th>
+                <th className="px-3 py-2 w-32"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -167,13 +168,15 @@ export default function FinanceBranchBatchesPage() {
                 const paid = paidAmount(b);
                 return (
                   <tr key={b.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-2 font-mono text-xs text-slate-600">
+                      {b.reference_code}
+                    </td>
                     <td className="px-3 py-2 font-medium">
                       {b.branch?.name || "—"}
                     </td>
                     <td className="px-3 py-2">{b.period}</td>
-                    <td className="px-3 py-2 hidden lg:table-cell text-xs text-slate-600">
-                      {b.branch?.commission_type_label || b.branch?.commission_type || "—"}
-                      {b.branch?.commission_value ? ` · ${b.branch.commission_value}` : ""}
+                    <td className="px-3 py-2 text-right">
+                      KES {Number(b.commission_amount).toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-right">
                       KES {Number(b.total_collected).toLocaleString()}

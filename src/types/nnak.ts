@@ -742,7 +742,7 @@ export interface BranchBatch {
   period: string;
   status: BatchStatus;
   branch?: BranchBrief | null;
-  members_count: number;
+  members_count?: number;
   total_collected: string | number;
   commission_amount: string | number;
   branch_share: string | number;

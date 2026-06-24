@@ -92,7 +92,7 @@ export default function BranchBatchesPage() {
                   </td>
                   <td className="px-3 py-2 font-medium">{b.period}</td>
                   <td className="px-3 py-2 text-right">
-                    {b.members_count.toLocaleString()}
+                    {(b.members_count ?? 0).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right">
                     KES {Number(b.total_collected).toLocaleString()}
