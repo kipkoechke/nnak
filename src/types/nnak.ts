@@ -117,8 +117,11 @@ export type EmployerType = "MOH" | "Parastatal" | "Private" | "FBO" | "Other";
 export interface BranchDetailMember {
   id: string;
   user_id: string;
+  name?: string | null;
+  email?: string | null;
   account_number?: string | null;
   membership_number?: string | null;
+  nck_number?: string | null;
   designation?: string | null;
   chapter?: string | null;
   chapter_label?: string | null;

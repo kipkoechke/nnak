@@ -92,11 +92,11 @@ export default function BranchDetailPage({
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-2">Account No</th>
                 <th className="px-3 py-2">Membership No</th>
+                <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Designation</th>
-                <th className="px-3 py-2">Chapter</th>
-                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2 hidden md:table-cell">Chapter</th>
+                <th className="px-3 py-2 hidden md:table-cell">Category</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 text-right">Pending (KES)</th>
               </tr>
@@ -104,11 +104,14 @@ export default function BranchDetailPage({
             <tbody className="divide-y divide-slate-100">
               {members.map((m) => (
                 <tr key={m.id} className="hover:bg-slate-50">
-                  <td className="px-3 py-2 font-mono text-xs">{m.account_number || "—"}</td>
-                  <td className="px-3 py-2 text-xs">{m.membership_number || "—"}</td>
-                  <td className="px-3 py-2">{m.designation || "—"}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600">{m.chapter_label || "—"}</td>
-                  <td className="px-3 py-2 text-xs">{m.member_category?.name || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{m.membership_number || "—"}</td>
+                  <td className="px-3 py-2">
+                    <div className="font-medium">{m.name || "—"}</div>
+                    {m.email && <div className="text-xs text-slate-500">{m.email}</div>}
+                  </td>
+                  <td className="px-3 py-2 text-xs">{m.designation || "—"}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 hidden md:table-cell">{m.chapter_label || "—"}</td>
+                  <td className="px-3 py-2 text-xs hidden md:table-cell">{m.member_category?.name || "—"}</td>
                   <td className="px-3 py-2">
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-semibold ${
@@ -124,7 +127,7 @@ export default function BranchDetailPage({
                   </td>
                   <td className="px-3 py-2 text-right text-xs">
                     {m.pending_invoices_total
-                      ? Number(m.pending_invoices_total).toLocaleString()
+                      ? `KES ${Number(m.pending_invoices_total).toLocaleString()}`
                       : "—"}
                   </td>
                 </tr>

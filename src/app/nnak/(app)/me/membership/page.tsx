@@ -268,7 +268,7 @@ export default function MyMembershipPage() {
               <Item label="Gender" value={profile.gender || "—"} />
               <Item label="Designation" value={profile.designation || "—"} />
               <Item
-                label="Verification"
+                label="NCK Verification"
                 value={profile.is_verified ? "Verified" : "Pending"}
               />
               <Item label="Member since" value={fmtDate(profile.created_at)} />
