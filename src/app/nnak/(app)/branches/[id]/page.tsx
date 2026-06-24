@@ -1,14 +1,20 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
-import { useBranch } from "@/hooks/use-branches";
+import {
+  useBranch,
+  useAdminBranchMembers,
+  useChangeBranchManager,
+} from "@/hooks/use-branches";
 import {
   MdPeople,
   MdBusiness,
   MdLocationOn,
   MdPerson,
+  MdClose,
+  MdSwapHoriz,
 } from "react-icons/md";
 
 const fmtDate = (iso?: string | null) =>
@@ -39,6 +45,21 @@ export default function BranchDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { data: branch, isLoading } = useBranch(id);
+  const [showChangeManager, setShowChangeManager] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const { data: membersData, isLoading: membersLoading } = useAdminBranchMembers(
+    showChangeManager ? id : undefined,
+  );
+  const changeManager = useChangeBranchManager();
+  const members = membersData?.data ?? [];
+
+  const handleChangeManager = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserId) return;
+    await changeManager.mutateAsync({ branchId: id, userId: selectedUserId }).catch(() => null);
+    setShowChangeManager(false);
+    setSelectedUserId("");
+  };
 
   if (isLoading)
     return <div className="p-4 text-sm text-slate-500">Loading…</div>;
@@ -111,6 +132,13 @@ export default function BranchDetailPage({
             >
               View Members
             </Link>
+            <button
+              onClick={() => setShowChangeManager(true)}
+              className="inline-flex items-center gap-1.5 border border-amber-300 text-amber-700 text-xs font-medium px-3 py-2 rounded-md hover:bg-amber-50"
+            >
+              <MdSwapHoriz className="w-4 h-4" />
+              Change Manager
+            </button>
           </div>
         </Section>
 
@@ -120,6 +148,75 @@ export default function BranchDetailPage({
           <span>Updated: {fmtDateTime(branch.updated_at)}</span>
         </div>
       </div>
+
+      {showChangeManager && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => { setShowChangeManager(false); setSelectedUserId(""); }}
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleChangeManager}
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Change Branch Manager</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{branch.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowChangeManager(false); setSelectedUserId(""); }}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <MdClose className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Select New Manager <span className="text-red-500">*</span>
+              </label>
+              {membersLoading ? (
+                <div className="text-xs text-slate-400 py-2">Loading branch members…</div>
+              ) : members.length === 0 ? (
+                <div className="text-xs text-slate-400 py-2">No members found in this branch.</div>
+              ) : (
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                >
+                  <option value="">— select a member —</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} {m.email ? `(${m.email})` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowChangeManager(false); setSelectedUserId(""); }}
+                className="px-4 py-2 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!selectedUserId || changeManager.isPending}
+                className="px-4 py-2 bg-amber-600 text-white rounded-md text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+              >
+                {changeManager.isPending ? "Changing…" : "Confirm Change"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

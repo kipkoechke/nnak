@@ -5,6 +5,7 @@ import { nnakBranchesService } from "@/services/branches.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import type { BranchVerifyManagerInput } from "@/types/nnak";
+import { useMembers } from "@/hooks/use-members";
 
 export const useNnakBranches = (opts?: { enabled?: boolean }) =>
   useQuery({
@@ -47,3 +48,20 @@ export const useBranch = (id: string | undefined) =>
     queryFn: () => nnakBranchesService.getById(id!),
     enabled: !!id,
   });
+
+export const useAdminBranchMembers = (branchId: string | undefined) =>
+  useMembers({ branch_id: branchId, per_page: 200 }, { enabled: !!branchId });
+
+export const useChangeBranchManager = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, userId }: { branchId: string; userId: string }) =>
+      nnakBranchesService.changeManager(branchId, userId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: nqk.branches.detail(vars.branchId) });
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      toast.success("Branch manager changed successfully");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Could not change manager")),
+  });
+};

@@ -69,6 +69,15 @@ export const nnakBranchesService = {
     return r.data?.data;
   },
 
+  /** Admin: POST /admin/branches/{branch}/change-manager */
+  changeManager: async (branchId: string, userId: string): Promise<Branch> => {
+    const r = await nnakApi.post<{ success: boolean; data: Branch }>(
+      `/admin/branches/${branchId}/change-manager`,
+      { user_id: userId },
+    );
+    return r.data?.data;
+  },
+
   /** GET /branches/{id} — single branch detail. */
   getById: async (id: string): Promise<Branch | null> => {
     if (isDemoSession()) {
