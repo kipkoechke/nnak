@@ -114,6 +114,20 @@ export interface MemberCategory {
 /** From GET /api/v1/employer-types. */
 export type EmployerType = "MOH" | "Parastatal" | "Private" | "FBO" | "Other";
 
+export interface BranchDetailMember {
+  id: string;
+  user_id: string;
+  account_number?: string | null;
+  membership_number?: string | null;
+  designation?: string | null;
+  chapter?: string | null;
+  chapter_label?: string | null;
+  is_approved: boolean;
+  subscription_active: boolean;
+  pending_invoices_total?: number;
+  member_category?: { id: string; name: string } | null;
+}
+
 export interface Branch {
   id: string;
   name: string;
@@ -126,6 +140,8 @@ export interface Branch {
   chair_user_id?: string | null;
   secretariat_user_id?: string | null;
   member_count?: number;
+  manager?: { id: string; name: string; email?: string | null } | null;
+  members?: BranchDetailMember[];
   created_at: string;
   updated_at: string;
 }
