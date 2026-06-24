@@ -58,7 +58,7 @@ export default function BranchDetailPage({
       />
 
       {/* Commission + Manager info strip */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+      <div className="bg-white border border-slate-200 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Commission Type</div>
           <div className="font-medium">{branch.commission_type_label || branch.commission_type || "—"}</div>
@@ -66,6 +66,10 @@ export default function BranchDetailPage({
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Commission Rate</div>
           <div className="font-medium">{branch.commission_value ? `${branch.commission_value}%` : "—"}</div>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-slate-500">Members</div>
+          <div className="font-medium">{(branch.members_count ?? branch.members?.length ?? 0).toLocaleString()}</div>
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Manager</div>

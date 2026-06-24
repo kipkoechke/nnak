@@ -151,6 +151,7 @@ export default function NnakBranchesPage() {
               <th className="px-4 py-2">Employer Type</th>
               <th className="px-4 py-2 hidden md:table-cell">Commission Type</th>
               <th className="px-4 py-2 text-right hidden md:table-cell">Commission Value</th>
+              <th className="px-4 py-2 text-right hidden sm:table-cell">Members</th>
               <th className="px-4 py-2 w-24"></th>
             </tr>
           </thead>
@@ -176,6 +177,9 @@ export default function NnakBranchesPage() {
                 <td className="px-4 py-2 text-right font-medium hidden md:table-cell">
                   {b.commission_value ?? "—"}
                 </td>
+                <td className="px-4 py-2 text-right hidden sm:table-cell">
+                  {(b.members_count ?? 0).toLocaleString()}
+                </td>
                 <td className="px-4 py-2 text-right">
                   <Link
                     href={`/nnak/branches/${b.id}`}
@@ -189,7 +193,7 @@ export default function NnakBranchesPage() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-8 text-center text-slate-500 text-sm"
                 >
                   No branches match the filter.

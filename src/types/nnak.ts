@@ -140,6 +140,7 @@ export interface Branch {
   chair_user_id?: string | null;
   secretariat_user_id?: string | null;
   member_count?: number;
+  members_count?: number;
   manager?: { id: string; name: string; email?: string | null } | null;
   members?: BranchDetailMember[];
   created_at: string;

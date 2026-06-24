@@ -152,6 +152,7 @@ export default function FinanceBranchBatchesPage() {
               <tr>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Period</th>
+                <th className="px-3 py-2 hidden lg:table-cell">Commission</th>
                 <th className="px-3 py-2 text-right">Collected</th>
                 <th className="px-3 py-2 text-right">Branch Share</th>
                 <th className="px-3 py-2 text-right">Paid</th>
@@ -170,6 +171,10 @@ export default function FinanceBranchBatchesPage() {
                       {b.branch?.name || "—"}
                     </td>
                     <td className="px-3 py-2">{b.period}</td>
+                    <td className="px-3 py-2 hidden lg:table-cell text-xs text-slate-600">
+                      {b.branch?.commission_type_label || b.branch?.commission_type || "—"}
+                      {b.branch?.commission_value ? ` · ${b.branch.commission_value}` : ""}
+                    </td>
                     <td className="px-3 py-2 text-right">
                       KES {Number(b.total_collected).toLocaleString()}
                     </td>
