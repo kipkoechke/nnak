@@ -148,9 +148,9 @@ export default function NnakBranchesPage() {
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-4 py-2">Branch</th>
-              <th className="px-4 py-2 hidden md:table-cell">County</th>
               <th className="px-4 py-2">Employer Type</th>
-              <th className="px-4 py-2 text-right">Members</th>
+              <th className="px-4 py-2 hidden md:table-cell">Commission Type</th>
+              <th className="px-4 py-2 text-right hidden md:table-cell">Commission Value</th>
               <th className="px-4 py-2 w-24"></th>
             </tr>
           </thead>
@@ -165,16 +165,16 @@ export default function NnakBranchesPage() {
                     {b.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-slate-600 hidden md:table-cell">
-                  {b.county || "—"}
-                </td>
                 <td className="px-4 py-2">
                   <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-700">
                     {b.employer_type_label || b.employer_type || "—"}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-right font-medium">
-                  {(b.member_count ?? 0).toLocaleString()}
+                <td className="px-4 py-2 text-slate-600 text-xs hidden md:table-cell">
+                  {b.commission_type_label || b.commission_type || "—"}
+                </td>
+                <td className="px-4 py-2 text-right font-medium hidden md:table-cell">
+                  {b.commission_value ?? "—"}
                 </td>
                 <td className="px-4 py-2 text-right">
                   <Link

@@ -119,6 +119,9 @@ export interface Branch {
   name: string;
   employer_type?: string;
   employer_type_label?: string;
+  commission_type?: string;
+  commission_type_label?: string;
+  commission_value?: string;
   county?: string;
   chair_user_id?: string | null;
   secretariat_user_id?: string | null;
@@ -660,15 +663,27 @@ export interface BranchBrief {
   id: string;
   name: string;
   county?: string | null;
+  employer_type?: string;
+  employer_type_label?: string;
+  commission_type?: string;
+  commission_type_label?: string;
+  commission_value?: string;
 }
 
 export interface BranchInvite {
   id: string;
+  type?: string;
   status: InviteStatus | string;
   message?: string | null;
+  initiated_by?: string | null;
+  actioned_at?: string | null;
   created_at: string;
   expires_at?: string | null;
+  /** Admin endpoint uses to_branch; branch-manager endpoint uses branch */
+  to_branch?: BranchBrief | null;
   branch?: BranchBrief | null;
+  /** Admin endpoint uses user; branch-manager endpoint uses member */
+  user?: { id: string; name: string; email?: string | null } | null;
   member?: BranchMemberBrief | null;
   invited_by?: { id: string; name: string } | null;
 }
@@ -720,16 +735,17 @@ export interface BranchBatch {
   updated_at?: string;
 }
 
-export interface BranchBatchLine {
+export interface BranchBatchMember {
   id: string;
-  member_name?: string;
-  membership_number?: string;
-  amount: string | number;
-  status?: string;
+  user?: { id: string; name: string; email?: string | null } | null;
+  amount_paid: string | number;
+  commission_amount: string | number;
+  commission_type?: string;
+  commission_value?: string;
 }
 
 export interface BranchBatchDetail extends BranchBatch {
-  lines?: BranchBatchLine[];
+  members?: BranchBatchMember[];
   payments?: {
     id: string;
     amount_paid: string | number;

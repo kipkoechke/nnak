@@ -105,33 +105,27 @@ export default function BranchBatchDetailPage({
         <div className="px-4 py-3 border-b border-slate-100 text-sm font-semibold text-slate-900">
           Members in this batch
         </div>
-        {!batch.lines?.length ? (
+        {!batch.members?.length ? (
           <div className="p-6 text-sm text-center text-slate-500">
-            No line items.
+            No members.
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-3 py-2">Member</th>
-                <th className="px-3 py-2">Membership #</th>
-                <th className="px-3 py-2 text-right">Amount</th>
-                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2 text-right">Amount Paid</th>
+                <th className="px-3 py-2 text-right">Commission</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {batch.lines.map((l) => (
-                <tr key={l.id}>
-                  <td className="px-3 py-2 font-medium">
-                    {l.member_name || "—"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {l.membership_number || "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    KES {Number(l.amount).toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2 text-xs">{l.status || "—"}</td>
+              {batch.members.map((m) => (
+                <tr key={m.id}>
+                  <td className="px-3 py-2 font-medium">{m.user?.name || "—"}</td>
+                  <td className="px-3 py-2 text-slate-500 text-xs">{m.user?.email || "—"}</td>
+                  <td className="px-3 py-2 text-right">KES {Number(m.amount_paid).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">KES {Number(m.commission_amount).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

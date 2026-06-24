@@ -32,6 +32,14 @@ export const useAdminBranchBatches = (params: AdminBatchFilters = {}) =>
     refetchOnWindowFocus: false,
   });
 
+export const useAdminBranchBatch = (id?: string) =>
+  useQuery({
+    queryKey: [...nqk.batches.all, "admin-detail", id ?? ""] as const,
+    queryFn: () => branchBatchesService.adminDetail(id!),
+    enabled: !!id,
+    refetchOnWindowFocus: false,
+  });
+
 export const useRecordBatchPayment = () => {
   const qc = useQueryClient();
   return useMutation({

@@ -111,10 +111,10 @@ export default function BranchDetailPage({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <Field label="Branch Name" value={branch.name} />
             <Field label="Employer Type" value={branch.employer_type_label || branch.employer_type || "—"} />
-            <Field label="County" value={branch.county || "—"} />
-            <Field label="Member Count" value={(branch.member_count ?? 0).toLocaleString()} />
+            <Field label="Commission Type" value={branch.commission_type_label || branch.commission_type || "—"} />
+            <Field label="Commission Value" value={branch.commission_value ?? "—"} />
             <Field label="Branch ID" value={branch.id} />
-            <Field label="Secretariat" value={branch.secretariat_user_id ? "Assigned" : "Not assigned"} />
+            {branch.county && <Field label="County" value={branch.county} />}
           </div>
         </Section>
 

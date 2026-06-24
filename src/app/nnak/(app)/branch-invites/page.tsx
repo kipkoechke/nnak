@@ -81,24 +81,25 @@ export default function AdminBranchInvitesPage() {
                 <th className="px-3 py-2">Member</th>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Invited By</th>
+                <th className="px-3 py-2">Initiated By</th>
                 <th className="px-3 py-2">Sent</th>
+                <th className="px-3 py-2">Actioned</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {invites.map((inv: BranchInvite) => (
+              {invites.map((inv: BranchInvite) => {
+                const memberName = inv.user?.name || inv.member?.name || "—";
+                const memberEmail = inv.user?.email || null;
+                const branchName = inv.to_branch?.name || inv.branch?.name || "—";
+                return (
                 <tr key={inv.id} className="hover:bg-slate-50">
                   <td className="px-3 py-2">
-                    <div className="font-medium text-slate-900">
-                      {inv.member?.name || "—"}
-                    </div>
-                    {inv.member?.membership_number && (
-                      <div className="text-[11px] text-slate-500 font-mono">
-                        {inv.member.membership_number}
-                      </div>
+                    <div className="font-medium text-slate-900">{memberName}</div>
+                    {memberEmail && (
+                      <div className="text-[11px] text-slate-500">{memberEmail}</div>
                     )}
                   </td>
-                  <td className="px-3 py-2">{inv.branch?.name || "—"}</td>
+                  <td className="px-3 py-2">{branchName}</td>
                   <td className="px-3 py-2">
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-semibold ${
@@ -109,11 +110,13 @@ export default function AdminBranchInvitesPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {inv.invited_by?.name || "—"}
+                    {inv.initiated_by || inv.invited_by?.name || "—"}
                   </td>
                   <td className="px-3 py-2 text-xs">{fmt(inv.created_at)}</td>
+                  <td className="px-3 py-2 text-xs">{fmt(inv.actioned_at)}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}

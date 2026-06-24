@@ -43,6 +43,13 @@ export const branchBatchesService = {
     return r.data?.data ?? [];
   },
 
+  adminDetail: async (id: string): Promise<BranchBatchDetail | null> => {
+    const r = await nnakApi.get<ApiEnvelope<BranchBatchDetail>>(
+      `/admin/branch-batches/${id}`,
+    );
+    return r.data?.data ?? null;
+  },
+
   /** Record a payment against a batch. Multipart for the optional file
    *  attachments. */
   recordPayment: async (batchId: string, body: RecordBatchPaymentInput) => {

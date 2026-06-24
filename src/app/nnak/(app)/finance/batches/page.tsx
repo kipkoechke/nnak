@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import {
@@ -156,7 +157,7 @@ export default function FinanceBranchBatchesPage() {
                 <th className="px-3 py-2 text-right">Paid</th>
                 <th className="px-3 py-2 text-right">Outstanding</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2 w-32"></th>
+                <th className="px-3 py-2 w-40"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -191,16 +192,24 @@ export default function FinanceBranchBatchesPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <button
-                        disabled={outstanding <= 0}
-                        onClick={() => {
-                          setOpenFor(b);
-                          setAmount(String(outstanding));
-                        }}
-                        className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
-                      >
-                        <MdAttachMoney className="w-4 h-4" /> Record
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/nnak/finance/batches/${b.id}`}
+                          className="text-xs text-slate-500 font-medium hover:underline"
+                        >
+                          Details
+                        </Link>
+                        <button
+                          disabled={outstanding <= 0}
+                          onClick={() => {
+                            setOpenFor(b);
+                            setAmount(String(outstanding));
+                          }}
+                          className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
+                        >
+                          <MdAttachMoney className="w-4 h-4" /> Record
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
