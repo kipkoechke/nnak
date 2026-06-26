@@ -21,7 +21,7 @@ interface AgendasResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
-const base = (eventId: string) => `/events/${eventId}/agendas`;
+const base = (eventId: string) => `/admin/events/${eventId}/agendas`;
 
 export const agendaService = {
   list: async (

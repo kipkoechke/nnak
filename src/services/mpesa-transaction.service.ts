@@ -16,7 +16,7 @@ interface MpesaTransactionsResponse {
 export const mpesaTransactionService = {
   list: async (params?: MpesaTransactionListParams) => {
     const r = await nnakApi.get<MpesaTransactionsResponse>(
-      "/mpesa/transactions",
+      "/admin/mpesa/transactions",
       { params },
     );
     return {

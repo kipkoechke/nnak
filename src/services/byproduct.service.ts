@@ -32,17 +32,17 @@ export const byProductService = {
   // ── Real API ───────────────────────────────────────────────────────
   apiList: async (params?: { page?: number; per_page?: number }) => {
     if (isDemoSession()) return { data: [], pagination: undefined };
-    const r = await nnakApi.get<ListResponse>("/byproduct", { params });
+    const r = await nnakApi.get<ListResponse>("/admin/byproduct", { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
   apiGet: async (id: string): Promise<ByProductUploadRecord | null> => {
     if (isDemoSession()) return null;
-    return unwrap<ByProductUploadRecord>(nnakApi.get(`/byproduct/${id}`));
+    return unwrap<ByProductUploadRecord>(nnakApi.get(`/admin/byproduct/${id}`));
   },
   /** Downloads the template — backend returns a binary stream; this
    *  resolves to a Blob the UI can save with createObjectURL. */
   apiTemplate: async (): Promise<Blob> => {
-    const r = await nnakApi.get("/byproduct/template", { responseType: "blob" });
+    const r = await nnakApi.get("/admin/byproduct/template", { responseType: "blob" });
     return r.data as Blob;
   },
   apiUpload: async (
@@ -53,7 +53,7 @@ export const byProductService = {
     fd.append("start_date", input.start_date);
     fd.append("end_date", input.end_date);
     return unwrap<ByProductUploadRecord>(
-      nnakApi.post("/byproduct/upload", fd, {
+      nnakApi.post("/admin/byproduct/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       }),
     );

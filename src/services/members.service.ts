@@ -55,7 +55,7 @@ export const membersService = {
       // too so call-sites can use either shape interchangeably.
       return { ...mock, pagination: mock.meta };
     }
-    const r = await nnakApi.get<MembersResponse>("/members", { params });
+    const r = await nnakApi.get<MembersResponse>("/admin/members", { params });
     const pagination = r.data?.pagination;
     return {
       data: r.data?.data ?? [],
@@ -71,10 +71,10 @@ export const membersService = {
       const r = await nnakApi.get<{
         success: boolean;
         data: NnakUser & { profile: NnakProfile | null };
-      }>(`/members/${id}`);
+      }>(`/admin/members/${id}`);
       return r.data?.data ?? null;
     } catch {
-      const list = await nnakApi.get<MembersResponse>("/members", {
+      const list = await nnakApi.get<MembersResponse>("/admin/members", {
         params: { per_page: 100 },
       });
       return list.data?.data?.find((m) => m.id === id) ?? null;
@@ -90,19 +90,19 @@ export const membersService = {
       // approval flow is admin-only and not part of the demo personas.
       return { data: [], pagination: undefined };
     }
-    const r = await nnakApi.get<PendingResponse>("/members/pending", { params });
+    const r = await nnakApi.get<PendingResponse>("/admin/members/pending", { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
   approve: async (profile_id: string) => {
     if (isDemoSession()) return null;
     return unwrap<unknown>(
-      nnakApi.post("/members/approve", { profile_id }),
+      nnakApi.post("/admin/members/approve", { profile_id }),
     );
   },
   reject: async (profile_id: string) => {
     if (isDemoSession()) return null;
     return unwrap<unknown>(
-      nnakApi.post("/members/reject", { profile_id }),
+      nnakApi.post("/admin/members/reject", { profile_id }),
     );
   },
 
