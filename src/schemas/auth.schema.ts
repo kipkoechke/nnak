@@ -78,3 +78,20 @@ export const branchMemberSchema = z.object({
 });
 
 export type BranchMemberFormValues = z.infer<typeof branchMemberSchema>;
+
+export const studentRegisterSchema = z
+  .object({
+    name: z.string().min(1, "Full name is required"),
+    email: z.string().min(1, "Email is required").email("Enter a valid email"),
+    phone: z.string().min(1, "Phone number is required"),
+    registration_number: z.string().min(1, "Registration number is required"),
+    institution_id: z.string().min(1, "Institution is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    password_confirmation: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    message: "Passwords do not match",
+    path: ["password_confirmation"],
+  });
+
+export type StudentRegisterFormValues = z.infer<typeof studentRegisterSchema>;
