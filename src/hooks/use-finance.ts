@@ -10,11 +10,15 @@ import { extractApiError } from "@/lib/extract-api-error";
 import type { ByProductUploadInput } from "@/types/nnak";
 
 // ── Dashboard ────────────────────────────────────────────────────
-export const useFinanceDashboard = () =>
+export const useFinanceDashboard = (params?: {
+  start_date?: string;
+  end_date?: string;
+}) =>
   useQuery({
-    queryKey: nqk.finance.dashboard,
-    queryFn: financeService.dashboard,
+    queryKey: [...nqk.finance.dashboard, params ?? {}],
+    queryFn: () => financeService.dashboard(params),
     refetchOnWindowFocus: false,
+    enabled: !!params?.start_date && !!params?.end_date,
   });
 
 // ── Members ──────────────────────────────────────────────────────

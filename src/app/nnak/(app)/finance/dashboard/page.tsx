@@ -1,4 +1,5 @@
 "use client";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   MdPeople,
@@ -7,9 +8,17 @@ import {
   MdSwapHoriz,
   MdUpload,
   MdReceipt,
+  MdCalendarToday,
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import { useFinanceDashboard } from "@/hooks/use-finance";
+
+const toISO = (d: Date) => d.toISOString().slice(0, 10);
+const defaultRange = () => {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  return { start: toISO(start), end: toISO(today) };
+};
 
 const NAV_CARDS = [
   {
@@ -57,7 +66,14 @@ const NAV_CARDS = [
 ];
 
 export default function FinanceDashboardPage() {
-  const { data: dash, isLoading } = useFinanceDashboard();
+  const init = useMemo(() => defaultRange(), []);
+  const [startDate, setStartDate] = useState(init.start);
+  const [endDate, setEndDate] = useState(init.end);
+
+  const { data: dash, isLoading } = useFinanceDashboard({
+    start_date: startDate,
+    end_date: endDate,
+  });
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -65,6 +81,29 @@ export default function FinanceDashboardPage() {
         title="Finance Dashboard"
         description="Overview of collections, remittances and branch activity"
       />
+
+      {/* Date range filter */}
+      <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+        <MdCalendarToday className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-500 font-medium">From</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-500 font-medium">To</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
+          />
+        </div>
+      </div>
 
       {/* Dynamic stats from API */}
       {!isLoading && dash && Object.keys(dash).length > 0 && (
