@@ -3,8 +3,7 @@ import { useState } from "react";
 import { MdSearch, MdPayments } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useFinancePayments } from "@/hooks/use-finance";
-import { useNnakBranches } from "@/hooks/use-branches";
+import { useFinancePayments, useFinanceBranches } from "@/hooks/use-finance";
 
 const STATUS_TONE: Record<string, string> = {
   paid: "bg-emerald-50 text-emerald-700",
@@ -43,7 +42,8 @@ export default function FinancePaymentsPage() {
     start_date: startDate || undefined,
     end_date: endDate || undefined,
   });
-  const { data: branches = [] } = useNnakBranches();
+  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
+  const branches = branchesData?.data ?? [];
 
   const payments = data?.data ?? [];
   const pagination = data?.pagination;

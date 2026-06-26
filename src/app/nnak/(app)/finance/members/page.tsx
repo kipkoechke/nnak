@@ -4,8 +4,7 @@ import Link from "next/link";
 import { MdPeople, MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useFinanceMembers } from "@/hooks/use-finance";
-import { useNnakBranches } from "@/hooks/use-branches";
+import { useFinanceMembers, useFinanceBranches } from "@/hooks/use-finance";
 
 const fmtDate = (s?: string | null) =>
   s
@@ -16,11 +15,20 @@ const fmtDate = (s?: string | null) =>
       })
     : "—";
 
+const AGING_OPTIONS = [
+  { value: "", label: "All aging" },
+  { value: "0-3", label: "0–3 months" },
+  { value: "3-6", label: "3–6 months" },
+  { value: "6-12", label: "6–12 months" },
+  { value: "12+", label: "12+ months" },
+];
+
 export default function FinanceMembersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [aging, setAging] = useState("");
 
   const { data, isLoading } = useFinanceMembers({
     page,
@@ -28,8 +36,11 @@ export default function FinanceMembersPage() {
     search: search || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
+    aging: aging || undefined,
   });
-  const { data: branches = [] } = useNnakBranches();
+
+  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
+  const branches = branchesData?.data ?? [];
 
   const members = data?.data ?? [];
   const pagination = data?.pagination;
@@ -51,29 +62,34 @@ export default function FinanceMembersPage() {
             className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
-        <div>
-          <select
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <div>
-          <select
-            value={branchId}
-            onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-          >
-            <option value="">All branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+        >
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <select
+          value={aging}
+          onChange={(e) => { setAging(e.target.value); setPage(1); }}
+          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+        >
+          {AGING_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <select
+          value={branchId}
+          onChange={(e) => { setBranchId(e.target.value); setPage(1); }}
+          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+        >
+          <option value="">All branches</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-lg overflow-auto">
@@ -93,10 +109,10 @@ export default function FinanceMembersPage() {
                 <th className="px-3 py-2">Type</th>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Chapter</th>
-                <th className="px-3 py-2">Aging (mo.)</th>
+                <th className="px-3 py-2 text-center">Aging (mo.)</th>
                 <th className="px-3 py-2">Sub. Ends</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2 w-20"></th>
+                <th className="px-3 py-2 w-16"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -126,7 +142,7 @@ export default function FinanceMembersPage() {
                         {m.aging_months}
                       </span>
                     ) : (
-                      "—"
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-xs">{fmtDate(m.last_subscription_end)}</td>
@@ -156,13 +172,15 @@ export default function FinanceMembersPage() {
         )}
       </div>
 
-      {pagination && pagination.last_page > 1 && (
-        <Pagination
-          currentPage={page}
-          totalPages={pagination.last_page}
-          totalItems={pagination.total}
-          onPageChange={setPage}
-        />
+      {pagination && (
+        <div className="shrink-0">
+          <Pagination
+            currentPage={pagination.current_page}
+            totalPages={pagination.last_page}
+            totalItems={pagination.total}
+            onPageChange={setPage}
+          />
+        </div>
       )}
     </div>
   );

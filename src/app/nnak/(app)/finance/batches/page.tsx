@@ -4,13 +4,13 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import {
-  useAdminBranchBatches,
-  useRecordBatchPayment,
-} from "@/hooks/use-branch-batches";
-import { useNnakBranches } from "@/hooks/use-branches";
+  useFinanceBatches,
+  useRecordFinanceBatchPayment,
+  useFinanceBranches,
+} from "@/hooks/use-finance";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose, MdReceipt } from "react-icons/md";
-import type { BranchBatch } from "@/types/nnak";
+import type { FinanceBatch } from "@/types/nnak";
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-slate-100 text-slate-700",
@@ -27,16 +27,18 @@ export default function FinanceBranchBatchesPage() {
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
-  const { data: branches = [] } = useNnakBranches();
+  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
+  const branches = branchesData?.data ?? [];
   const { data: paymentMethods = [] } = usePaymentMethods();
-  const { data: batches = [], isLoading } = useAdminBranchBatches({
+  const { data: batchesData, isLoading } = useFinanceBatches({
     period: period || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
   });
-  const record = useRecordBatchPayment();
+  const batches = batchesData?.data ?? [];
+  const record = useRecordFinanceBatchPayment();
 
-  const [openFor, setOpenFor] = useState<BranchBatch | null>(null);
+  const [openFor, setOpenFor] = useState<FinanceBatch | null>(null);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [method, setMethod] = useState("bank_transfer");
@@ -81,7 +83,7 @@ export default function FinanceBranchBatchesPage() {
     if (r) closeModal();
   };
 
-  const paidAmount = (b: BranchBatch) =>
+  const paidAmount = (b: FinanceBatch) =>
     Math.max(0, Number(b.branch_share) - Number(b.outstanding));
 
   return (
@@ -163,7 +165,7 @@ export default function FinanceBranchBatchesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {batches.map((b: BranchBatch) => {
+              {batches.map((b: FinanceBatch) => {
                 const outstanding = Number(b.outstanding);
                 const paid = paidAmount(b);
                 return (
