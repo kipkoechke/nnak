@@ -2,7 +2,8 @@
 //   GET  /branch/batches?period=&status=
 //   GET  /branch/batches/{batch}
 //   GET  /admin/branch-batches
-//   POST /admin/branch-batches/{batch}    multipart record-payment
+//   GET  /admin/branch-batches/{batch}
+//   POST /admin/branch-batches/{batch}/payments    multipart record-payment
 import { nnakApi } from "@/lib/api";
 import type {
   ApiEnvelope,
@@ -61,7 +62,7 @@ export const branchBatchesService = {
     if (body.notes) fd.append("notes", body.notes);
     (body.attachments ?? []).forEach((f) => fd.append("attachments[]", f));
     const r = await nnakApi.post<ApiEnvelope<BranchBatchDetail>>(
-      `/admin/branch-batches/${batchId}`,
+      `/admin/branch-batches/${batchId}/payments`,
       fd,
       { headers: { "Content-Type": "multipart/form-data" } },
     );

@@ -662,11 +662,12 @@ export interface CreateBranchInput {
   branch_manager_phone: string;
 }
 
-// ── Admin: verify branch manager (POST /branches/verify) ───────────
+// ── Admin: verify branch manager (POST /admin/branches/verify) ─────
+// Two separate requests: first with email_otp, then with phone_otp.
 export interface BranchVerifyManagerInput {
   pending_token: string;
-  email_otp: string;
-  phone_otp: string;
+  email_otp?: string;
+  phone_otp?: string;
 }
 
 // ── Branch invites & transfers ─────────────────────────────────────
