@@ -178,6 +178,21 @@ export const nqk = {
     detail: (id: string) => ["nnak", "member", "events", "detail", id] as const,
     packages: (id: string) => ["nnak", "member", "events", "packages", id] as const,
   },
+  institutions: {
+    all: ["nnak", "institutions"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "institutions", "list", p ?? {}] as const,
+  },
+  studentEvents: {
+    all: ["nnak", "student", "events"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "student", "events", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "student", "events", "detail", id] as const,
+    packages: (id: string) => ["nnak", "student", "events", "packages", id] as const,
+  },
+  studentBookings: {
+    all: ["nnak", "student", "bookings"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "student", "bookings", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "student", "bookings", "detail", id] as const,
+  },
   invites: {
     memberAll: ["nnak", "member", "invites"] as const,
     memberList: (p?: Record<string, unknown>) =>
