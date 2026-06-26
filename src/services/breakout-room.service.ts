@@ -22,7 +22,7 @@ const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
 const base = (eventId: string, agendaId: string) =>
-  `/events/${eventId}/agendas/${agendaId}/breakout-rooms`;
+  `/admin/events/${eventId}/agendas/${agendaId}/breakout-rooms`;
 
 export const breakoutRoomService = {
   list: async (
