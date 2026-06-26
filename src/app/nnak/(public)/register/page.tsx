@@ -530,6 +530,12 @@ export default function NnakRegisterPage() {
           Sign in
         </Link>
       </div>
+      <div className="text-xs text-center text-slate-500">
+        Registering as a student?{" "}
+        <Link href="/nnak/register/student" className="text-primary hover:underline">
+          Student registration
+        </Link>
+      </div>
     </form>
   );
 }
