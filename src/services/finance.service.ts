@@ -94,8 +94,14 @@ export interface RecordFinanceBatchPaymentInput {
 }
 
 export const financeService = {
-  dashboard: async (): Promise<FinanceDashboardData> => {
-    const r = await nnakApi.get<ApiEnvelope<FinanceDashboardData>>("/finance/dashboard");
+  dashboard: async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<FinanceDashboardData> => {
+    const r = await nnakApi.get<ApiEnvelope<FinanceDashboardData>>(
+      "/finance/dashboard",
+      { params },
+    );
     return r.data?.data ?? {};
   },
 

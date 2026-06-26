@@ -113,48 +113,6 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.viewAdminInvites,
   },
   {
-    name: "Dashboard",
-    icon: MdInsertChart,
-    href: "/nnak/finance/dashboard",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "Members",
-    icon: MdPeople,
-    href: "/nnak/finance/members",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "Branches",
-    icon: MdBusiness,
-    href: "/nnak/finance/branches",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "Batches",
-    icon: MdAttachMoney,
-    href: "/nnak/finance/batches",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "Payments",
-    icon: MdPayments,
-    href: "/nnak/finance/payments",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "Remittances",
-    icon: MdSwapHoriz,
-    href: "/nnak/finance/remittances",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
-    name: "By-Product",
-    icon: MdReceipt,
-    href: "/nnak/finance/byproducts",
-    show: nnakCan.viewFinancePortal,
-  },
-  {
     name: "Invite Members",
     icon: MdMailOutline,
     href: "/nnak/branch/invites",
@@ -210,6 +168,16 @@ const STAFF_ITEMS: MenuItem[] = [
   },
 ];
 
+const FINANCE_ITEMS: MenuItem[] = [
+  { name: "Dashboard", icon: MdInsertChart, href: "/nnak/finance/dashboard" },
+  { name: "Members", icon: MdPeople, href: "/nnak/finance/members" },
+  { name: "Branches", icon: MdBusiness, href: "/nnak/finance/branches" },
+  { name: "Batches", icon: MdAttachMoney, href: "/nnak/finance/batches" },
+  { name: "Payments", icon: MdPayments, href: "/nnak/finance/payments" },
+  { name: "Remittances", icon: MdSwapHoriz, href: "/nnak/finance/remittances" },
+  { name: "By-Product", icon: MdReceipt, href: "/nnak/finance/byproducts" },
+];
+
 const MEMBER_ITEMS: MenuItem[] = [
   { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
   {
@@ -258,9 +226,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
   const groups = useMemo<MenuGroup[]>(() => {
     const isMember = isMemberRole(user);
     const isBranchManager = user?.role === "branch_manager";
+    const isFinance = user?.role === "finance";
 
     if (isMember) {
       return [{ key: "member", items: MEMBER_ITEMS }];
+    }
+    if (isFinance) {
+      return [{ key: "finance", items: FINANCE_ITEMS }];
     }
     if (isBranchManager) {
       // Member-portal items live alongside the manager's branch items.
