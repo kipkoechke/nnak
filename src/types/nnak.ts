@@ -1271,3 +1271,50 @@ export interface MemberEventDetail extends MemberEvent {
   agenda?: Array<{ id: string; title: string; start_time: string; end_time: string; description?: string | null }>;
   packages?: MemberEventPackage[];
 }
+
+// ── Institution ───────────────────────────────────────────
+export interface Institution {
+  id: string;
+  name: string;
+  code: string;
+  category: string;
+  type: string;
+  location: string | null;
+  created_at?: string;
+}
+
+// ── Student registration payload ──────────────────────────
+export interface StudentRegisterPayload {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  password_confirmation: string;
+  registration_number: string;
+  institution_id: string;
+}
+
+// ── Student: Bookings (/student/bookings) ──────────────────
+export interface StudentBooking {
+  id: string;
+  event_id: string;
+  event_title?: string | null;
+  status: string;
+  ticket_number?: string | null;
+  amount?: number | null;
+  paid_at?: string | null;
+  event?: { id: string; title: string; start_date: string; end_date: string; location?: string | null } | null;
+  package?: MemberEventPackage | null;
+  created_at: string;
+}
+
+export interface StudentBookingDetail extends StudentBooking {
+  payment?: {
+    id: string;
+    amount: number;
+    status: string;
+    method?: string | null;
+    reference?: string | null;
+    paid_at?: string | null;
+  } | null;
+}
