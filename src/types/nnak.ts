@@ -1284,17 +1284,32 @@ export interface MemberEventRegistration {
 
 export interface MemberEventPackage {
   id: string;
+  event_id?: string;
   name: string;
   description?: string | null;
-  price: number;
+  /** API returns cost as string e.g. "5000.00" */
+  cost?: number | string | null;
+  /** Legacy field — prefer cost */
+  price?: number | null;
   currency?: string;
   capacity?: number | null;
   available?: number | null;
   features?: string[];
+  benefits?: Record<string, string> | null;
   is_available?: boolean;
+  is_member_only?: boolean;
+  has_limit?: boolean;
+  max_entries?: number | null;
 }
 
 export interface MemberEventDetail extends MemberEvent {
+  location_coordinates?: { lat: number; lng: number } | null;
+  metadata?: {
+    expected_attendees?: number;
+    tracks?: string[];
+    cpd_points?: number;
+    [key: string]: unknown;
+  } | null;
   speakers?: Array<{ id: string; name: string; bio?: string | null; photo_url?: string | null; role?: string | null }>;
   agenda?: Array<{ id: string; title: string; start_time: string; end_time: string; description?: string | null }>;
   packages?: MemberEventPackage[];
