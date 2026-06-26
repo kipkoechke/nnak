@@ -119,6 +119,42 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.reconcileBatches,
   },
   {
+    name: "Finance Dashboard",
+    icon: MdInsertChart,
+    href: "/nnak/finance/dashboard",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "Finance Members",
+    icon: MdPeople,
+    href: "/nnak/finance/members",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "Finance Branches",
+    icon: MdBusiness,
+    href: "/nnak/finance/branches",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "Finance Payments",
+    icon: MdPayments,
+    href: "/nnak/finance/payments",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "Remittances",
+    icon: MdSwapHoriz,
+    href: "/nnak/finance/remittances",
+    show: nnakCan.reconcileBatches,
+  },
+  {
+    name: "By-Product",
+    icon: MdReceipt,
+    href: "/nnak/finance/byproducts",
+    show: nnakCan.reconcileBatches,
+  },
+  {
     name: "Invite Members",
     icon: MdMailOutline,
     href: "/nnak/branch/invites",
@@ -199,6 +235,12 @@ const MEMBER_ITEMS: MenuItem[] = [
     icon: MdReceipt,
     href: "/nnak/me/subscriptions",
     show: nnakCan.viewMyPayments,
+  },
+  {
+    name: "Events",
+    icon: MdEvent,
+    href: "/nnak/me/events",
+    show: nnakCan.viewMyMembership,
   },
 ];
 

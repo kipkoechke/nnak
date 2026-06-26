@@ -19,7 +19,7 @@ const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
   { prefix: "/nnak/branch-invites", allow: ["super_admin", "admin"] },
   { prefix: "/nnak/branch-transfers", allow: ["super_admin", "admin"] },
   {
-    prefix: "/nnak/finance/batches",
+    prefix: "/nnak/finance",
     allow: ["super_admin", "admin", "finance"],
   },
   {
