@@ -8,8 +8,11 @@ import {
   MdEvent,
   MdLocationOn,
   MdPeople,
+  MdStar,
+  MdCheckCircle,
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import { EventMap } from "@/components/common/EventMap";
 import { useMemberEvent, useMemberEventPackages } from "@/hooks/use-member-events";
 import { useStudentEvent, useStudentEventPackages } from "@/hooks/use-student-events";
 import {
@@ -43,6 +46,10 @@ const fmtRange = (start: string, end: string) => {
   return `${fmtDate(start)} → ${fmtDate(end)}`;
 };
 
+/** Resolve the actual price from either `cost` or legacy `price` field */
+const pkgCost = (pkg: MemberEventPackage) =>
+  Number(pkg.cost ?? pkg.price ?? 0);
+
 export default function MemberEventDetailPage({
   params,
 }: {
@@ -51,23 +58,23 @@ export default function MemberEventDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
-  const { data: me } = useNnakMe();
+  const { data: me, isLoading: meLoading } = useNnakMe();
   const isStudent = me?.role === "student";
 
-  const memberEventQ = useMemberEvent(id);
-  const studentEventQ = useStudentEvent(id);
-  const memberPkgQ = useMemberEventPackages(id);
-  const studentPkgQ = useStudentEventPackages(id);
+  // Gate each pair to its role — never fire both at once
+  const memberEventQ = useMemberEvent(id, { enabled: !!id && !meLoading && !isStudent });
+  const studentEventQ = useStudentEvent(id, { enabled: !!id && !meLoading && isStudent });
+  const memberPkgQ = useMemberEventPackages(id, { enabled: !!id && !meLoading && !isStudent });
+  const studentPkgQ = useStudentEventPackages(id, { enabled: !!id && !meLoading && isStudent });
 
   const event = isStudent ? studentEventQ.data : memberEventQ.data;
-  const isLoading = isStudent ? studentEventQ.isLoading : memberEventQ.isLoading;
+  const isLoading = meLoading || (isStudent ? studentEventQ.isLoading : memberEventQ.isLoading);
   const packages = (isStudent ? studentPkgQ.data : memberPkgQ.data) ?? [];
   const packagesLoading = isStudent ? studentPkgQ.isLoading : memberPkgQ.isLoading;
 
   const [tab, setTab] = useState<"details" | "packages">("details");
   const [showPayModal, setShowPayModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] =
-    useState<MemberEventPackage | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<MemberEventPackage | null>(null);
   const [stkPhone, setStkPhone] = useState(me?.profile?.phone || "");
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -129,6 +136,11 @@ export default function MemberEventDetailPage({
   if (!event)
     return <div className="p-4 text-sm text-slate-500">Event not found.</div>;
 
+  const coords = (event as { location_coordinates?: { lat: number; lng: number } | null })
+    .location_coordinates;
+  const meta = (event as { metadata?: { expected_attendees?: number; tracks?: string[]; cpd_points?: number } | null })
+    .metadata;
+
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
@@ -144,7 +156,7 @@ export default function MemberEventDetailPage({
         }
       />
 
-      {/* Cover */}
+      {/* Cover image */}
       {event.cover_image_url && (
         <div className="relative h-48 rounded-xl overflow-hidden bg-slate-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -156,7 +168,7 @@ export default function MemberEventDetailPage({
         </div>
       )}
 
-      {/* Key info */}
+      {/* Key info row */}
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="flex items-center gap-2 text-slate-700">
@@ -174,6 +186,28 @@ export default function MemberEventDetailPage({
             <span className="capitalize">{event.type}</span>
           </div>
         </div>
+
+        {/* Metadata chips */}
+        {meta && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {meta.cpd_points != null && (
+              <span className="inline-flex items-center gap-1 text-xs bg-violet-50 text-violet-700 border border-violet-200 rounded-full px-2.5 py-0.5 font-medium">
+                <MdStar className="w-3.5 h-3.5" /> {meta.cpd_points} CPD Points
+              </span>
+            )}
+            {meta.expected_attendees != null && (
+              <span className="inline-flex items-center gap-1 text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2.5 py-0.5">
+                <MdPeople className="w-3.5 h-3.5" /> {meta.expected_attendees.toLocaleString()} expected
+              </span>
+            )}
+            {meta.tracks?.map((t) => (
+              <span key={t} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
         {event.is_registered && (
           <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
             <MdPeople className="w-3.5 h-3.5" /> You are registered for this event
@@ -212,6 +246,19 @@ export default function MemberEventDetailPage({
             </div>
           )}
 
+          {/* Map */}
+          {coords && coords.lat != null && coords.lng != null && (
+            <div className="bg-white border border-slate-200 rounded-lg p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3 flex items-center gap-1.5">
+                <MdLocationOn className="w-4 h-4" /> Venue
+              </h3>
+              {event.location && (
+                <p className="text-sm text-slate-700 mb-3">{event.location}</p>
+              )}
+              <EventMap lat={coords.lat} lng={coords.lng} label={event.location || event.title} />
+            </div>
+          )}
+
           {event.speakers && event.speakers.length > 0 && (
             <div className="bg-white border border-slate-200 rounded-lg p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
@@ -233,9 +280,7 @@ export default function MemberEventDetailPage({
                       </div>
                     )}
                     <div>
-                      <div className="text-sm font-medium text-slate-900">
-                        {s.name}
-                      </div>
+                      <div className="text-sm font-medium text-slate-900">{s.name}</div>
                       {s.role && (
                         <div className="text-xs text-slate-500">{s.role}</div>
                       )}
@@ -339,7 +384,7 @@ export default function MemberEventDetailPage({
               <div className="flex justify-between mt-1">
                 <span className="text-slate-600">Amount</span>
                 <span className="font-semibold">
-                  KES {Number(selectedPackage.price).toLocaleString()}
+                  KES {pkgCost(selectedPackage).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -353,17 +398,11 @@ export default function MemberEventDetailPage({
               />
             </div>
 
-            {/* Note: the STK push here uses the invoice generated on package selection.
-                When the backend returns an invoice_id we poll via stkQuery.
-                For now we pass a placeholder — the backend should return invoice details
-                upon event registration with package. */}
             <button
               onClick={() => {
                 const phone = stkPhone || me?.profile?.phone || "";
                 if (!phone || !selectedPackage) return;
                 setPaymentError(null);
-                // The backend returns an invoice_id after creating an event registration.
-                // Initiate STK push once you have that invoice ID from the registration flow.
                 toast("To pay, complete event registration first to receive an invoice.", { icon: "ℹ️" });
               }}
               disabled={
@@ -415,49 +454,75 @@ const PackageCard = ({
   pkg: MemberEventPackage;
   isRegistered: boolean;
   onSelect: () => void;
-}) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 hover:border-primary hover:shadow-sm transition-all">
-    <div className="flex items-start justify-between gap-2">
-      <h4 className="font-semibold text-slate-900">{pkg.name}</h4>
-      {pkg.is_available === false && (
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 whitespace-nowrap">
-          Sold out
-        </span>
+}) => {
+  const cost = pkgCost(pkg);
+  const benefitEntries = pkg.benefits ? Object.entries(pkg.benefits) : null;
+  const soldOut = pkg.is_available === false || (pkg.has_limit && pkg.max_entries != null && pkg.max_entries <= 0);
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-3 hover:border-primary hover:shadow-sm transition-all">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h4 className="font-semibold text-slate-900">{pkg.name}</h4>
+          {pkg.is_member_only && (
+            <span className="text-[10px] text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2 py-0.5 font-medium">
+              Members only
+            </span>
+          )}
+        </div>
+        {soldOut && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 whitespace-nowrap shrink-0">
+            Sold out
+          </span>
+        )}
+      </div>
+
+      {pkg.description && (
+        <p className="text-xs text-slate-500 leading-relaxed">{pkg.description}</p>
       )}
-    </div>
 
-    {pkg.description && (
-      <p className="text-xs text-slate-500 leading-relaxed">{pkg.description}</p>
-    )}
+      {/* Benefits object */}
+      {benefitEntries && benefitEntries.length > 0 && (
+        <ul className="text-xs text-slate-600 space-y-1">
+          {benefitEntries.map(([key, val]) => (
+            <li key={key} className="flex items-start gap-1.5">
+              <MdCheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+              <span><span className="capitalize text-slate-500">{key.replace(/_/g, " ")}:</span> {val}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
-    {pkg.features && pkg.features.length > 0 && (
-      <ul className="text-xs text-slate-600 space-y-1">
-        {pkg.features.map((f, i) => (
-          <li key={i} className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            {f}
-          </li>
-        ))}
-      </ul>
-    )}
+      {/* Legacy features array */}
+      {!benefitEntries && pkg.features && pkg.features.length > 0 && (
+        <ul className="text-xs text-slate-600 space-y-1">
+          {pkg.features.map((f, i) => (
+            <li key={i} className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              {f}
+            </li>
+          ))}
+        </ul>
+      )}
 
-    {pkg.capacity != null && (
-      <div className="text-xs text-slate-500">
-        Capacity: {pkg.available ?? "?"} / {pkg.capacity} available
+      {pkg.has_limit && pkg.max_entries != null && (
+        <div className="text-xs text-slate-500">
+          Capacity: {pkg.max_entries} slots
+        </div>
+      )}
+
+      <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+        <div className="text-base font-bold text-slate-900">
+          {cost === 0 ? "Free" : `KES ${cost.toLocaleString()}`}
+        </div>
+        <button
+          onClick={onSelect}
+          disabled={!!soldOut || isRegistered}
+          className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isRegistered ? "Registered" : "Select"}
+        </button>
       </div>
-    )}
-
-    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
-      <div className="text-base font-bold text-slate-900">
-        KES {Number(pkg.price).toLocaleString()}
-      </div>
-      <button
-        onClick={onSelect}
-        disabled={pkg.is_available === false || isRegistered}
-        className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {isRegistered ? "Registered" : "Select"}
-      </button>
     </div>
-  </div>
-);
+  );
+};

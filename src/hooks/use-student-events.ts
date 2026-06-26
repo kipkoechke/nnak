@@ -15,19 +15,19 @@ export const useStudentEvents = (params?: {
     staleTime: 30_000,
   });
 
-export const useStudentEvent = (id: string) =>
+export const useStudentEvent = (id: string, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.studentEvents.detail(id),
     queryFn: () => studentEventsService.detail(id),
-    enabled: !!id,
+    enabled: opts?.enabled !== undefined ? opts.enabled : !!id,
     staleTime: 60_000,
   });
 
-export const useStudentEventPackages = (id: string) =>
+export const useStudentEventPackages = (id: string, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.studentEvents.packages(id),
     queryFn: () => studentEventsService.packages(id),
-    enabled: !!id,
+    enabled: opts?.enabled !== undefined ? opts.enabled : !!id,
     staleTime: 60_000,
   });
 

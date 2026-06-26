@@ -14,18 +14,18 @@ export const useMemberEvents = (params?: Record<string, unknown>) =>
     refetchOnWindowFocus: false,
   });
 
-export const useMemberEvent = (id: string) =>
+export const useMemberEvent = (id: string, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.memberEvents.detail(id),
     queryFn: () => memberEventsService.detail(id),
-    enabled: !!id,
+    enabled: opts?.enabled !== undefined ? opts.enabled : !!id,
     refetchOnWindowFocus: false,
   });
 
-export const useMemberEventPackages = (id: string) =>
+export const useMemberEventPackages = (id: string, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.memberEvents.packages(id),
     queryFn: () => memberEventsService.packages(id),
-    enabled: !!id,
+    enabled: opts?.enabled !== undefined ? opts.enabled : !!id,
     refetchOnWindowFocus: false,
   });
