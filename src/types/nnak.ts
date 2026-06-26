@@ -1175,7 +1175,35 @@ export interface FinanceRemittanceMeta {
 
 // ── Finance: Dashboard (/finance/dashboard) ───────────────────────
 export interface FinanceDashboardData {
-  [key: string]: unknown;
+  date_range?: { start: string; end: string };
+  members?: {
+    total: number; active: number; inactive: number;
+    pending_approval: number; new_this_period: number;
+    corporate: number; individual: number;
+    aging?: Record<string, number>;
+  };
+  remittances?: {
+    mpesa_collected: number; batch_payments: number; total: number;
+    by_category?: { category: string; label: string; amount: number }[];
+  };
+  payments?: {
+    total_invoiced: number; total_collected: number;
+    pending_invoices: number; pending_amount: number; collection_rate: number;
+  };
+  pending_payments_aging?: { buckets: Record<string, number>; total_pending_amount: number };
+  branches?: { id: string; name: string; members: number; employer_type: string; commission_type: string; commission_value: string }[];
+  recent_members?: {
+    id: string; name: string; email: string; membership_number: string;
+    membership_type: string; chapter: string; designation: string | null;
+    nck_number: string | null; branch_name: string | null; created_at: string;
+  }[];
+  batches?: {
+    this_month: { count: number; paid_count: number; pending_count: number; total_collected: number; commission: number; branch_share: number; hq_share: number };
+    all_time: { total_collected: number; total_commission: number; total_branch_share: number; total_hq_share: number; paid_total: number; pending_total: number };
+  };
+  byproducts?: { id: string; file_name: string; status: string; total_rows: number; processed_rows: number; created_at: string }[];
+  supported_params?: string[];
+  applied_filters?: Record<string, string>;
 }
 
 // ── Finance: Batches (/finance/batches) ───────────────────────────
