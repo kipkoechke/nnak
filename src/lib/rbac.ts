@@ -75,6 +75,8 @@ export const nnakCan = {
   /** Finance reconciliation of branch batches. */
   reconcileBatches: (u?: NnakUser | null) =>
     has(u, ["super_admin", "admin", "finance"]),
+  /** Full finance portal — only the finance role. */
+  viewFinancePortal: (u?: NnakUser | null) => has(u, ["finance"]),
 
   viewMyInvites: (u?: NnakUser | null) =>
     has(u, ["member", "student", "branch_manager"]),
