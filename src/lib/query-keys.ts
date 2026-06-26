@@ -141,6 +141,43 @@ export const nqk = {
     stkQuery: (invoiceId: string) =>
       ["nnak", "member", "payments", "stkquery", invoiceId] as const,
   },
+  finance: {
+    dashboard: ["nnak", "finance", "dashboard"] as const,
+    members: {
+      all: ["nnak", "finance", "members"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "members", "list", p ?? {}] as const,
+      detail: (id: string) => ["nnak", "finance", "members", "detail", id] as const,
+    },
+    branches: {
+      all: ["nnak", "finance", "branches"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "branches", "list", p ?? {}] as const,
+      detail: (id: string) => ["nnak", "finance", "branches", "detail", id] as const,
+    },
+    byproducts: {
+      all: ["nnak", "finance", "byproducts"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "byproducts", "list", p ?? {}] as const,
+      detail: (id: string) => ["nnak", "finance", "byproducts", "detail", id] as const,
+    },
+    batches: {
+      all: ["nnak", "finance", "batches"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "batches", "list", p ?? {}] as const,
+      detail: (id: string) => ["nnak", "finance", "batches", "detail", id] as const,
+    },
+    payments: {
+      all: ["nnak", "finance", "payments"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "payments", "list", p ?? {}] as const,
+    },
+    remittances: {
+      all: ["nnak", "finance", "remittances"] as const,
+      list: (p?: Record<string, unknown>) => ["nnak", "finance", "remittances", "list", p ?? {}] as const,
+    },
+  },
+  memberEvents: {
+    all: ["nnak", "member", "events"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "member", "events", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "member", "events", "detail", id] as const,
+    packages: (id: string) => ["nnak", "member", "events", "packages", id] as const,
+  },
   invites: {
     memberAll: ["nnak", "member", "invites"] as const,
     memberList: (p?: Record<string, unknown>) =>
