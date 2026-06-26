@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MdSwapHoriz } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useFinanceRemittances } from "@/hooks/use-finance";
-import { useNnakBranches } from "@/hooks/use-branches";
+import { useFinanceRemittances, useFinanceBranches } from "@/hooks/use-finance";
+
+const toISO = (d: Date) => d.toISOString().slice(0, 10);
 
 const fmtDate = (s?: string | null) =>
   s
@@ -17,24 +18,57 @@ const fmtDate = (s?: string | null) =>
 
 const fmtKes = (n: number) => `KES ${Number(n).toLocaleString()}`;
 
+const PERIOD_PRESETS: { label: string; getDates: () => { start: string; end: string } }[] = [
+  {
+    label: "This month",
+    getDates: () => {
+      const today = new Date();
+      return {
+        start: toISO(new Date(today.getFullYear(), today.getMonth(), 1)),
+        end: toISO(today),
+      };
+    },
+  },
+  {
+    label: "Last month",
+    getDates: () => {
+      const today = new Date();
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: toISO(start), end: toISO(end) };
+    },
+  },
+  {
+    label: "This year",
+    getDates: () => {
+      const today = new Date();
+      return {
+        start: toISO(new Date(today.getFullYear(), 0, 1)),
+        end: toISO(today),
+      };
+    },
+  },
+];
+
 export default function FinanceRemittancesPage() {
+  const init = useMemo(() => PERIOD_PRESETS[0].getDates(), []);
   const [page, setPage] = useState(1);
-  const [period, setPeriod] = useState("monthly");
   const [category, setCategory] = useState("all");
   const [branchId, setBranchId] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(init.start);
+  const [endDate, setEndDate] = useState(init.end);
 
   const { data, isLoading } = useFinanceRemittances({
     page,
     per_page: 15,
-    period: period || undefined,
     category: category !== "all" ? category : undefined,
     branch_id: branchId || undefined,
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
+    start_date: startDate,
+    end_date: endDate,
   });
-  const { data: branches = [] } = useNnakBranches();
+
+  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
+  const branches = branchesData?.data ?? [];
 
   const remittances = data?.data ?? [];
   const meta = data?.meta;
@@ -50,37 +84,45 @@ export default function FinanceRemittancesPage() {
       {meta?.summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
           <SummaryCard label="Total" value={fmtKes(meta.summary.total)} />
-          <SummaryCard
-            label="M-Pesa"
-            value={fmtKes(meta.summary.mpesa)}
-            accent="emerald"
-          />
-          <SummaryCard
-            label="Batch"
-            value={fmtKes(meta.summary.batch)}
-            accent="blue"
-          />
-          <SummaryCard
-            label="Count"
-            value={String(meta.summary.count)}
-            accent="slate"
-          />
+          <SummaryCard label="M-Pesa" value={fmtKes(meta.summary.mpesa)} accent="emerald" />
+          <SummaryCard label="Batch" value={fmtKes(meta.summary.batch)} accent="blue" />
+          <SummaryCard label="Count" value={String(meta.summary.count)} accent="slate" />
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-end shrink-0">
-        <select
-          value={period}
-          onChange={(e) => { setPeriod(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-        >
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-          <option value="custom">Custom</option>
-        </select>
+      <div className="flex flex-wrap gap-2 items-center shrink-0">
+        {/* Period presets */}
+        {PERIOD_PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => {
+              const { start, end } = p.getDates();
+              setStartDate(start);
+              setEndDate(end);
+              setPage(1);
+            }}
+            className="text-xs px-3 py-1.5 rounded-full border font-medium transition-colors bg-white text-slate-700 border-slate-200 hover:border-primary hover:text-primary"
+          >
+            {p.label}
+          </button>
+        ))}
+        <div className="flex items-center gap-1 ml-1">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+            className="px-2 py-1.5 border border-slate-300 rounded-md text-sm"
+          />
+          <span className="text-slate-400 text-sm">→</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+            className="px-2 py-1.5 border border-slate-300 rounded-md text-sm"
+          />
+        </div>
         <select
           value={category}
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
@@ -100,23 +142,6 @@ export default function FinanceRemittancesPage() {
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
         </select>
-        {period === "custom" && (
-          <div className="flex items-center gap-1">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            />
-            <span className="text-slate-400 text-sm">→</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            />
-          </div>
-        )}
       </div>
 
       {meta?.date_range && (
@@ -131,9 +156,7 @@ export default function FinanceRemittancesPage() {
         ) : remittances.length === 0 ? (
           <div className="p-12 text-center">
             <MdSwapHoriz className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">
-              No remittances for this period.
-            </p>
+            <p className="text-sm text-slate-500">No remittances for this period.</p>
           </div>
         ) : (
           <table className="w-full text-sm min-w-[580px]">
@@ -162,18 +185,12 @@ export default function FinanceRemittancesPage() {
                       {r.type}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs">
-                    {r.member_name || r.branch_name || "—"}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs text-slate-600">
-                    {r.reference || "—"}
-                  </td>
+                  <td className="px-3 py-2 text-xs">{r.member_name || r.branch_name || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-slate-600">{r.reference || "—"}</td>
                   <td className="px-3 py-2 text-right font-semibold text-slate-900">
                     {fmtKes(r.amount)}
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
-                    {fmtDate(r.created_at)}
-                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(r.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -182,8 +199,8 @@ export default function FinanceRemittancesPage() {
       </div>
 
       {meta && (
-        <div className="shrink-0">
-          {/* Basic pagination via meta — use page controls if pagination is available */}
+        <div className="shrink-0 text-xs text-slate-500">
+          {remittances.length > 0 && `Showing ${remittances.length} remittance${remittances.length !== 1 ? "s" : ""}`}
         </div>
       )}
     </div>
@@ -206,9 +223,7 @@ const SummaryCard = ({
   };
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-3">
-      <div className="text-[11px] uppercase tracking-wide text-slate-500">
-        {label}
-      </div>
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
       <div className={`text-lg font-bold mt-1 ${accentCls[accent]}`}>{value}</div>
     </div>
   );
