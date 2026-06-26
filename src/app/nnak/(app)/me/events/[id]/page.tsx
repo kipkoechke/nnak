@@ -11,6 +11,7 @@ import {
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import { useMemberEvent, useMemberEventPackages } from "@/hooks/use-member-events";
+import { useStudentEvent, useStudentEventPackages } from "@/hooks/use-student-events";
 import {
   useInvoiceStkPush,
   useInvoiceStkQuery,
@@ -51,9 +52,17 @@ export default function MemberEventDetailPage({
   const router = useRouter();
   const qc = useQueryClient();
   const { data: me } = useNnakMe();
-  const { data: event, isLoading } = useMemberEvent(id);
-  const { data: packages = [], isLoading: packagesLoading } =
-    useMemberEventPackages(id);
+  const isStudent = me?.role === "student";
+
+  const memberEventQ = useMemberEvent(id);
+  const studentEventQ = useStudentEvent(id);
+  const memberPkgQ = useMemberEventPackages(id);
+  const studentPkgQ = useStudentEventPackages(id);
+
+  const event = isStudent ? studentEventQ.data : memberEventQ.data;
+  const isLoading = isStudent ? studentEventQ.isLoading : memberEventQ.isLoading;
+  const packages = (isStudent ? studentPkgQ.data : memberPkgQ.data) ?? [];
+  const packagesLoading = isStudent ? studentPkgQ.isLoading : memberPkgQ.isLoading;
 
   const [tab, setTab] = useState<"details" | "packages">("details");
   const [showPayModal, setShowPayModal] = useState(false);
@@ -88,8 +97,13 @@ export default function MemberEventDetailPage({
 
   useEffect(() => {
     if (!isSuccess) return;
-    qc.invalidateQueries({ queryKey: nqk.memberEvents.detail(id) });
-    qc.invalidateQueries({ queryKey: nqk.memberEvents.packages(id) });
+    if (isStudent) {
+      qc.invalidateQueries({ queryKey: nqk.studentEvents.detail(id) });
+      qc.invalidateQueries({ queryKey: nqk.studentEvents.packages(id) });
+    } else {
+      qc.invalidateQueries({ queryKey: nqk.memberEvents.detail(id) });
+      qc.invalidateQueries({ queryKey: nqk.memberEvents.packages(id) });
+    }
     const t = setTimeout(() => {
       setShowPayModal(false);
       setActiveInvoiceId(null);

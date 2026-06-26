@@ -242,6 +242,12 @@ const MEMBER_ITEMS: MenuItem[] = [
     href: "/nnak/me/events",
     show: nnakCan.viewMyMembership,
   },
+  {
+    name: "Bookings",
+    icon: MdReceipt,
+    href: "/nnak/me/bookings",
+    show: (u) => u?.role === "student",
+  },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
