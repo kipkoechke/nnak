@@ -1,15 +1,12 @@
 "use client";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   MdPeople,
   MdCorporateFare,
-  MdPayments,
   MdSwapHoriz,
   MdUpload,
   MdReceipt,
   MdCalendarToday,
-  MdTrendingUp,
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import { useFinanceDashboard } from "@/hooks/use-finance";
@@ -29,10 +26,13 @@ const fmtDate = (s?: string | null) =>
     : "—";
 const pct = (n?: number) => (n != null ? `${Number(n).toFixed(1)}%` : "—");
 
+type DetailTab = "members" | "branches" | "byproducts";
+
 export default function FinanceDashboardPage() {
   const init = useMemo(() => defaultRange(), []);
   const [startDate, setStartDate] = useState(init.start);
   const [endDate, setEndDate] = useState(init.end);
+  const [detailTab, setDetailTab] = useState<DetailTab>("members");
 
   const { data: dash, isLoading } = useFinanceDashboard({
     start_date: startDate,
@@ -158,132 +158,121 @@ export default function FinanceDashboardPage() {
             )}
           </div>
 
-          {/* Branches table */}
-          {dash.branches && dash.branches.length > 0 && (
-            <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <MdCorporateFare className="w-4 h-4" /> Branches
-                </h2>
-                <Link href="/nnak/finance/branches" className="text-xs text-primary hover:underline">View all</Link>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[480px]">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Branch</th>
-                      <th className="px-3 py-2 text-left">Type</th>
-                      <th className="px-3 py-2 text-right">Members</th>
-                      <th className="px-3 py-2 text-right">Commission</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dash.branches.map((b) => (
-                      <tr key={b.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-medium text-slate-900">{b.name}</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">{b.employer_type}</td>
-                        <td className="px-3 py-2 text-right">{b.members}</td>
-                        <td className="px-3 py-2 text-right text-xs text-slate-600">
-                          {b.commission_type} · {b.commission_value}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
+          {/* Detail tab bar */}
+          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="flex border-b border-slate-100">
+              {(
+                [
+                  { key: "members", label: "Recent Members", icon: MdPeople },
+                  { key: "branches", label: "Branches", icon: MdCorporateFare },
+                  { key: "byproducts", label: "By-Product Uploads", icon: MdUpload },
+                ] as { key: DetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[]
+              ).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setDetailTab(key)}
+                  className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
+                    detailTab === key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
 
-          {/* Recent Members */}
-          {dash.recent_members && dash.recent_members.length > 0 && (
-            <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <MdPeople className="w-4 h-4" /> Recent Members
-                </h2>
-                <Link href="/nnak/finance/members" className="text-xs text-primary hover:underline">View all</Link>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[540px]">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Name</th>
-                      <th className="px-3 py-2 text-left">Membership No.</th>
-                      <th className="px-3 py-2 text-left">Type</th>
-                      <th className="px-3 py-2 text-left">Branch</th>
-                      <th className="px-3 py-2 text-left">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dash.recent_members.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2">
-                          <div className="font-medium text-slate-900">{m.name}</div>
-                          <div className="text-xs text-slate-500">{m.email}</div>
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs">{m.membership_number}</td>
-                        <td className="px-3 py-2 text-xs">{m.membership_type}</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">{m.branch_name || "—"}</td>
-                        <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(m.created_at)}</td>
+            {detailTab === "members" && (
+              dash.recent_members && dash.recent_members.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-135">
+                    <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Name</th>
+                        <th className="px-3 py-2 text-left">Membership No.</th>
+                        <th className="px-3 py-2 text-left">Type</th>
+                        <th className="px-3 py-2 text-left">Branch</th>
+                        <th className="px-3 py-2 text-left">Joined</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {dash.recent_members.map((m) => (
+                        <tr key={m.id} className="hover:bg-slate-50">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-slate-900">{m.name}</div>
+                            <div className="text-xs text-slate-500">{m.email}</div>
+                          </td>
+                          <td className="px-3 py-2 font-mono text-xs">{m.membership_number}</td>
+                          <td className="px-3 py-2 text-xs">{m.membership_type}</td>
+                          <td className="px-3 py-2 text-xs text-slate-600">{m.branch_name || "—"}</td>
+                          <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(m.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-sm text-center text-slate-400">No recent members.</div>
+              )
+            )}
 
-          {/* By-products */}
-          {dash.byproducts && dash.byproducts.length > 0 && (
-            <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <MdUpload className="w-4 h-4" /> Recent By-Product Uploads
-                </h2>
-                <Link href="/nnak/finance/byproducts" className="text-xs text-primary hover:underline">View all</Link>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {dash.byproducts.map((b) => (
-                  <div key={b.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
-                    <div className="font-medium text-slate-900 truncate">{b.file_name}</div>
-                    <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <span className="text-xs text-slate-500">{b.processed_rows}/{b.total_rows} rows</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        b.status === "completed" ? "bg-emerald-50 text-emerald-700" :
-                        b.status === "processing" ? "bg-amber-50 text-amber-700" :
-                        "bg-slate-100 text-slate-600"
-                      }`}>{b.status}</span>
-                      <span className="text-xs text-slate-400">{fmtDate(b.created_at)}</span>
+            {detailTab === "branches" && (
+              dash.branches && dash.branches.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-120">
+                    <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Branch</th>
+                        <th className="px-3 py-2 text-left">Type</th>
+                        <th className="px-3 py-2 text-right">Members</th>
+                        <th className="px-3 py-2 text-right">Commission</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {dash.branches.map((b) => (
+                        <tr key={b.id} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 font-medium text-slate-900">{b.name}</td>
+                          <td className="px-3 py-2 text-xs text-slate-600">{b.employer_type}</td>
+                          <td className="px-3 py-2 text-right">{b.members}</td>
+                          <td className="px-3 py-2 text-right text-xs text-slate-600">
+                            {b.commission_type} · {b.commission_value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-sm text-center text-slate-400">No branch data.</div>
+              )
+            )}
+
+            {detailTab === "byproducts" && (
+              dash.byproducts && dash.byproducts.length > 0 ? (
+                <div className="divide-y divide-slate-100">
+                  {dash.byproducts.map((b) => (
+                    <div key={b.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                      <div className="font-medium text-slate-900 truncate">{b.file_name}</div>
+                      <div className="flex items-center gap-3 shrink-0 ml-3">
+                        <span className="text-xs text-slate-500">{b.processed_rows}/{b.total_rows} rows</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                          b.status === "completed" ? "bg-emerald-50 text-emerald-700" :
+                          b.status === "processing" ? "bg-amber-50 text-amber-700" :
+                          "bg-slate-100 text-slate-600"
+                        }`}>{b.status}</span>
+                        <span className="text-xs text-slate-400">{fmtDate(b.created_at)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+                  ))}
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-sm text-center text-slate-400">No uploads yet.</div>
+              )
+            )}
+          </section>
         </>
       )}
-
-      {/* Navigation cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {NAV_CARDS.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-primary hover:shadow-sm transition-all flex items-start gap-4 group"
-            >
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${card.color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-semibold text-slate-900 group-hover:text-primary transition-colors">{card.label}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{card.description}</div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -310,12 +299,3 @@ const KpiCard = ({
     </div>
   );
 };
-
-const NAV_CARDS = [
-  { href: "/nnak/finance/members", icon: MdPeople, label: "Members", description: "View all members and subscription status", color: "bg-blue-50 text-blue-600" },
-  { href: "/nnak/finance/branches", icon: MdCorporateFare, label: "Branches", description: "View branch details and commissions", color: "bg-violet-50 text-violet-600" },
-  { href: "/nnak/finance/batches", icon: MdReceipt, label: "Batches", description: "Reconcile monthly branch batches", color: "bg-amber-50 text-amber-600" },
-  { href: "/nnak/finance/payments", icon: MdPayments, label: "Payments", description: "Track all invoices and payment status", color: "bg-emerald-50 text-emerald-600" },
-  { href: "/nnak/finance/remittances", icon: MdSwapHoriz, label: "Remittances", description: "Review M-Pesa and batch remittances", color: "bg-cyan-50 text-cyan-600" },
-  { href: "/nnak/finance/byproducts", icon: MdUpload, label: "By-Product", description: "Upload and track remittance files", color: "bg-slate-50 text-slate-600" },
-];
