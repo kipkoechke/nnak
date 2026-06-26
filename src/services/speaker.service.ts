@@ -21,7 +21,7 @@ interface SpeakersResponse {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
-const base = (eventId: string) => `/events/${eventId}/speakers`;
+const base = (eventId: string) => `/admin/events/${eventId}/speakers`;
 
 export const speakerService = {
   list: async (

@@ -30,53 +30,53 @@ export const eventsService = {
       const mock = mockStore.listEvents(params);
       return { ...mock, pagination: mock.meta };
     }
-    const r = await nnakApi.get<EventsResponse>("/events", { params });
+    const r = await nnakApi.get<EventsResponse>("/admin/events", { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
   getById: async (id: string) => {
     if (isDemoSession()) return mockStore.getEvent(id);
-    return unwrap<NnakEvent>(nnakApi.get(`/events/${id}`));
+    return unwrap<NnakEvent>(nnakApi.get(`/admin/events/${id}`));
   },
 
   create: async (input: CreateEventInput): Promise<NnakEvent> => {
     if (isDemoSession()) return mockStore.upsertEvent(input as Partial<NnakEvent>);
-    return unwrap<NnakEvent>(nnakApi.post("/events", input));
+    return unwrap<NnakEvent>(nnakApi.post("/admin/events", input));
   },
 
   update: async (id: string, input: Partial<CreateEventInput>): Promise<NnakEvent> => {
     if (isDemoSession()) return mockStore.upsertEvent({ ...input, id } as Partial<NnakEvent>);
-    return unwrap<NnakEvent>(nnakApi.patch(`/events/${id}`, input));
+    return unwrap<NnakEvent>(nnakApi.patch(`/admin/events/${id}`, input));
   },
 
   remove: async (id: string) => {
     if (isDemoSession()) { mockStore.deleteEvent(id); return; }
-    await nnakApi.delete(`/events/${id}`);
+    await nnakApi.delete(`/admin/events/${id}`);
   },
 
   registrants: async (id: string) => {
     if (isDemoSession()) return mockStore.listEventRegistrants(id);
-    return unwrap<EventRegistration[]>(nnakApi.get(`/events/${id}/registrants`));
+    return unwrap<EventRegistration[]>(nnakApi.get(`/admin/events/${id}/registrants`));
   },
 
   register: async (eventId: string, userId: string, fee: number) => {
     if (isDemoSession()) return mockStore.registerForEvent(eventId, userId, fee);
     return unwrap<EventRegistration>(
-      nnakApi.post(`/events/${eventId}/register`, { user_id: userId, fee }),
+      nnakApi.post(`/admin/events/${eventId}/register`, { user_id: userId, fee }),
     );
   },
 
   checkIn: async (qrToken: string) => {
     if (isDemoSession()) return mockStore.checkInRegistration(qrToken);
     return unwrap<EventRegistration>(
-      nnakApi.post(`/event-registrations/${qrToken}/checkin`),
+      nnakApi.post(`/admin/event-registrations/${qrToken}/checkin`),
     );
   },
 
   issueCertificate: async (regId: string) => {
     if (isDemoSession()) return mockStore.issueCertificate(regId);
     return unwrap<EventRegistration>(
-      nnakApi.post(`/event-registrations/${regId}/certificate`),
+      nnakApi.post(`/admin/event-registrations/${regId}/certificate`),
     );
   },
 
