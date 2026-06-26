@@ -1052,3 +1052,222 @@ export interface C2bRegisterUrlsResponse {
   message: string;
   data?: Record<string, unknown>;
 }
+
+// ── Finance: Members (/finance/members) ───────────────────────────
+export interface FinanceMember {
+  id: string;
+  name: string;
+  email: string;
+  membership_number: string;
+  membership_type: string;
+  chapter: string;
+  designation: string | null;
+  nck_number: string | null;
+  branch_name: string | null;
+  branch_id: string | null;
+  is_active: boolean;
+  aging_months: number | null;
+  last_subscription_end: string | null;
+  created_at: string;
+}
+
+// ── Finance: Branches (/finance/branches) ─────────────────────────
+export interface FinanceBranch {
+  id: string;
+  name: string;
+  employer_type: string;
+  commission_type: string;
+  commission_value: string;
+  member_count: number;
+  total_paid_branch_share: number;
+  pending_branch_share: number;
+  created_at: string;
+}
+
+export interface FinanceBranchMember {
+  id: string;
+  account_number: string;
+  phone: string | null;
+  nck_number: string | null;
+  membership_number: string;
+  name: string;
+  email: string;
+  user_id: string;
+  branch_id: string;
+  chapter: string;
+  chapter_label: string;
+  member_category: { id: string; name: string } | null;
+  is_approved: boolean;
+  subscription_active: boolean;
+  subscription_expires_at: string | null;
+  pending_invoices_total: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceBranchDetail {
+  id: string;
+  name: string;
+  employer_type: string;
+  employer_type_label: string;
+  commission_type: string;
+  commission_type_label: string;
+  commission_value: string;
+  manager: unknown | null;
+  members: FinanceBranchMember[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Finance: Payments (/finance/payments) ─────────────────────────
+export interface FinancePayment {
+  id: string;
+  invoice_number: string;
+  member_name: string;
+  member_email: string;
+  membership_number: string;
+  branch_name: string | null;
+  amount: number;
+  paid: number;
+  outstanding: number;
+  status: string;
+  months_unpaid: number;
+  payment_method: string | null;
+  issue_date: string;
+  due_date: string;
+  paid_at: string | null;
+}
+
+export interface FinancePaymentsSummary {
+  total_invoiced: number;
+  total_collected: number;
+  pending_count: number;
+  pending_amount: number;
+  collection_rate: number;
+}
+
+// ── Finance: Remittances (/finance/remittances) ────────────────────
+export interface FinanceRemittanceItem {
+  id: string;
+  type: string;
+  amount: number;
+  branch_name?: string | null;
+  member_name?: string | null;
+  reference?: string | null;
+  created_at: string;
+}
+
+export interface FinanceRemittanceSummary {
+  total: number;
+  mpesa: number;
+  batch: number;
+  count: number;
+}
+
+export interface FinanceRemittanceMeta {
+  period: string;
+  date_range: { start: string; end: string };
+  category: string;
+  summary: FinanceRemittanceSummary;
+  supported_params: string[];
+  applied_filters: Record<string, string>;
+}
+
+// ── Finance: Dashboard (/finance/dashboard) ───────────────────────
+export interface FinanceDashboardData {
+  [key: string]: unknown;
+}
+
+// ── Finance: Batches (/finance/batches) ───────────────────────────
+export interface FinanceBatch {
+  id: string;
+  reference_code: string;
+  period: string;
+  branch: {
+    id: string;
+    name: string;
+    employer_type: string;
+    employer_type_label: string;
+    commission_type: string;
+    commission_type_label: string;
+    commission_value: string;
+    created_at: string;
+    updated_at: string;
+  };
+  total_collected: string;
+  commission_amount: string;
+  branch_share: string;
+  outstanding: number;
+  status: string;
+  paid_at: string | null;
+  members_count: number;
+  payments: FinanceBatchPayment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceBatchMember {
+  id: string;
+  user: { id: string; name: string; email: string };
+  amount_paid: string;
+  commission_amount: string;
+  commission_type: string;
+  commission_value: string;
+}
+
+export interface FinanceBatchPayment {
+  id: string;
+  amount_paid: number;
+  payment_method: string;
+  payment_reference: string;
+  notes?: string | null;
+  paid_at: string;
+}
+
+export interface FinanceBatchDetail extends FinanceBatch {
+  members: FinanceBatchMember[];
+}
+
+// ── Member Portal: Events (/member/events) ────────────────────────
+export interface MemberEvent {
+  id: string;
+  title: string;
+  code?: string | null;
+  type: string;
+  status: string;
+  theme?: string | null;
+  description?: string | null;
+  location?: string | null;
+  start_date: string;
+  end_date: string;
+  cover_image_url?: string | null;
+  is_registered?: boolean;
+  registration?: MemberEventRegistration | null;
+  created_at: string;
+}
+
+export interface MemberEventRegistration {
+  id: string;
+  status: string;
+  paid_at?: string | null;
+  amount?: number;
+  ticket_number?: string | null;
+}
+
+export interface MemberEventPackage {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  currency?: string;
+  capacity?: number | null;
+  available?: number | null;
+  features?: string[];
+  is_available?: boolean;
+}
+
+export interface MemberEventDetail extends MemberEvent {
+  speakers?: Array<{ id: string; name: string; bio?: string | null; photo_url?: string | null; role?: string | null }>;
+  agenda?: Array<{ id: string; title: string; start_time: string; end_time: string; description?: string | null }>;
+  packages?: MemberEventPackage[];
+}
