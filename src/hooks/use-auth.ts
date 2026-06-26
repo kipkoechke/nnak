@@ -35,6 +35,13 @@ export const useNnakRegister = () =>
     onError: (e) => toast.error(extractApiError(e, "Registration failed")),
   });
 
+/** Student first-leg register — POST /register/student */
+export const useStudentRegister = () =>
+  useMutation({
+    mutationFn: nnakAuth.registerStudent,
+    onError: (e) => toast.error(extractApiError(e, "Registration failed")),
+  });
+
 /** Second-leg: completes login or registration, persists the Sanctum
  *  token, and primes the auth/me cache. */
 export const useVerifyOtp = () => {

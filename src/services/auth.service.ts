@@ -18,6 +18,7 @@ import type {
   NnakProfile,
   NnakUser,
   PendingOtpResponse,
+  StudentRegisterPayload,
 } from "@/types/nnak";
 
 export type NnakUserWithProfile = NnakUser & { profile?: NnakProfile | null };
@@ -53,6 +54,10 @@ export const nnakAuth = {
   /** First-leg register. Returns a pending_token; complete with verifyOtp. */
   register: (body: RegisterPayload) =>
     unwrap<PendingOtpResponse>(nnakApi.post("/register", body)),
+
+  /** Student first-leg register — POST /register/student */
+  registerStudent: (body: StudentRegisterPayload) =>
+    unwrap<PendingOtpResponse>(nnakApi.post("/register/student", body)),
 
   /** Second-leg: exchanges pending_token + otp for a Sanctum token. */
   verifyOtp: (body: { pending_token: string; otp: string }) =>
