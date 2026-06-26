@@ -85,6 +85,12 @@ export function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/nnak")) {
     const nnakUser = getNnakUserFromCookie(request);
+
+    // Send finance users straight to their dashboard on first load
+    if (pathname === "/nnak/dashboard" && nnakUser?.role === "finance") {
+      return NextResponse.redirect(new URL("/nnak/finance/dashboard", request.url));
+    }
+
     for (const guard of NNAK_ROLE_GUARDS) {
       if (
         pathname.startsWith(guard.prefix) &&
