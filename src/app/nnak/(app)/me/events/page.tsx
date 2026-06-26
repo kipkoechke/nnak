@@ -5,6 +5,8 @@ import { MdEvent, MdSearch, MdCalendarToday, MdLocationOn } from "react-icons/md
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import { useMemberEvents } from "@/hooks/use-member-events";
+import { useStudentEvents } from "@/hooks/use-student-events";
+import { useMe } from "@/hooks/use-auth";
 import type { MemberEvent } from "@/types/nnak";
 
 const STATUS_TONE: Record<string, string> = {
@@ -64,12 +66,15 @@ export default function MemberEventsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
 
-  const { data, isLoading } = useMemberEvents({
-    page,
-    per_page: 12,
-    search: search || undefined,
-    status: status || undefined,
-  });
+  const { data: user } = useMe();
+  const isStudent = user?.role === "student";
+
+  const params = { page, per_page: 12, search: search || undefined, status: status || undefined };
+  const memberQ = useMemberEvents(params);
+  const studentQ = useStudentEvents(params);
+
+  const data = isStudent ? studentQ.data : memberQ.data;
+  const isLoading = isStudent ? studentQ.isLoading : memberQ.isLoading;
 
   const events = data?.data ?? [];
   const pagination = data?.pagination;
