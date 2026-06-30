@@ -138,8 +138,8 @@ export default function MemberDashboard() {
             expiresIn === null
               ? "No active subscription"
               : expiresIn < 0
-                ? `${Math.abs(expiresIn)}d overdue — renew now`
-                : `${expiresIn}d until renewal`
+                ? `${Math.abs(expiresIn)} days overdue — renew now`
+                : `${expiresIn} days until renewal`
           }
           tone={
             expiresIn !== null && expiresIn < 0

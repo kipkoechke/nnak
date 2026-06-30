@@ -79,7 +79,7 @@ export default function MyWorkstationsPage() {
           onClick={openNew}
           className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-md hover:bg-primary/90"
         >
-          <MdAdd className="w-4 h-4" /> Add workstation
+          <MdAdd className="w-4 h-4" /> Transfer workstation
         </button>
       </div>
 
@@ -134,7 +134,7 @@ export default function MyWorkstationsPage() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">
-                {editing ? "Edit workstation" : "Add workstation"}
+                {editing ? "Edit workstation" : "Transfer workstation"}
               </h3>
               <button type="button" onClick={close} className="text-slate-400 hover:text-slate-700">
                 <MdClose className="w-5 h-5" />
@@ -163,7 +163,7 @@ export default function MyWorkstationsPage() {
                 disabled={create.isPending || update.isPending}
                 className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
               >
-                {create.isPending || update.isPending ? "Saving…" : editing ? "Save" : "Add"}
+                {create.isPending || update.isPending ? "Saving…" : editing ? "Save" : "Transfer"}
               </button>
             </div>
           </form>
