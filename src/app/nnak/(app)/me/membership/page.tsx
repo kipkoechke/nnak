@@ -136,13 +136,30 @@ export default function MyMembershipPage() {
   const isStudent = me.role === "student";
 
   const subAmount = apiSub ? Number(apiSub.amount) : 0;
-  const subExpiry = apiSub?.end_date ?? profile.subscription_expires_at ?? null;
-  const expiresIn = daysUntil(subExpiry);
-
   const apiStatus = dash?.subscription_status;
-  const restricted = apiStatus !== "active";
+
+  // A pending subscription whose term starts in the future is an *extension*
+  // queued on top of the member's current active coverage — not a lapse in the
+  // current membership. In that case the member stays active (digital ID
+  // unlocked) and their current term runs until the extension begins; the
+  // pending invoice is just to pay for the additional future term.
+  const pendingStart = apiSub?.start_date ?? null;
+  const isFutureExtension =
+    apiStatus === "pending_payment" &&
+    !!pendingStart &&
+    new Date(pendingStart).getTime() > Date.now();
+
+  // Current coverage end: for a future-dated extension the active term runs
+  // until the extension starts; otherwise fall back to the subscription end.
+  const subExpiry = isFutureExtension
+    ? pendingStart
+    : (apiSub?.end_date ?? profile.subscription_expires_at ?? null);
+  const expiresIn = daysUntil(subExpiry);
+  const extendsTo = isFutureExtension ? (apiSub?.end_date ?? null) : null;
+
+  const restricted = apiStatus !== "active" && !isFutureExtension;
   const status: MemberStatus =
-    apiStatus === "active"
+    apiStatus === "active" || isFutureExtension
       ? "active"
       : apiStatus === "pending_payment"
         ? "pending"
@@ -296,6 +313,11 @@ export default function MyMembershipPage() {
                           ? `${Math.abs(expiresIn)}d overdue`
                           : `${expiresIn}d left`}
                         )
+                      </span>
+                    )}
+                    {extendsTo && (
+                      <span className="block text-[11px] text-amber-600 mt-0.5">
+                        Extension to {fmtDate(extendsTo)} pending payment
                       </span>
                     )}
                   </span>
