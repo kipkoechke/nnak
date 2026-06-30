@@ -29,6 +29,12 @@ export default function MySubscriptionsPage() {
   const subscribe = useCreateSubscription();
   const [openId, setOpenId] = useState<string | null>(null);
 
+  // If any subscription is still active, creating a new one extends (stacks)
+  // the runtime onto the current expiry — so the CTA reads "Extend".
+  const hasActive = subs.some(
+    (s) => s.status && (!s.end_date || new Date(s.end_date).getTime() > Date.now()),
+  );
+
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
@@ -36,13 +42,22 @@ export default function MySubscriptionsPage() {
         description="Your subscription history and invoices"
       />
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {hasActive && (
+          <span className="text-[11px] text-slate-500">
+            Extending adds a new term on top of your current expiry.
+          </span>
+        )}
         <button
           onClick={() => subscribe.mutate({})}
           disabled={subscribe.isPending}
           className="bg-primary text-white text-sm font-medium px-3 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
         >
-          {subscribe.isPending ? "Submitting…" : "New Subscription"}
+          {subscribe.isPending
+            ? "Submitting…"
+            : hasActive
+              ? "Extend Subscription"
+              : "New Subscription"}
         </button>
       </div>
 
