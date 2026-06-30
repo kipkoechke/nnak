@@ -1072,6 +1072,62 @@ export interface FinanceMember {
   created_at: string;
 }
 
+// Detail shape: GET /finance/members/{id}
+export interface FinanceMemberDetailProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  membership_number: string | null;
+  nck_number: string | null;
+  membership_type: string | null;
+  chapter: string | null;
+  designation: string | null;
+  professional_qualification: string | null;
+  professional_cadre: string | null;
+  gender: string | null;
+  is_approved: boolean;
+  branch: { id: string; name: string } | null;
+  active_subscription: {
+    id: string;
+    membership_type: string | null;
+    amount: number;
+    start_date: string | null;
+    end_date: string | null;
+    payment_method: string | null;
+  } | null;
+  joined_at: string | null;
+}
+
+export interface FinanceMemberContribution {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  payment_method: string | null;
+  payment_reference: string | null;
+  membership_type: string | null;
+  paid_at: string | null;
+}
+
+export interface FinanceMemberPendingInvoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  due_date?: string | null;
+  membership_type?: string | null;
+}
+
+export interface FinanceMemberDetail {
+  member: FinanceMemberDetailProfile;
+  contributions: {
+    lifetime_paid: number;
+    lifetime_pending: number;
+    history: FinanceMemberContribution[];
+    pagination?: NnakPagination;
+  };
+  pending_invoices: FinanceMemberPendingInvoice[];
+}
+
 // ── Finance: Branches (/finance/branches) ─────────────────────────
 export interface FinanceBranch {
   id: string;

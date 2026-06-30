@@ -24,6 +24,7 @@ import type {
   FinanceBranchDetail,
   FinanceDashboardData,
   FinanceMember,
+  FinanceMemberDetail,
   FinancePayment,
   FinancePaymentsSummary,
   FinanceRemittanceMeta,
@@ -116,8 +117,8 @@ export const financeService = {
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
-  memberDetail: async (id: string): Promise<FinanceMember | null> => {
-    return unwrap<FinanceMember>(nnakApi.get(`/finance/members/${id}`));
+  memberDetail: async (id: string): Promise<FinanceMemberDetail | null> => {
+    return unwrap<FinanceMemberDetail>(nnakApi.get(`/finance/members/${id}`));
   },
 
   branches: async (
