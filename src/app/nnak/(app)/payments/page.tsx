@@ -10,20 +10,38 @@ export default function PaymentsPage() {
   const [transactionType, setTransactionType] = useState("");
   const [used, setUsed] = useState("true");
   const [dateFrom, setDateFrom] = useState("");
-  const { data, isLoading } = useMpesaTransactions({
-    page,
-    per_page: 20,
-    transaction_type: transactionType || undefined,
-    status: status || undefined,
-    date_from: dateFrom || undefined,
-    used: used === "" ? undefined : used === "true",
-  });
+  const { data, isLoading, isFetching } = useMpesaTransactions(
+    {
+      page,
+      per_page: 20,
+      transaction_type: transactionType || undefined,
+      status: status || undefined,
+      date_from: dateFrom || undefined,
+      used: used === "" ? undefined : used === "true",
+    },
+    { pollWhilePending: true },
+  );
+
+  const pendingCount =
+    data?.data.filter((t) => String(t.status).toLowerCase() === "pending")
+      .length ?? 0;
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Payments"
         description="Subscriptions & event collections"
+        action={
+          pendingCount > 0 ? (
+            <span className="inline-flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+              Auto-checking {pendingCount} pending payment
+              {pendingCount === 1 ? "" : "s"}…
+            </span>
+          ) : isFetching ? (
+            <span className="text-xs text-slate-400">Refreshing…</span>
+          ) : undefined
+        }
       />
       <div className="flex flex-wrap gap-2 items-end">
         <div>

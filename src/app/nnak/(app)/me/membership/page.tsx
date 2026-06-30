@@ -154,6 +154,11 @@ export default function MyMembershipPage() {
   const categoryLabel =
     apiSub?.member_category?.name || profile.employer_type || "—";
 
+  // An active interval means a new subscription extends (stacks onto) the
+  // current expiry rather than replacing it — so the CTA reads "Extend".
+  const hasActiveInterval = expiresIn !== null && expiresIn >= 0;
+  const renewLabel = hasActiveInterval ? "Extend" : apiSub ? "Renew" : "Subscribe";
+
   const onRenew = () => subscribe.mutate({});
 
   return (
@@ -187,9 +192,14 @@ export default function MyMembershipPage() {
                 <button
                   onClick={onRenew}
                   disabled={subscribe.isPending}
+                  title={
+                    hasActiveInterval
+                      ? `Adds another term on top of your current expiry (${fmtDate(subExpiry)})`
+                      : undefined
+                  }
                   className="bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {subscribe.isPending ? "..." : apiSub ? "Renew" : "Subscribe"}
+                  {subscribe.isPending ? "..." : renewLabel}
                 </button>
               )}
             </div>
@@ -296,7 +306,9 @@ export default function MyMembershipPage() {
 
           {expiresIn !== null && expiresIn <= 60 && expiresIn >= 0 && (
             <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-lg p-3">
-              Renewal reminder: your subscription expires in {expiresIn} days.
+              Renewal reminder: your subscription expires in {expiresIn} days. You
+              can extend now — the new term is added on top of your current expiry
+              ({fmtDate(subExpiry)}), so you don&apos;t lose any remaining days.
             </div>
           )}
         </div>
