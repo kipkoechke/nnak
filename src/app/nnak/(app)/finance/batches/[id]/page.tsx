@@ -2,7 +2,7 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useAdminBranchBatch, useRecordBatchPayment } from "@/hooks/use-branch-batches";
+import { useFinanceBatch, useRecordFinanceBatchPayment } from "@/hooks/use-finance";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose } from "react-icons/md";
 import { useState } from "react";
@@ -42,9 +42,9 @@ export default function AdminBatchDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: batch, isLoading } = useAdminBranchBatch(id);
+  const { data: batch, isLoading } = useFinanceBatch(id);
   const { data: paymentMethods = [] } = usePaymentMethods();
-  const record = useRecordBatchPayment();
+  const record = useRecordFinanceBatchPayment();
 
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState("");
