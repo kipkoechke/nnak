@@ -12,7 +12,6 @@ import {
   useInvoiceStkQuery,
 } from "@/hooks/use-member-payments";
 import { nqk } from "@/lib/query-keys";
-import { PhoneInputField } from "@/components/common/PhoneInputField";
 import DigitalIdCard, {
   downloadDigitalIdPdf,
 } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
@@ -42,6 +41,20 @@ const daysUntil = (iso?: string | null) => {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 };
 
+// How long Safaricom keeps the STK prompt alive on the handset (~60s). Used
+// only for the on-screen countdown — polling continues until a terminal status.
+const STK_TIMEOUT_SECONDS = 60;
+
+// Normalise any Kenyan number entry to Safaricom MSISDN form (2547XXXXXXXX /
+// 2541XXXXXXXX) regardless of how it was typed: +254…, 0…, or a bare 7…/1….
+const normalizeKenyaMsisdn = (raw: string) => {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (digits.startsWith("254")) return digits;
+  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
+  if (digits.startsWith("7") || digits.startsWith("1")) return `254${digits}`;
+  return digits;
+};
+
 const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div>
     <dt className="text-[11px] uppercase tracking-wide text-slate-500">
@@ -61,6 +74,7 @@ export default function MyMembershipPage() {
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(STK_TIMEOUT_SECONDS);
 
   const isTerminal = (s?: string | null) =>
     !!s &&
@@ -95,6 +109,22 @@ export default function MyMembershipPage() {
     }, 1500);
     return () => clearTimeout(t);
   }, [isSuccess, qc]);
+
+  // Countdown for the STK prompt: restarts whenever a new push is initiated,
+  // ticks down while we wait, and stops once the status resolves.
+  const isWaiting = !!activeInvoiceId && !isSuccess && !isFailed;
+  useEffect(() => {
+    if (!activeInvoiceId) return;
+    setCountdown(STK_TIMEOUT_SECONDS);
+  }, [activeInvoiceId]);
+  useEffect(() => {
+    if (!isWaiting) return;
+    const t = setInterval(
+      () => setCountdown((s) => (s > 0 ? s - 1 : 0)),
+      1000,
+    );
+    return () => clearInterval(t);
+  }, [isWaiting]);
 
   // On failure: surface the reason and re-enable the Pay button.
   useEffect(() => {
@@ -310,8 +340,8 @@ export default function MyMembershipPage() {
                       >
                         (
                         {expiresIn < 0
-                          ? `${Math.abs(expiresIn)}d overdue`
-                          : `${expiresIn}d left`}
+                          ? `${Math.abs(expiresIn)} days overdue`
+                          : `${expiresIn} days left`}
                         )
                       </span>
                     )}
@@ -377,23 +407,34 @@ export default function MyMembershipPage() {
             </div>
 
             <div>
-              <PhoneInputField
-                label="M-Pesa Phone Number"
-                value={stkPhone || profile.phone || ""}
-                onChange={(val) => setStkPhone(val || "")}
-                defaultCountry="KE"
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                M-Pesa Phone Number
+              </label>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={stkPhone}
+                onChange={(e) => setStkPhone(e.target.value)}
+                placeholder="07XX XXX XXX or 2547XXXXXXXX"
+                disabled={isWaiting}
+                className="w-full h-[46px] px-3 rounded-lg border border-gray-300 bg-white text-sm shadow-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary disabled:bg-slate-50"
               />
+              {stkPhone.trim() && (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  We&apos;ll prompt {normalizeKenyaMsisdn(stkPhone)}
+                </p>
+              )}
             </div>
 
             <button
               onClick={() => {
-                const phone = stkPhone || profile.phone || "";
+                const phone = normalizeKenyaMsisdn(stkPhone || profile.phone || "");
                 if (!phone) return;
                 setPaymentError(null);
                 stkPush.mutate(
                   {
                     invoiceId: apiSub.invoice!.id,
-                    body: { phone_number: phone.replace(/^\+/, "") },
+                    body: { phone_number: phone },
                   },
                   {
                     onSuccess: (data) => {
@@ -410,18 +451,30 @@ export default function MyMembershipPage() {
             >
               {stkPush.isPending
                 ? "Sending..."
-                : activeInvoiceId && !isFailed && !isSuccess
+                : isWaiting
                   ? "Waiting for confirmation…"
                   : paymentError
                     ? "Retry Payment"
                     : "Pay via M-Pesa"}
             </button>
 
-            {activeInvoiceId && !isSuccess && !isFailed && (
+            {isWaiting && (
               <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-                <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-                STK Push sent. Enter your M-Pesa PIN on your phone — we&apos;ll
-                confirm automatically.
+                <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin shrink-0" />
+                {countdown > 0 ? (
+                  <span>
+                    STK Push sent. Enter your M-Pesa PIN on your phone — we&apos;ll
+                    confirm automatically.{" "}
+                    <span className="font-semibold tabular-nums">
+                      ({countdown}s)
+                    </span>
+                  </span>
+                ) : (
+                  <span>
+                    Still processing — this is taking longer than usual. We&apos;ll
+                    update automatically once M-Pesa responds.
+                  </span>
+                )}
               </div>
             )}
 
