@@ -6,9 +6,10 @@ import {
   useCreateSubscription,
   useMySubscription,
   useMySubscriptions,
-  usePaySubscriptionBalance,
 } from "@/hooks/use-subscriptions";
-import type { MemberSubscription } from "@/types/nnak";
+import { useNnakMe } from "@/hooks/use-auth";
+import StkPayModal from "@/components/common/StkPayModal";
+import type { MemberSubscription, SubscriptionInvoice } from "@/types/nnak";
 
 const fmtDate = (iso?: string | null) =>
   iso
@@ -26,14 +27,24 @@ const statusTone = (paid: boolean) =>
 
 export default function MySubscriptionsPage() {
   const { data: subs = [], isLoading } = useMySubscriptions();
+  const { data: me } = useNnakMe();
   const subscribe = useCreateSubscription();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [payInvoice, setPayInvoice] = useState<SubscriptionInvoice | null>(null);
 
   // If any subscription is still active, creating a new one extends (stacks)
   // the runtime onto the current expiry — so the CTA reads "Extend".
   const hasActive = subs.some(
     (s) => s.status && (!s.end_date || new Date(s.end_date).getTime() > Date.now()),
   );
+
+  // Create a subscription, then open the M-Pesa payment modal for its invoice.
+  const startSubscription = async () => {
+    const created = await subscribe.mutateAsync({}).catch(() => null);
+    if (created?.invoice && !created.invoice.status) {
+      setPayInvoice(created.invoice);
+    }
+  };
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -49,7 +60,7 @@ export default function MySubscriptionsPage() {
           </span>
         )}
         <button
-          onClick={() => subscribe.mutate({})}
+          onClick={startSubscription}
           disabled={subscribe.isPending}
           className="bg-primary text-white text-sm font-medium px-3 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
         >
@@ -95,7 +106,20 @@ export default function MySubscriptionsPage() {
       </div>
 
       {openId && (
-        <DetailModal id={openId} onClose={() => setOpenId(null)} />
+        <DetailModal
+          id={openId}
+          onClose={() => setOpenId(null)}
+          onPay={(inv) => setPayInvoice(inv)}
+        />
+      )}
+
+      {payInvoice && (
+        <StkPayModal
+          invoice={payInvoice}
+          defaultPhone={me?.profile?.phone}
+          title="Pay Subscription"
+          onClose={() => setPayInvoice(null)}
+        />
       )}
     </div>
   );
@@ -127,9 +151,16 @@ const Row = ({ sub, onView }: { sub: MemberSubscription; onView: () => void }) =
   </tr>
 );
 
-const DetailModal = ({ id, onClose }: { id: string; onClose: () => void }) => {
+const DetailModal = ({
+  id,
+  onClose,
+  onPay,
+}: {
+  id: string;
+  onClose: () => void;
+  onPay: (invoice: SubscriptionInvoice) => void;
+}) => {
   const { data: sub, isLoading } = useMySubscription(id);
-  const [showPay, setShowPay] = useState(false);
 
   const invoiceAmount = Number(sub?.invoice?.amount ?? sub?.amount ?? 0);
   const totalPaid = (sub?.invoice?.payments ?? []).reduce(
@@ -213,12 +244,15 @@ const DetailModal = ({ id, onClose }: { id: string; onClose: () => void }) => {
                   >
                     KES {balance.toLocaleString()}
                   </span>
-                  {balance > 0 && (
+                  {balance > 0 && sub.invoice && !sub.invoice.status && (
                     <button
-                      onClick={() => setShowPay(true)}
-                      className="bg-primary text-white text-xs font-medium px-3 py-2 rounded-md hover:bg-primary/90"
+                      onClick={() => {
+                        onPay(sub.invoice!);
+                        onClose();
+                      }}
+                      className="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded-md hover:bg-emerald-700"
                     >
-                      Pay Balance
+                      Pay via M-Pesa
                     </button>
                   )}
                 </div>
@@ -277,111 +311,7 @@ const DetailModal = ({ id, onClose }: { id: string; onClose: () => void }) => {
           </div>
         </div>
       </div>
-
-      {showPay && (
-        <PayModal
-          balance={balance}
-          subscriptionId={id}
-          onClose={() => setShowPay(false)}
-          onPaid={onClose}
-        />
-      )}
     </>
-  );
-};
-
-const PayModal = ({
-  balance,
-  subscriptionId,
-  onClose,
-  onPaid,
-}: {
-  balance: number;
-  subscriptionId: string;
-  onClose: () => void;
-  onPaid: () => void;
-}) => {
-  const pay = usePaySubscriptionBalance();
-  const [amount, setAmount] = useState(balance);
-
-  const handlePay = () => {
-    if (amount <= 0 || amount > balance) return;
-    pay.mutate(
-      { id: subscriptionId, amount },
-      {
-        onSuccess: () => {
-          onClose();
-          onPaid();
-        },
-      },
-    );
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-lg shadow-xl w-full max-w-md p-5 space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900">
-            Pay Balance
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-xl leading-none"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="bg-slate-50 border border-slate-200 rounded-md p-3">
-            <div className="text-xs text-slate-500">Outstanding Balance</div>
-            <div className="text-lg font-bold text-slate-900">
-              KES {balance.toLocaleString()}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Amount to Pay (KES)
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) =>
-                setAmount(Math.min(balance, Math.max(0, Number(e.target.value))))
-              }
-              max={balance}
-              min={1}
-              className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 justify-end pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={pay.isPending || amount <= 0 || amount > balance}
-            className="bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-          >
-            {pay.isPending ? "Processing…" : `Pay KES ${amount.toLocaleString()}`}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 };
 

@@ -94,12 +94,6 @@ export default function VerifyOtpPage() {
         restartKey={restartKey}
       />
 
-      {hint && (
-        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-          Dev OTP echo: <span className="font-mono">{hint}</span>
-        </div>
-      )}
-
       <button
         type="submit"
         disabled={verify.isPending || otp.length < 6}
