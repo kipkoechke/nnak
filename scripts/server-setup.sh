@@ -83,7 +83,7 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────
-# 5. Configure host Nginx vhost
+# 5. Configure host Nginx vhost (HTTP-only first, HTTPS after certs)
 # ──────────────────────────────────────────────────────────
 echo ""
 echo "==> [5/7] Configuring Nginx vhost for $DOMAIN..."
@@ -101,33 +101,46 @@ ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
 # Remove default site if present
 rm -f /etc/nginx/sites-enabled/default
 
-echo "    Vhost configured."
+# Comment out HTTPS block so nginx starts without certs
+sed -i '/^# ── HTTPS/,/^}$/s/^/#/' "/etc/nginx/sites-enabled/$DOMAIN"
+
+echo "    Vhost configured (HTTP-only for now)."
 
 # ──────────────────────────────────────────────────────────
-# 6. Obtain SSL certificate
+# 6. Start Nginx (HTTP only) & obtain SSL certificate
 # ──────────────────────────────────────────────────────────
 echo ""
-echo "==> [6/7] Obtaining Let's Encrypt SSL certificate..."
+echo "==> [6/7] Starting Nginx & obtaining SSL certificate..."
 
-# Start nginx temporarily (HTTP only) for ACME challenge
-# certbot --nginx handles the challenge automatically
+# Start nginx with HTTP-only config
+nginx -t && systemctl start nginx || {
+    echo "    ERROR: nginx failed to start. Check config."
+    nginx -t
+    exit 1
+}
+
+# Obtain SSL certificate
 if certbot --nginx -d "$DOMAIN" \
     --non-interactive --agree-tos \
     --email "$LETSENCRYPT_EMAIL" \
     --redirect; then
-    echo "    SSL certificate obtained and configured."
+    echo "    SSL certificate obtained."
 else
-    echo "    WARNING: SSL certificate request failed."
-    echo "    HTTP-only mode active until SSL is resolved."
-    echo "    Re-run: certbot --nginx -d $DOMAIN"
+    echo "    WARNING: certbot failed. Continuing with HTTP-only."
 fi
 
 # ──────────────────────────────────────────────────────────
-# 7. Start & enable Nginx
+# 7. Deploy full config with HTTPS & reload
 # ──────────────────────────────────────────────────────────
 echo ""
-echo "==> [7/7] Starting Nginx..."
+echo "==> [7/7] Deploying full HTTPS config..."
+
+# Re-deploy the pristine vhost (certbot may have modified it)
+cp "$REPO_ROOT/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
+sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
+
 nginx -t && systemctl enable --now nginx
+echo "    Nginx is running with full config."
 echo "    Nginx is running."
 
 # ──────────────────────────────────────────────────────────
