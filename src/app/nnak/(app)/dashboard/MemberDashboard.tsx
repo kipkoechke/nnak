@@ -174,9 +174,11 @@ export default function MemberDashboard() {
           icon={MdPayments}
           title="Subscriptions & Invoices"
           primary={
-            apiDash?.subscription
-              ? `KES ${Number(apiDash.subscription.amount).toLocaleString()}`
-              : "—"
+            invoice && !invoice.status
+              ? `KES ${Number(invoice.pending_amount ?? invoice.amount).toLocaleString()} due`
+              : currentSub
+                ? `KES ${Number(currentSub.amount).toLocaleString()}`
+                : "—"
           }
           subtitle={
             invoice
