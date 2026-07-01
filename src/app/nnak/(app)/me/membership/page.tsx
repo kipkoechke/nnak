@@ -193,10 +193,10 @@ export default function MyMembershipPage() {
   const subAmount = displaySub ? Number(displaySub.amount) : 0;
 
   const subExpiry =
-    me.current_coverage_end_date ??
     me.subscription_ends_on ??
-    dash?.current_coverage_end_date ??
+    me.current_coverage_end_date ??
     dash?.subscription_ends_on ??
+    dash?.current_coverage_end_date ??
     currentSub?.end_date ??
     profile.subscription_expires_at ??
     null;
@@ -296,12 +296,13 @@ export default function MyMembershipPage() {
               member={effectiveMember}
               category={categoryLabel}
               showDownload={false}
+              validUntil={subExpiry}
             />
           )}
 
           {!restricted && (
             <button
-              onClick={() => downloadDigitalIdPdf(effectiveMember)}
+              onClick={() => downloadDigitalIdPdf(effectiveMember, subExpiry)}
               className="w-[344px] inline-flex items-center justify-center gap-1.5 text-[11px] text-slate-600 hover:text-primary py-2"
             >
               <MdDownload className="w-3.5 h-3.5" />
