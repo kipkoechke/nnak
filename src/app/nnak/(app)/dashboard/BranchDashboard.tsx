@@ -11,6 +11,11 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import {
   MdGroups,
@@ -361,6 +366,46 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
               </div>
             </div>
           </Section>
+
+          {/* Payments trend */}
+          {data.trendline && data.trendline.some(
+            (t) => t.fully_paid || t.partially_paid || t.not_paid,
+          ) && (
+            <div className="bg-white border border-slate-200 rounded-lg p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+                Payments Trend (invoices by status)
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart
+                  data={data.trendline}
+                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="month_label"
+                    tick={{ fontSize: 10, fill: "#64748b" }}
+                    axisLine={{ stroke: "#e2e8f0" }}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={36}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
+                  <Line type="monotone" dataKey="fully_paid" name="Fully paid" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="partially_paid" name="Partially paid" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="not_paid" name="Not paid" stroke="#ef4444" strokeWidth={2} dot={{ r: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           {/* Chapter doughnut */}
           <div className="bg-white border border-slate-200 rounded-lg p-4">

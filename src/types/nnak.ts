@@ -940,6 +940,7 @@ export interface BranchDashboardData {
   invites: BranchDashboardInvites;
   chapters: AdminDashboardChapterRow[];
   recent_members: RecentPendingMember[];
+  trendline?: PaymentTrendPoint[];
   supported_params: string[];
   applied_filters: Record<string, string>;
 }
@@ -1249,23 +1250,48 @@ export interface FinanceRemittanceMeta {
   applied_filters: Record<string, string>;
 }
 
+// Monthly payment-status trend (shared by finance + branch dashboards).
+export interface PaymentTrendPoint {
+  month: string;
+  month_label: string;
+  fully_paid: number;
+  partially_paid: number;
+  not_paid: number;
+}
+
+// Monthly revenue trend split by member type.
+export interface RevenueTrendPoint {
+  month: string;
+  month_label: string;
+  corporate: number;
+  individual: number;
+  total: number;
+}
+
 // ── Finance: Dashboard (/finance/dashboard) ───────────────────────
 export interface FinanceDashboardData {
   date_range?: { start: string; end: string };
   members?: {
     total: number; active: number; inactive: number;
     pending_approval: number; new_this_period: number;
-    corporate: number; individual: number;
+    corporate: number; individual: number; nnak_hq?: number;
     aging?: Record<string, number>;
   };
   remittances?: {
     mpesa_collected: number; batch_payments: number; total: number;
     by_category?: { category: string; label: string; amount: number }[];
+    corporate?: { label: string; amount: number };
+    individual?: { label: string; amount: number };
   };
   payments?: {
     total_invoiced: number; total_collected: number;
+    total_invoices?: number; paid_invoices?: number;
     pending_invoices: number; pending_amount: number; collection_rate: number;
+    corporate?: { label: string; collected: number; pending_invoices: number };
+    individual?: { label: string; collected: number; pending_invoices: number };
   };
+  trendline?: PaymentTrendPoint[];
+  revenue_trendline?: RevenueTrendPoint[];
   pending_payments_aging?: { buckets: Record<string, number>; total_pending_amount: number };
   branches?: { id: string; name: string; members: number; employer_type: string; commission_type: string; commission_value: string }[];
   recent_members?: {

@@ -14,6 +14,9 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -128,13 +131,47 @@ export default function FinanceDashboardPage() {
               {primaryTab === "payments" &&
                 (dash.payments ? (
                   <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                       <KpiCard label="Total Invoiced" value={fmtKes(dash.payments.total_invoiced)} />
                       <KpiCard label="Total Collected" value={fmtKes(dash.payments.total_collected)} accent="emerald" />
                       <KpiCard label="Pending Amount" value={fmtKes(dash.payments.pending_amount)} accent="amber" />
-                      <KpiCard label="Pending Invoices" value={String(dash.payments.pending_invoices)} />
+                      <KpiCard label="Total Invoices" value={String(dash.payments.total_invoices ?? "—")} />
+                      <KpiCard label="Pending Invoices" value={String(dash.payments.pending_invoices)} accent="amber" />
                       <KpiCard label="Collection Rate" value={pct(dash.payments.collection_rate)} accent={dash.payments.collection_rate >= 60 ? "emerald" : "amber"} />
                     </div>
+
+                    {/* Corporate vs Individual split */}
+                    {(dash.payments.corporate || dash.payments.individual) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {dash.payments.corporate && (
+                          <SplitCard
+                            label={dash.payments.corporate.label || "Corporate"}
+                            collected={dash.payments.corporate.collected}
+                            pendingInvoices={dash.payments.corporate.pending_invoices}
+                          />
+                        )}
+                        {dash.payments.individual && (
+                          <SplitCard
+                            label={dash.payments.individual.label || "Individual"}
+                            collected={dash.payments.individual.collected}
+                            pendingInvoices={dash.payments.individual.pending_invoices}
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {dash.trendline && dash.trendline.length > 0 && (
+                      <TrendLineChart
+                        title="Payments Trend (invoices by status)"
+                        data={dash.trendline}
+                        series={[
+                          { key: "fully_paid", label: "Fully paid", color: "#059669" },
+                          { key: "partially_paid", label: "Partially paid", color: "#d97706" },
+                          { key: "not_paid", label: "Not paid", color: "#dc2626" },
+                        ]}
+                      />
+                    )}
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <StatBarChart
                         title="Invoiced vs Collected vs Pending"
@@ -148,7 +185,6 @@ export default function FinanceDashboardPage() {
                       {dash.pending_payments_aging && (
                         <StatBarChart
                           title="Pending Payments — Aging"
-                          money
                           data={Object.entries(dash.pending_payments_aging.buckets).map(
                             ([name, value]) => ({ name, value: Number(value) }),
                           )}
@@ -211,7 +247,25 @@ export default function FinanceDashboardPage() {
                       <KpiCard label="Total" value={fmtKes(dash.remittances.total)} />
                       <KpiCard label="M-Pesa Collected" value={fmtKes(dash.remittances.mpesa_collected)} accent="emerald" />
                       <KpiCard label="Batch Payments" value={fmtKes(dash.remittances.batch_payments)} accent="blue" />
+                      {dash.remittances.individual && (
+                        <KpiCard label={dash.remittances.individual.label} value={fmtKes(dash.remittances.individual.amount)} accent="emerald" />
+                      )}
+                      {dash.remittances.corporate && (
+                        <KpiCard label={dash.remittances.corporate.label} value={fmtKes(dash.remittances.corporate.amount)} accent="blue" />
+                      )}
                     </div>
+                    {dash.revenue_trendline && dash.revenue_trendline.length > 0 && (
+                      <TrendLineChart
+                        title="Revenue Trend (Corporate vs Individual)"
+                        money
+                        data={dash.revenue_trendline}
+                        series={[
+                          { key: "corporate", label: "Corporate", color: "#2563eb" },
+                          { key: "individual", label: "Individual", color: "#059669" },
+                          { key: "total", label: "Total", color: "#7c3aed" },
+                        ]}
+                      />
+                    )}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <StatBarChart
                         title="M-Pesa vs Batch"
@@ -379,6 +433,28 @@ export default function FinanceDashboardPage() {
   );
 }
 
+const SplitCard = ({
+  label,
+  collected,
+  pendingInvoices,
+}: {
+  label: string;
+  collected: number;
+  pendingInvoices: number;
+}) => (
+  <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-lg font-bold text-emerald-700 mt-1">{fmtKes(collected)}</div>
+      <div className="text-[11px] text-slate-400">collected</div>
+    </div>
+    <div className="text-right">
+      <div className="text-lg font-bold text-amber-600">{pendingInvoices}</div>
+      <div className="text-[11px] text-slate-400">pending invoices</div>
+    </div>
+  </div>
+);
+
 const StatBarChart = ({
   title,
   data,
@@ -433,6 +509,74 @@ const StatBarChart = ({
               ))}
             </Bar>
           </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
+
+type TrendSeries = { key: string; label: string; color: string };
+
+const TrendLineChart = ({
+  title,
+  data,
+  series,
+  money = false,
+}: {
+  title: string;
+  data: readonly { month_label: string }[];
+  series: TrendSeries[];
+  money?: boolean;
+}) => {
+  const hasData = data.some((row) =>
+    series.some((s) => Number((row as Record<string, unknown>)[s.key]) > 0),
+  );
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+        {title}
+      </h3>
+      {!hasData ? (
+        <div className="h-56 flex items-center justify-center text-sm text-slate-400">
+          No data for this period.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis
+              dataKey="month_label"
+              tick={{ fontSize: 10, fill: "#64748b" }}
+              axisLine={{ stroke: "#e2e8f0" }}
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#64748b" }}
+              axisLine={false}
+              tickLine={false}
+              width={44}
+              allowDecimals={false}
+              tickFormatter={(v: number) => (money ? fmtCompact(v) : String(v))}
+            />
+            <Tooltip
+              formatter={(v, name) => [money ? fmtKes(Number(v)) : Number(v).toLocaleString(), name]}
+              contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
+            {series.map((s) => (
+              <Line
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.color}
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                activeDot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
         </ResponsiveContainer>
       )}
     </div>
