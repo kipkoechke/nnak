@@ -162,49 +162,69 @@ export default function MyMembershipPage() {
     ...me,
     profile,
   };
-  const apiSub = dash?.subscription ?? null;
   const isStudent = me.role === "student";
 
-  const subAmount = apiSub ? Number(apiSub.amount) : 0;
-  const apiStatus = dash?.subscription_status;
+  // Authoritative subscription lifecycle from GET /profile:
+  //  • current_subscription  — the paid term covering today
+  //  • pending_subscription  — a future-dated extension awaiting payment
+  //  • coverage_active       — is the member active *right now* (independent of
+  //    any pending extension). Falls back to the dashboard shape for older APIs.
+  const currentSub = me.current_subscription ?? dash?.subscription ?? null;
+  const pendingSub = me.pending_subscription ?? null;
+  const apiStatus = me.subscription_status ?? dash?.subscription_status;
+  const coverageActive = me.coverage_active ?? apiStatus === "active";
 
-  // A pending subscription whose term starts in the future is an *extension*
-  // queued on top of the member's current active coverage — not a lapse in the
-  // current membership. In that case the member stays active (digital ID
-  // unlocked) and their current term runs until the extension begins; the
-  // pending invoice is just to pay for the additional future term.
-  const pendingStart = apiSub?.start_date ?? null;
-  const isFutureExtension =
-    apiStatus === "pending_payment" &&
-    !!pendingStart &&
-    new Date(pendingStart).getTime() > Date.now();
+  // The invoice the member can pay: the pending extension first, otherwise an
+  // unpaid current-term invoice.
+  const payableSub =
+    pendingSub && pendingSub.invoice && !pendingSub.invoice.status
+      ? pendingSub
+      : currentSub && currentSub.invoice && !currentSub.invoice.status
+        ? currentSub
+        : null;
+  const payableInvoice = payableSub?.invoice ?? null;
+  const canPay = !!payableInvoice && !payableInvoice.status;
 
-  // Current coverage end: for a future-dated extension the active term runs
-  // until the extension starts; otherwise fall back to the subscription end.
-  const subExpiry = isFutureExtension
-    ? pendingStart
-    : (apiSub?.end_date ?? profile.subscription_expires_at ?? null);
+  // What to show in the "active membership" summary — the current term if we
+  // have one, else whatever is payable.
+  const displaySub = currentSub ?? payableSub;
+  const subAmount = displaySub ? Number(displaySub.amount) : 0;
+
+  const subExpiry =
+    me.current_coverage_end_date ??
+    me.subscription_ends_on ??
+    currentSub?.end_date ??
+    profile.subscription_expires_at ??
+    null;
   const expiresIn = daysUntil(subExpiry);
-  const extendsTo = isFutureExtension ? (apiSub?.end_date ?? null) : null;
 
-  const restricted = apiStatus !== "active" && !isFutureExtension;
-  const status: MemberStatus =
-    apiStatus === "active" || isFutureExtension
-      ? "active"
-      : apiStatus === "pending_payment"
-        ? "pending"
-        : apiStatus === "expired" || apiStatus === "cancelled"
-          ? "inactive"
-          : ((profile.status || "pending") as MemberStatus);
+  // A pending extension awaiting payment stacks on top of current coverage.
+  const extendsTo =
+    pendingSub && pendingSub.invoice && !pendingSub.invoice.status
+      ? (pendingSub.end_date ?? null)
+      : null;
+
+  const restricted = !coverageActive;
+  const status: MemberStatus = coverageActive
+    ? "active"
+    : apiStatus === "pending_payment"
+      ? "pending"
+      : apiStatus === "expired" || apiStatus === "cancelled"
+        ? "inactive"
+        : ((profile.status || "pending") as MemberStatus);
 
   const accountNumber = dash?.account_number || profile.account_number;
   const categoryLabel =
-    apiSub?.member_category?.name || profile.employer_type || "—";
+    displaySub?.member_category?.name || profile.employer_type || "—";
 
-  // An active interval means a new subscription extends (stacks onto) the
-  // current expiry rather than replacing it — so the CTA reads "Extend".
-  const hasActiveInterval = expiresIn !== null && expiresIn >= 0;
-  const renewLabel = hasActiveInterval ? "Extend" : apiSub ? "Renew" : "Subscribe";
+  // With active coverage a new subscription extends (stacks onto) the current
+  // expiry rather than replacing it — so the CTA reads "Extend".
+  const hasActiveInterval = coverageActive;
+  const renewLabel = hasActiveInterval
+    ? "Extend"
+    : displaySub
+      ? "Renew"
+      : "Subscribe";
 
   const onRenew = () => subscribe.mutate({});
 
@@ -215,10 +235,10 @@ export default function MyMembershipPage() {
         action={
           !isStudent ? (
             <div className="flex items-center gap-3">
-              {apiSub && (
+              {displaySub && (
                 <div className="hidden sm:block text-right">
                   <div className="text-xs text-slate-500">
-                    {apiSub.member_category.name} · KES{" "}
+                    {displaySub.member_category.name} · KES{" "}
                     {subAmount.toLocaleString()}
                   </div>
                   <div className="text-[11px] text-slate-400">
@@ -226,9 +246,7 @@ export default function MyMembershipPage() {
                   </div>
                 </div>
               )}
-              {apiStatus === "pending_payment" &&
-              apiSub?.invoice &&
-              !apiSub.invoice.status ? (
+              {canPay ? (
                 <button
                   onClick={() => setShowPayModal(true)}
                   className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-emerald-700 whitespace-nowrap"
@@ -366,7 +384,7 @@ export default function MyMembershipPage() {
         </div>
       </div>
 
-      {showPayModal && apiSub?.invoice && (
+      {showPayModal && payableInvoice && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={() => setShowPayModal(false)}
@@ -391,18 +409,18 @@ export default function MyMembershipPage() {
               <div className="flex justify-between">
                 <span className="text-slate-600">Invoice</span>
                 <span className="font-mono font-semibold">
-                  {apiSub.invoice.invoice_number}
+                  {payableInvoice.invoice_number}
                 </span>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-slate-600">Amount</span>
                 <span className="font-semibold">
-                  KES {Number(apiSub.invoice.amount).toLocaleString()}
+                  KES {Number(payableInvoice.amount).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between mt-1">
                 <span className="text-slate-600">Due</span>
-                <span>{fmtDate(apiSub.invoice.due_date)}</span>
+                <span>{fmtDate(payableInvoice.due_date)}</span>
               </div>
             </div>
 
@@ -433,7 +451,7 @@ export default function MyMembershipPage() {
                 setPaymentError(null);
                 stkPush.mutate(
                   {
-                    invoiceId: apiSub.invoice!.id,
+                    invoiceId: payableInvoice.id,
                     body: { phone_number: phone },
                   },
                   {
