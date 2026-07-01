@@ -195,7 +195,7 @@ export default function MemberDashboard() {
           }
           subtitle={
             currentWorkstation
-              ? `${currentWorkstation.county}, ${currentWorkstation.country}`
+              ? `${currentWorkstation.city}, ${currentWorkstation.country}`
               : "Add your current employer"
           }
         />
