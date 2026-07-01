@@ -44,6 +44,7 @@ export interface RegisterPayload {
   county?: string;
   employer_type?: string;
   chapter?: string;
+  branch_id?: string;
 }
 
 export const nnakAuth = {
