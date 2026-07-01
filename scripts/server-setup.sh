@@ -12,6 +12,10 @@
 # ──────────────────────────────────────────────────────────
 set -euo pipefail
 
+# Resolve repo root regardless of where the script is called from
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
 APP_PORT="${APP_PORT:-3010}"
 DOMAIN="portal.nnak.or.ke"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@nnak.or.ke}"
@@ -47,6 +51,8 @@ if ! command -v docker &>/dev/null; then
     apt-get update -qq
     apt-get install -y -qq docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
+    # Allow deploy user to run docker without sudo
+    usermod -aG docker deploy
     echo "    Docker installed."
 else
     echo "    Docker already installed — skipping."
@@ -86,7 +92,7 @@ echo "==> [5/7] Configuring Nginx vhost for $DOMAIN..."
 mkdir -p /var/www/certbot
 
 # Copy vhost template and substitute APP_PORT
-cp nginx/host-vhost.conf "/etc/nginx/sites-available/$DOMAIN"
+cp "$REPO_ROOT/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
 sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
 
 # Enable the site
