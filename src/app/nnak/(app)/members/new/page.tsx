@@ -11,7 +11,7 @@ import {
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import { useNnakBranches } from "@/hooks/use-branches";
+import { useRegistrationBranches } from "@/hooks/use-branches";
 import PageHeader from "@/components/common/PageHeader";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
@@ -97,7 +97,7 @@ export default function NewMemberPage() {
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
   const { data: qualifications = [] } = useProfessionalQualifications();
-  const { data: branches = [] } = useNnakBranches();
+  const { data: branches = [] } = useRegistrationBranches();
   const [step, setStep] = useState<1 | 2>(1);
 
   const {

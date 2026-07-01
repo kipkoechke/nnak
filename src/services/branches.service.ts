@@ -33,6 +33,16 @@ export const nnakBranchesService = {
     });
     return r.data?.data ?? [];
   },
+
+  /** Public branch list for registration branch pickers (GET /branches).
+   *  Unlike `list`, this is accessible without admin scope. */
+  listPublic: async (): Promise<Branch[]> => {
+    if (isDemoSession()) return mockStore.listBranches();
+    const r = await nnakApi.get<BranchesResponse>("/branches", {
+      params: { per_page: 200 },
+    });
+    return r.data?.data ?? [];
+  },
   /** Admin: POST /admin/branches — create a branch with its primary contact.
    *  Returns a pending_token; must complete with OTP verification. */
   create: async (

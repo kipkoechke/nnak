@@ -12,7 +12,7 @@ import {
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import { useNnakBranches } from "@/hooks/use-branches";
+import { useRegistrationBranches } from "@/hooks/use-branches";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
@@ -111,7 +111,7 @@ export default function NnakRegisterPage() {
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
   const { data: qualifications = [] } = useProfessionalQualifications();
-  const { data: branches = [] } = useNnakBranches();
+  const { data: branches = [] } = useRegistrationBranches();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const employerTypeOptions = useMemo(() => employerTypes, [employerTypes]);
