@@ -17,6 +17,9 @@ interface Props {
   member: NnakUser & { profile: NnakProfile };
   category?: string;
   showDownload?: boolean;
+  /** Coverage end date to print on the card. Falls back to the profile's
+   *  subscription_expires_at when not provided. */
+  validUntil?: string | null;
 }
 
 const initialsOf = (name: string): string => {
@@ -166,8 +169,8 @@ const pdfStyles = StyleSheet.create({
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-function DigitalIdPdf({ member, qrDataUrl }: Props & { qrDataUrl: string }) {
-  const valid = fmtDate(member.profile.subscription_expires_at);
+function DigitalIdPdf({ member, qrDataUrl, validUntil }: Props & { qrDataUrl: string }) {
+  const valid = fmtDate(validUntil ?? member.profile.subscription_expires_at);
   const logoUrl =
     typeof window !== "undefined" && logoSrc.startsWith("/")
       ? new URL(logoSrc, window.location.origin).toString()
@@ -216,11 +219,11 @@ function DigitalIdPdf({ member, qrDataUrl }: Props & { qrDataUrl: string }) {
   );
 }
 
-export default function DigitalIdCard({ member, showDownload = true }: Props) {
+export default function DigitalIdCard({ member, showDownload = true, validUntil }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const photo = member.profile.photo_url;
-  const validUntil = fmtDate(member.profile.subscription_expires_at);
+  const validUntilLabel = fmtDate(validUntil ?? member.profile.subscription_expires_at);
 
   useEffect(() => {
     const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
@@ -232,7 +235,7 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
   const downloadPdf = async () => {
     try {
       setDownloading(true);
-      const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} />).toBlob();
+      const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} validUntil={validUntil} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -300,7 +303,7 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
         )}
 
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 26, background: BRAND_GREEN_DARK, color: "white", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10, letterSpacing: 0.4 }}>
-          <span style={{ fontWeight: 600 }}>Valid until {validUntil}</span>
+          <span style={{ fontWeight: 600 }}>Valid until {validUntilLabel}</span>
           <span style={{ opacity: 0.9 }}>nnak.or.ke</span>
         </div>
       </div>
@@ -319,10 +322,11 @@ export default function DigitalIdCard({ member, showDownload = true }: Props) {
 
 export async function downloadDigitalIdPdf(
   member: NnakUser & { profile: NnakProfile },
+  validUntil?: string | null,
 ) {
   const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
   const qrDataUrl = await QRCodeLib.toDataURL(verifyUrl, { width: 120, margin: 1 }).catch(() => "");
-  const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} />).toBlob();
+  const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} validUntil={validUntil} />).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
