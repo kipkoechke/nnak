@@ -1088,7 +1088,7 @@ export interface FinanceMember {
   branch_id: string | null;
   is_active: boolean;
   aging_months: number | null;
-  last_subscription_end: string | null;
+  last_coverage_end: string | null;
   created_at: string;
 }
 
