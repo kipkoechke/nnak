@@ -14,6 +14,15 @@ export const useNnakBranches = (opts?: { enabled?: boolean }) =>
     enabled: opts?.enabled ?? true,
   });
 
+/** Branch list for registration branch pickers — hits GET /branches (no admin
+ *  scope required), unlike useNnakBranches which uses /admin/branches. */
+export const useRegistrationBranches = (opts?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...nqk.branches.list(), "public"] as const,
+    queryFn: nnakBranchesService.listPublic,
+    enabled: opts?.enabled ?? true,
+  });
+
 export const useCreateBranch = () => {
   const qc = useQueryClient();
   return useMutation({
