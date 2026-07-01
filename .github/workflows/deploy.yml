@@ -1,0 +1,174 @@
+name: Deploy to portal.vems.co.ke
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # ═══════════════════════════════════════════════════════════
+  # Job 1: Build
+  # ═══════════════════════════════════════════════════════════
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build Docker image on server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          REPO_URL: https://github.com/${{ github.repository }}.git
+          LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@vems.co.ke' }}
+        run: |
+          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" \
+                REPO_URL="$REPO_URL" \
+                LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
+            bash -s << 'REMOTE_SCRIPT'
+            set -euo pipefail
+
+            # First-time bootstrap
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              echo "==> First deploy — cloning repository..."
+              mkdir -p "$DEPLOY_PATH"
+              git clone "$REPO_URL" "$DEPLOY_PATH"
+              echo "==> Running full server setup (SSL, Docker, Nginx)..."
+              cd "$DEPLOY_PATH"
+              bash scripts/server-setup.sh
+              echo "==> Initial setup complete!"
+              exit 0
+            fi
+
+            echo "==> Pulling latest code from main..."
+            cd "$DEPLOY_PATH"
+            git fetch origin main
+            git reset --hard origin/main
+            echo "    At commit: $(git rev-parse --short HEAD)"
+
+            echo "==> Building Next.js Docker image..."
+            docker compose build --no-cache app
+            echo "==> Build complete!"
+          REMOTE_SCRIPT
+
+  # ═══════════════════════════════════════════════════════════
+  # Job 2: Deploy
+  # ═══════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy container on server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'DEPLOY_SCRIPT'
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+
+            echo "==> [$(date -u '+%Y-%m-%dT%H:%M:%SZ')] Starting deploy..."
+
+            # Stop conflicting containers
+            echo "==> Checking for containers competing on ports 80 / 443..."
+            CONFLICT=$(docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' \
+              | grep -E '0\.0\.0\.0:(80|443)->' || true)
+            if [ -n "$CONFLICT" ]; then
+              echo "    Found — stopping:"
+              echo "$CONFLICT"
+              echo "$CONFLICT" | awk '{print $1}' | xargs docker stop
+              echo "$CONFLICT" | awk '{print $1}' | xargs docker update --restart=no || true
+            else
+              echo "    None found."
+            fi
+
+            echo "==> Bringing up updated app container..."
+            docker compose up -d --remove-orphans app
+            echo "==> Deploy complete!"
+          DEPLOY_SCRIPT
+
+      - name: Container & SSL diagnostics
+        if: always()
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'DIAG'
+            cd "$DEPLOY_PATH" 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
+            echo "=== Container status ==="
+            docker compose ps
+            echo ""
+            echo "=== App logs (last 30 lines) ==="
+            docker compose logs --tail=30 app
+            echo ""
+            echo "=== Host nginx status ==="
+            systemctl is-active nginx || true
+            echo ""
+            echo "=== Nginx sites-enabled ==="
+            ls -la /etc/nginx/sites-enabled/ 2>/dev/null || echo "no sites-enabled dir"
+            echo ""
+            echo "=== Portal vhost (first 20 lines) ==="
+            head -20 /etc/nginx/sites-available/portal.vems.co.ke 2>/dev/null || echo "vhost file not found"
+            echo ""
+            echo "=== Nginx error log (last 20 lines) ==="
+            tail -20 /var/log/nginx/error.log 2>/dev/null || echo "no error log"
+            echo ""
+            echo "=== SSL cert status ==="
+            ls -la /etc/letsencrypt/live/portal.vems.co.ke/ 2>/dev/null || echo "No cert directory found"
+          DIAG
+
+      - name: Verify site is reachable
+        run: |
+          sleep 15
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 --retry 5 --retry-delay 5 \
+            http://portal.vems.co.ke)
+          echo "HTTP status: $HTTP_STATUS"
+          if [[ "$HTTP_STATUS" == "000" ]]; then
+            echo "::error::Site is unreachable (curl returned 000). Check server logs."
+            exit 1
+          fi
+          echo "Site is up and responding (HTTP $HTTP_STATUS)."
