@@ -42,28 +42,45 @@ jobs:
           REPO_URL: git@github.com:${{ github.repository }}.git
           LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nnak.or.ke' }}
         run: |
+          # First-time bootstrap — clone as deploy user (has GitHub SSH key)
           ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
             env DEPLOY_PATH="$DEPLOY_PATH" \
                 REPO_URL="$REPO_URL" \
-                LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
             bash -s << 'REMOTE_SCRIPT'
             set -euo pipefail
-
-            # First-time bootstrap
             if [ ! -d "$DEPLOY_PATH/.git" ]; then
               echo "==> First deploy — cloning repository..."
               mkdir -p "$DEPLOY_PATH"
               ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
               git clone "$REPO_URL" "$DEPLOY_PATH"
+              echo "==> Clone complete!"
+              exit 0
+            fi
+            echo "==> Repository already exists — skipping clone."
+          REMOTE_SCRIPT
+
+          # Run server-setup as root (needed for apt, nginx config, systemctl)
+          ssh -p "$SERVER_PORT" "root@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" \
+                LETSENCRYPT_EMAIL="$LETSENCRYPT_EMAIL" \
+            bash -s << 'ROOT_SCRIPT'
+            set -euo pipefail
+            if [ -f "$DEPLOY_PATH/scripts/server-setup.sh" ]; then
               echo "==> Running full server setup (SSL, Docker, Nginx)..."
               cd "$DEPLOY_PATH"
               bash scripts/server-setup.sh
               echo "==> Initial setup complete!"
-              exit 0
             fi
+          ROOT_SCRIPT
+
+          # Pull latest & build as deploy user
+          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" \
+            bash -s << 'BUILD_SCRIPT'
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
 
             echo "==> Pulling latest code from main..."
-            cd "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
             echo "    At commit: $(git rev-parse --short HEAD)"
@@ -71,7 +88,7 @@ jobs:
             echo "==> Building Next.js Docker image..."
             docker compose build --no-cache app
             echo "==> Build complete!"
-          REMOTE_SCRIPT
+          BUILD_SCRIPT
 
   # ═══════════════════════════════════════════════════════════
   # Job 2: Deploy
