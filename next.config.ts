@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+
   images: {
     remotePatterns: [
       // Cloudinary — used for all uploaded media (news, team, branches, etc.)
