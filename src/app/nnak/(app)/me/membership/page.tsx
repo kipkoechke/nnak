@@ -169,10 +169,12 @@ export default function MyMembershipPage() {
   //  • pending_subscription  — a future-dated extension awaiting payment
   //  • coverage_active       — is the member active *right now* (independent of
   //    any pending extension). Falls back to the dashboard shape for older APIs.
-  const currentSub = me.current_subscription ?? dash?.subscription ?? null;
-  const pendingSub = me.pending_subscription ?? null;
+  const currentSub =
+    me.current_subscription ?? dash?.current_subscription ?? dash?.subscription ?? null;
+  const pendingSub = me.pending_subscription ?? dash?.pending_subscription ?? null;
   const apiStatus = me.subscription_status ?? dash?.subscription_status;
-  const coverageActive = me.coverage_active ?? apiStatus === "active";
+  const coverageActive =
+    me.coverage_active ?? dash?.coverage_active ?? apiStatus === "active";
 
   // The invoice the member can pay: the pending extension first, otherwise an
   // unpaid current-term invoice.
@@ -193,6 +195,8 @@ export default function MyMembershipPage() {
   const subExpiry =
     me.current_coverage_end_date ??
     me.subscription_ends_on ??
+    dash?.current_coverage_end_date ??
+    dash?.subscription_ends_on ??
     currentSub?.end_date ??
     profile.subscription_expires_at ??
     null;
