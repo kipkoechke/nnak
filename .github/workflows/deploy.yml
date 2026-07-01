@@ -272,15 +272,33 @@ jobs:
             echo "==> Deploy complete!"
           DEPLOY_SCRIPT
 
-      - name: Reload nginx (root)
+      - name: Rewrite nginx config & reload (root)
         if: always()
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          ssh -p "$SERVER_PORT" "root@$SERVER_HOST" bash -s << 'NGINX_RELOAD'
+          ssh -p "$SERVER_PORT" "root@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" \
+                APP_PORT="${APP_PORT:-3010}" \
+            bash -s << 'NGINX_RELOAD'
             set -euo pipefail
-            echo "==> Reloading host nginx..."
+            DOMAIN="portal.nnak.or.ke"
+
+            echo "==> Overwriting nginx config from repo template (undoes certbot damage)..."
+            cp "$DEPLOY_PATH/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
+            sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
+
+            # Ensure sites-enabled symlink exists
+            if [ ! -L "/etc/nginx/sites-enabled/$DOMAIN" ]; then
+              ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
+            fi
+
+            # Prevent certbot from modifying the config
+            chmod 444 "/etc/nginx/sites-available/$DOMAIN"
+
+            echo "==> Testing & reloading nginx..."
             nginx -t && nginx -s reload && echo "    nginx reloaded successfully." || {
               echo "::error:: nginx reload failed!"
               nginx -t 2>&1 || true
