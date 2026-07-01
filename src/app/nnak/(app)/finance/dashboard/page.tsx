@@ -7,7 +7,18 @@ import {
   MdUpload,
   MdReceipt,
   MdCalendarToday,
+  MdPayments,
 } from "react-icons/md";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import PageHeader from "@/components/common/PageHeader";
 import { useFinanceDashboard } from "@/hooks/use-finance";
 
@@ -20,18 +31,26 @@ const defaultRange = () => {
 
 const fmtKes = (n?: number) =>
   n != null ? `KES ${Number(n).toLocaleString()}` : "—";
+const fmtCompact = (n: number) =>
+  Math.abs(n) >= 1000
+    ? `${(n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`
+    : `${n}`;
 const fmtDate = (s?: string | null) =>
   s
     ? new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 const pct = (n?: number) => (n != null ? `${Number(n).toFixed(1)}%` : "—");
 
+type PrimaryTab = "payments" | "members" | "remittances";
 type DetailTab = "members" | "branches" | "byproducts";
+
+const CHART_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
 
 export default function FinanceDashboardPage() {
   const init = useMemo(() => defaultRange(), []);
   const [startDate, setStartDate] = useState(init.start);
   const [endDate, setEndDate] = useState(init.end);
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>("payments");
   const [detailTab, setDetailTab] = useState<DetailTab>("members");
 
   const { data: dash, isLoading } = useFinanceDashboard({
@@ -79,84 +98,167 @@ export default function FinanceDashboardPage() {
 
       {!isLoading && dash && (
         <>
-          {/* KPI row — Payments */}
-          {dash.payments && (
-            <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Payments
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <KpiCard label="Total Invoiced" value={fmtKes(dash.payments.total_invoiced)} />
-                <KpiCard label="Total Collected" value={fmtKes(dash.payments.total_collected)} accent="emerald" />
-                <KpiCard label="Pending Amount" value={fmtKes(dash.payments.pending_amount)} accent="amber" />
-                <KpiCard label="Pending Invoices" value={String(dash.payments.pending_invoices)} />
-                <KpiCard label="Collection Rate" value={pct(dash.payments.collection_rate)} accent={dash.payments.collection_rate >= 60 ? "emerald" : "amber"} />
-              </div>
-            </section>
-          )}
+          {/* Primary tab bar — Payments / Members / Remittances */}
+          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="flex border-b border-slate-100">
+              {(
+                [
+                  { key: "payments", label: "Payments", icon: MdPayments },
+                  { key: "members", label: "Members", icon: MdPeople },
+                  { key: "remittances", label: "Remittances", icon: MdSwapHoriz },
+                ] as { key: PrimaryTab; label: string; icon: React.ComponentType<{ className?: string }> }[]
+              ).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setPrimaryTab(key)}
+                  className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${
+                    primaryTab === key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
 
-          {/* KPI row — Members */}
-          {dash.members && (
-            <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Members
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <KpiCard label="Total" value={String(dash.members.total)} />
-                <KpiCard label="Active" value={String(dash.members.active)} accent="emerald" />
-                <KpiCard label="Inactive" value={String(dash.members.inactive)} accent="amber" />
-                <KpiCard label="New this period" value={String(dash.members.new_this_period)} accent="blue" />
-                <KpiCard label="Pending Approval" value={String(dash.members.pending_approval)} />
-              </div>
-            </section>
-          )}
+            <div className="p-4 flex flex-col gap-4">
+              {/* Payments tab */}
+              {primaryTab === "payments" &&
+                (dash.payments ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <KpiCard label="Total Invoiced" value={fmtKes(dash.payments.total_invoiced)} />
+                      <KpiCard label="Total Collected" value={fmtKes(dash.payments.total_collected)} accent="emerald" />
+                      <KpiCard label="Pending Amount" value={fmtKes(dash.payments.pending_amount)} accent="amber" />
+                      <KpiCard label="Pending Invoices" value={String(dash.payments.pending_invoices)} />
+                      <KpiCard label="Collection Rate" value={pct(dash.payments.collection_rate)} accent={dash.payments.collection_rate >= 60 ? "emerald" : "amber"} />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <StatBarChart
+                        title="Invoiced vs Collected vs Pending"
+                        money
+                        data={[
+                          { name: "Invoiced", value: dash.payments.total_invoiced },
+                          { name: "Collected", value: dash.payments.total_collected },
+                          { name: "Pending", value: dash.payments.pending_amount },
+                        ]}
+                      />
+                      {dash.pending_payments_aging && (
+                        <StatBarChart
+                          title="Pending Payments — Aging"
+                          money
+                          data={Object.entries(dash.pending_payments_aging.buckets).map(
+                            ([name, value]) => ({ name, value: Number(value) }),
+                          )}
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-sm text-center text-slate-400">No payment data.</div>
+                ))}
 
-          {/* Remittances + Batches row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {dash.remittances && (
-              <section className="bg-white border border-slate-200 rounded-xl p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                  <MdSwapHoriz className="w-4 h-4" /> Remittances
-                </h2>
-                <div className="grid grid-cols-3 gap-3 mb-3">
-                  <div>
-                    <div className="text-[11px] text-slate-500">Total</div>
-                    <div className="font-bold text-slate-900">{fmtKes(dash.remittances.total)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500">M-Pesa</div>
-                    <div className="font-semibold text-emerald-700">{fmtKes(dash.remittances.mpesa_collected)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500">Batch</div>
-                    <div className="font-semibold text-blue-700">{fmtKes(dash.remittances.batch_payments)}</div>
-                  </div>
-                </div>
-              </section>
-            )}
+              {/* Members tab */}
+              {primaryTab === "members" &&
+                (dash.members ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <KpiCard label="Total" value={String(dash.members.total)} />
+                      <KpiCard label="Active" value={String(dash.members.active)} accent="emerald" />
+                      <KpiCard label="Inactive" value={String(dash.members.inactive)} accent="amber" />
+                      <KpiCard label="New this period" value={String(dash.members.new_this_period)} accent="blue" />
+                      <KpiCard label="Pending Approval" value={String(dash.members.pending_approval)} />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <StatBarChart
+                        title="Membership Status"
+                        data={[
+                          { name: "Active", value: dash.members.active },
+                          { name: "Inactive", value: dash.members.inactive },
+                          { name: "Pending", value: dash.members.pending_approval },
+                          { name: "New", value: dash.members.new_this_period },
+                        ]}
+                      />
+                      <StatBarChart
+                        title="Corporate vs Individual"
+                        data={[
+                          { name: "Corporate", value: dash.members.corporate },
+                          { name: "Individual", value: dash.members.individual },
+                        ]}
+                      />
+                    </div>
+                    {dash.members.aging && (
+                      <StatBarChart
+                        title="Members — Aging"
+                        data={Object.entries(dash.members.aging).map(([name, value]) => ({
+                          name,
+                          value: Number(value),
+                        }))}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className="py-8 text-sm text-center text-slate-400">No member data.</div>
+                ))}
 
-            {dash.batches && (
-              <section className="bg-white border border-slate-200 rounded-xl p-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                  <MdReceipt className="w-4 h-4" /> Batches (This Month)
-                </h2>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <div className="text-[11px] text-slate-500">Count</div>
-                    <div className="font-bold text-slate-900">{dash.batches.this_month.count}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500">Collected</div>
-                    <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.total_collected)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500">HQ Share</div>
-                    <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.hq_share)}</div>
-                  </div>
-                </div>
-              </section>
-            )}
-          </div>
+              {/* Remittances tab */}
+              {primaryTab === "remittances" &&
+                (dash.remittances ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <KpiCard label="Total" value={fmtKes(dash.remittances.total)} />
+                      <KpiCard label="M-Pesa Collected" value={fmtKes(dash.remittances.mpesa_collected)} accent="emerald" />
+                      <KpiCard label="Batch Payments" value={fmtKes(dash.remittances.batch_payments)} accent="blue" />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <StatBarChart
+                        title="M-Pesa vs Batch"
+                        money
+                        data={[
+                          { name: "M-Pesa", value: dash.remittances.mpesa_collected },
+                          { name: "Batch", value: dash.remittances.batch_payments },
+                        ]}
+                      />
+                      {dash.remittances.by_category && dash.remittances.by_category.length > 0 && (
+                        <StatBarChart
+                          title="Remittances by Category"
+                          money
+                          data={dash.remittances.by_category.map((c) => ({
+                            name: c.label || c.category,
+                            value: Number(c.amount),
+                          }))}
+                        />
+                      )}
+                    </div>
+                    {dash.batches && (
+                      <div className="bg-white border border-slate-200 rounded-xl p-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                          <MdReceipt className="w-4 h-4" /> Batches (This Month)
+                        </h3>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <div className="text-[11px] text-slate-500">Count</div>
+                            <div className="font-bold text-slate-900">{dash.batches.this_month.count}</div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-slate-500">Collected</div>
+                            <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.total_collected)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-slate-500">HQ Share</div>
+                            <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.hq_share)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-8 text-sm text-center text-slate-400">No remittance data.</div>
+                ))}
+            </div>
+          </section>
 
           {/* Detail tab bar */}
           <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -276,6 +378,66 @@ export default function FinanceDashboardPage() {
     </div>
   );
 }
+
+const StatBarChart = ({
+  title,
+  data,
+  money = false,
+}: {
+  title: string;
+  data: { name: string; value: number }[];
+  money?: boolean;
+}) => {
+  const hasData = data.some((d) => Number(d.value) > 0);
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+        {title}
+      </h3>
+      {!hasData ? (
+        <div className="h-56 flex items-center justify-center text-sm text-slate-400">
+          No data for this period.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={224}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 11, fill: "#64748b" }}
+              axisLine={{ stroke: "#e2e8f0" }}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#64748b" }}
+              axisLine={false}
+              tickLine={false}
+              width={44}
+              tickFormatter={(v: number) => (money ? fmtCompact(v) : String(v))}
+            />
+            <Tooltip
+              cursor={{ fill: "#f8fafc" }}
+              formatter={(v) => {
+                const n = Number(v);
+                return [money ? fmtKes(n) : n.toLocaleString(), ""];
+              }}
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+              }}
+            />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={64}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
 
 const KpiCard = ({
   label,
