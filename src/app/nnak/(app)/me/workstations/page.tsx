@@ -15,7 +15,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const empty: WorkstationInput = {
   name: "",
   country: "Kenya",
-  county: "",
+  city: "",
   start_date: todayIso(),
 };
 
@@ -46,7 +46,7 @@ export default function MyWorkstationsPage() {
     setForm({
       name: w.name,
       country: w.country,
-      county: w.county,
+      city: w.city,
       start_date: w.start_date.slice(0, 10),
     });
     setOpen(true);
@@ -103,7 +103,7 @@ export default function MyWorkstationsPage() {
               items.map((w) => (
                 <tr key={w.id} className="hover:bg-slate-50">
                   <td className="px-4 py-2 font-medium text-slate-900">{w.name}</td>
-                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.county}</td>
+                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.city}</td>
                   <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.country}</td>
                   <td className="px-4 py-2 text-slate-600">{fmt(w.start_date)}</td>
                   <td className="px-4 py-2 text-right">
@@ -143,7 +143,7 @@ export default function MyWorkstationsPage() {
 
             <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
             <div className="grid grid-cols-2 gap-2">
-              <Field label="County" value={form.county} onChange={(v) => setForm({ ...form, county: v })} required />
+              <Field label="County" value={form.city} onChange={(v) => setForm({ ...form, city: v })} required />
               <Field label="Country" value={form.country} onChange={(v) => setForm({ ...form, country: v })} required />
             </div>
             <Field

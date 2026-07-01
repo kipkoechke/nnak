@@ -597,7 +597,8 @@ export interface Workstation {
   id: string;
   name: string;
   country: string;
-  county: string;
+  /** Backend field is `city` (labelled "County" in the UI). */
+  city: string;
   start_date: string;
   user_id: string;
   created_at: string;
@@ -606,7 +607,8 @@ export interface Workstation {
 export interface WorkstationInput {
   name: string;
   country: string;
-  county: string;
+  /** Backend field is `city` (labelled "County" in the UI). */
+  city: string;
   start_date: string;
 }
 
