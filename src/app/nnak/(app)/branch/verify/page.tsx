@@ -119,14 +119,6 @@ export default function BranchVerifyMemberPage() {
           restartKey={restartKey}
         />
 
-        {(emailOtpHint || phoneOtpHint) && (
-          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-            Dev OTP hints — Email:{" "}
-            <span className="font-mono">{emailOtpHint || "—"}</span>, Phone:{" "}
-            <span className="font-mono">{phoneOtpHint || "—"}</span>
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={verify.isPending || !canSubmit}
