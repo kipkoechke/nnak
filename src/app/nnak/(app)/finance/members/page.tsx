@@ -110,7 +110,7 @@ export default function FinanceMembersPage() {
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Chapter</th>
                 <th className="px-3 py-2 text-center">Aging (mo.)</th>
-                <th className="px-3 py-2">Sub. Ends</th>
+                <th className="px-3 py-2">Coverage Ends</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 w-16"></th>
               </tr>
@@ -145,7 +145,7 @@ export default function FinanceMembersPage() {
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-xs">{fmtDate(m.last_subscription_end)}</td>
+                  <td className="px-3 py-2 text-xs">{fmtDate(m.last_coverage_end)}</td>
                   <td className="px-3 py-2">
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
