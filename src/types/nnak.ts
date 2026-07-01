@@ -49,6 +49,16 @@ export interface NnakUser {
   role: NnakRole;
   email_verified_at: string | null;
   profile?: NnakProfile;
+  /** Subscription lifecycle — surfaced on GET /profile. `current_subscription`
+   *  is the paid term covering today; `pending_subscription` is a future-dated
+   *  extension awaiting payment. `coverage_active` is the authoritative "is the
+   *  member active right now" flag (independent of any pending extension). */
+  subscription_status?: SubscriptionStatusKey | string;
+  coverage_active?: boolean;
+  current_coverage_end_date?: string | null;
+  subscription_ends_on?: string | null;
+  current_subscription?: MemberSubscription | null;
+  pending_subscription?: MemberSubscription | null;
 }
 
 export interface NnakProfile {

@@ -63,43 +63,49 @@ export default function MemberDashboard() {
   // the "category" label rather than calling /categories or /branches.
   const accountNumber =
     apiDash?.account_number || profile?.account_number || "—";
+
+  // Authoritative subscription lifecycle from GET /profile (falls back to the
+  // /member/dashboard shape for older APIs):
+  //  • current_subscription — paid term covering today
+  //  • pending_subscription — future-dated extension awaiting payment
+  //  • coverage_active      — is the member active right now
+  const currentSub = me.current_subscription ?? apiDash?.subscription ?? null;
+  const pendingSub = me.pending_subscription ?? null;
+  const apiStatus = me.subscription_status ?? apiDash?.subscription_status;
+  const coverageActive = me.coverage_active ?? apiStatus === "active";
+
   const categoryLabel =
-    apiDash?.subscription?.member_category?.name ||
-    profile?.employer_type ||
-    "—";
+    currentSub?.member_category?.name || profile?.employer_type || "—";
 
-  const apiStatus = apiDash?.subscription_status;
+  const apiExpiry =
+    me.current_coverage_end_date ??
+    me.subscription_ends_on ??
+    currentSub?.end_date ??
+    profile?.subscription_expires_at ??
+    null;
+  const expiresIn = daysUntil(apiExpiry);
+  const extendsTo =
+    pendingSub && pendingSub.invoice && !pendingSub.invoice.status
+      ? (pendingSub.end_date ?? null)
+      : null;
 
-  // A pending subscription whose term starts in the future is an *extension*
-  // stacked on top of current active coverage — the member stays active and
-  // their current term runs until the extension begins. Mirrors the logic on
-  // the membership page so the dashboard doesn't show them as "pending".
-  const pendingStart = apiDash?.subscription?.start_date ?? null;
-  const isFutureExtension =
-    apiStatus === "pending_payment" &&
-    !!pendingStart &&
-    new Date(pendingStart).getTime() > Date.now();
-
-  const coverageExpiry = isFutureExtension
-    ? pendingStart
-    : (apiDash?.subscription?.end_date ?? profile?.subscription_expires_at ?? null);
-  const apiExpiry = coverageExpiry;
-  const expiresIn = daysUntil(coverageExpiry);
-  const extendsTo = isFutureExtension
-    ? (apiDash?.subscription?.end_date ?? null)
-    : null;
-
-  const status =
-    apiStatus === "active" || isFutureExtension
-      ? "active"
-      : apiStatus === "pending_payment"
-        ? "pending"
-        : apiStatus === "expired" || apiStatus === "cancelled"
-          ? "inactive"
-          : profile?.status || "pending";
+  const status = coverageActive
+    ? "active"
+    : apiStatus === "pending_payment"
+      ? "pending"
+      : apiStatus === "expired" || apiStatus === "cancelled"
+        ? "inactive"
+        : profile?.status || "pending";
 
   const currentWorkstation = workstations[0];
-  const invoice = apiDash?.subscription?.invoice;
+  // Invoice the member can pay — pending extension first, else unpaid current.
+  const payableSub =
+    pendingSub && pendingSub.invoice && !pendingSub.invoice.status
+      ? pendingSub
+      : currentSub && currentSub.invoice && !currentSub.invoice.status
+        ? currentSub
+        : null;
+  const invoice = payableSub?.invoice;
 
   const statusTone =
     status === "active"
@@ -125,7 +131,7 @@ export default function MemberDashboard() {
           >
             {status}
           </span>
-          {apiStatus === "pending_payment" && invoice && !invoice.status ? (
+          {invoice && !invoice.status ? (
             <button
               onClick={() => setShowPayModal(true)}
               className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
