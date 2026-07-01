@@ -12,6 +12,7 @@ import {
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
+import { useNnakBranches } from "@/hooks/use-branches";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
@@ -110,12 +111,17 @@ export default function NnakRegisterPage() {
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
   const { data: qualifications = [] } = useProfessionalQualifications();
+  const { data: branches = [] } = useNnakBranches();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const employerTypeOptions = useMemo(() => employerTypes, [employerTypes]);
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
+  );
+  const branchOptions = useMemo(
+    () => branches.map((b) => ({ value: b.id, label: b.name })),
+    [branches],
   );
 
   const {
@@ -141,6 +147,7 @@ export default function NnakRegisterPage() {
       county: "",
       employer_type: "",
       chapter: "",
+      branch_id: "",
       password: "",
       password_confirmation: "",
     },
@@ -200,6 +207,7 @@ export default function NnakRegisterPage() {
         county: data.county,
         employer_type: data.employer_type,
         chapter: data.chapter || undefined,
+        branch_id: data.branch_id || undefined,
       })
       .catch(() => null);
     if (!r) return;
@@ -457,6 +465,21 @@ export default function NnakRegisterPage() {
                 onChange={field.onChange}
                 placeholder="Select chapter (optional)"
                 searchPlaceholder="Search chapters…"
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="branch_id"
+            render={({ field }) => (
+              <SearchableSelect
+                label="Branch"
+                options={branchOptions}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select branch (optional)"
+                searchPlaceholder="Search branches…"
               />
             )}
           />
