@@ -39,7 +39,7 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          REPO_URL: https://github.com/${{ github.repository }}.git
+          REPO_URL: git@github.com:${{ github.repository }}.git
           LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL || 'admin@nnak.or.ke' }}
         run: |
           ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
@@ -53,6 +53,7 @@ jobs:
             if [ ! -d "$DEPLOY_PATH/.git" ]; then
               echo "==> First deploy — cloning repository..."
               mkdir -p "$DEPLOY_PATH"
+              ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
               git clone "$REPO_URL" "$DEPLOY_PATH"
               echo "==> Running full server setup (SSL, Docker, Nginx)..."
               cd "$DEPLOY_PATH"
