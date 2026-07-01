@@ -1,0 +1,29 @@
+services:
+  # ── Next.js application ──────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    image: lems-app:latest
+    restart: unless-stopped
+    # Bind to a specific host port so the host nginx can proxy to it.
+    # Default: 3010 — change APP_PORT in .env if that port is in use.
+    ports:
+      - "${APP_PORT:-3010}:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000',r=>{process.exit(r.statusCode<500?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  web:
+    driver: bridge
