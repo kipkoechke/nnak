@@ -658,7 +658,14 @@ export interface MemberDashboardData {
   member: { id: string; name: string; email: string };
   account_number: string;
   subscription_status: SubscriptionStatusKey | string;
+  /** Legacy single-subscription field; superseded by current/pending below. */
   subscription?: MemberSubscription | null;
+  /** Authoritative subscription lifecycle (mirrors GET /profile). */
+  coverage_active?: boolean;
+  current_coverage_end_date?: string | null;
+  subscription_ends_on?: string | null;
+  current_subscription?: MemberSubscription | null;
+  pending_subscription?: MemberSubscription | null;
 }
 
 // ── Admin: create branch payload ───────────────────────────────────

@@ -61,27 +61,24 @@ export default function MemberDashboard() {
 
   // Profile-derived (no extra fetch): use employer_type from /profile as
   // the "category" label rather than calling /categories or /branches.
-  const accountNumber =
-    apiDash?.account_number || profile?.account_number || "—";
+  const accountNumber = apiDash?.account_number || "—";
 
-  // Authoritative subscription lifecycle from GET /profile (falls back to the
-  // /member/dashboard shape for older APIs):
+  // Authoritative subscription lifecycle from GET /member/dashboard:
   //  • current_subscription — paid term covering today
   //  • pending_subscription — future-dated extension awaiting payment
   //  • coverage_active      — is the member active right now
-  const currentSub = me.current_subscription ?? apiDash?.subscription ?? null;
-  const pendingSub = me.pending_subscription ?? null;
-  const apiStatus = me.subscription_status ?? apiDash?.subscription_status;
-  const coverageActive = me.coverage_active ?? apiStatus === "active";
+  const currentSub = apiDash?.current_subscription ?? null;
+  const pendingSub = apiDash?.pending_subscription ?? null;
+  const apiStatus = apiDash?.subscription_status;
+  const coverageActive = apiDash?.coverage_active ?? false;
 
   const categoryLabel =
     currentSub?.member_category?.name || profile?.employer_type || "—";
 
   const apiExpiry =
-    me.current_coverage_end_date ??
-    me.subscription_ends_on ??
+    apiDash?.current_coverage_end_date ??
+    apiDash?.subscription_ends_on ??
     currentSub?.end_date ??
-    profile?.subscription_expires_at ??
     null;
   const expiresIn = daysUntil(apiExpiry);
   const extendsTo =
