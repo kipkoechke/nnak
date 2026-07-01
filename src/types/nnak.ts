@@ -621,6 +621,8 @@ export interface SubscriptionInvoice {
   id: string;
   invoice_number: string;
   amount: string | number;
+  amount_paid?: string | number;
+  pending_amount?: string | number;
   status: boolean;
   issue_date: string;
   due_date: string;
