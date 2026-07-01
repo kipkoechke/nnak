@@ -68,14 +68,29 @@ export default function MemberDashboard() {
     profile?.employer_type ||
     "—";
 
-  const apiExpiry = apiDash?.subscription?.end_date ?? null;
-  const expiresIn = apiExpiry
-    ? daysUntil(apiExpiry)
-    : daysUntil(profile?.subscription_expires_at);
-
   const apiStatus = apiDash?.subscription_status;
+
+  // A pending subscription whose term starts in the future is an *extension*
+  // stacked on top of current active coverage — the member stays active and
+  // their current term runs until the extension begins. Mirrors the logic on
+  // the membership page so the dashboard doesn't show them as "pending".
+  const pendingStart = apiDash?.subscription?.start_date ?? null;
+  const isFutureExtension =
+    apiStatus === "pending_payment" &&
+    !!pendingStart &&
+    new Date(pendingStart).getTime() > Date.now();
+
+  const coverageExpiry = isFutureExtension
+    ? pendingStart
+    : (apiDash?.subscription?.end_date ?? profile?.subscription_expires_at ?? null);
+  const apiExpiry = coverageExpiry;
+  const expiresIn = daysUntil(coverageExpiry);
+  const extendsTo = isFutureExtension
+    ? (apiDash?.subscription?.end_date ?? null)
+    : null;
+
   const status =
-    apiStatus === "active"
+    apiStatus === "active" || isFutureExtension
       ? "active"
       : apiStatus === "pending_payment"
         ? "pending"
@@ -135,11 +150,13 @@ export default function MemberDashboard() {
           title="My Membership"
           primary={fmtDate(apiExpiry ?? profile?.subscription_expires_at)}
           subtitle={
-            expiresIn === null
-              ? "No active subscription"
-              : expiresIn < 0
-                ? `${Math.abs(expiresIn)} days overdue — renew now`
-                : `${expiresIn} days until renewal`
+            extendsTo
+              ? `Extension to ${fmtDate(extendsTo)} pending payment`
+              : expiresIn === null
+                ? "No active subscription"
+                : expiresIn < 0
+                  ? `${Math.abs(expiresIn)} days overdue — renew now`
+                  : `${expiresIn} days until renewal`
           }
           tone={
             expiresIn !== null && expiresIn < 0
