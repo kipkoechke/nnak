@@ -76,8 +76,8 @@ export default function MemberDashboard() {
     currentSub?.member_category?.name || profile?.employer_type || "—";
 
   const apiExpiry =
-    apiDash?.current_coverage_end_date ??
     apiDash?.subscription_ends_on ??
+    apiDash?.current_coverage_end_date ??
     currentSub?.end_date ??
     null;
   const expiresIn = daysUntil(apiExpiry);
