@@ -250,6 +250,7 @@ export default function MyMembershipPage() {
                   </div>
                 </div>
               )}
+              {/* Subscribe / Pay buttons temporarily disabled
               {canPay ? (
                 <button
                   onClick={() => setShowPayModal(true)}
@@ -271,6 +272,7 @@ export default function MyMembershipPage() {
                   {subscribe.isPending ? "..." : renewLabel}
                 </button>
               )}
+              */}
             </div>
           ) : undefined
         }
@@ -345,8 +347,19 @@ export default function MyMembershipPage() {
                 value={profile.identification_number || "—"}
               />
               <Item label="Phone" value={profile.phone || "—"} />
-              <Item label="Gender" value={profile.gender || "—"} />
-              <Item label="Designation" value={profile.designation || "—"} />
+              <Item
+                label="Gender"
+                value={
+                  profile.gender
+                    ? profile.gender.charAt(0).toUpperCase() +
+                      profile.gender.slice(1)
+                    : "—"
+                }
+              />
+              <Item
+                label="Designation"
+                value={profile.designation?.toUpperCase() || "—"}
+              />
               <Item
                 label="NCK Verification"
                 value={profile.is_verified ? "Verified" : "Pending"}
