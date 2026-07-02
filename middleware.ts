@@ -56,6 +56,22 @@ function getNnakUserFromCookie(request: NextRequest): MiniUser | null {
 const isAuthed = (request: NextRequest): boolean =>
   !!request.cookies.get("nnak_user")?.value;
 
+/**
+ * Build an absolute URL with the correct protocol.
+ *
+ * nginx terminates TLS and proxies to Next.js over plain HTTP, so
+ * `request.url` always contains `http://`.  We read the `x-forwarded-proto`
+ * header that nginx sets (`$scheme`) to construct HTTPS URLs in production.
+ */
+function buildUrl(path: string, request: NextRequest): URL {
+  const url = new URL(path, request.url);
+  const proto = request.headers.get("x-forwarded-proto");
+  if (proto === "https") {
+    url.protocol = "https:";
+  }
+  return url;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const authed = isAuthed(request);
@@ -66,19 +82,19 @@ export function middleware(request: NextRequest) {
 
   if (isPublic) {
     if (pathname === "/nnak/login" && authed) {
-      return NextResponse.redirect(new URL("/nnak/dashboard", request.url));
+      return NextResponse.redirect(buildUrl("/nnak/dashboard", request));
     }
     return NextResponse.next();
   }
 
   if (pathname === "/") {
     return NextResponse.redirect(
-      new URL(authed ? "/nnak/dashboard" : "/nnak/login", request.url),
+      buildUrl(authed ? "/nnak/dashboard" : "/nnak/login", request),
     );
   }
 
   if (!authed) {
-    const loginUrl = new URL("/nnak/login", request.url);
+    const loginUrl = buildUrl("/nnak/login", request);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -88,7 +104,7 @@ export function middleware(request: NextRequest) {
 
     // Send finance users straight to their dashboard on first load
     if (pathname === "/nnak/dashboard" && nnakUser?.role === "finance") {
-      return NextResponse.redirect(new URL("/nnak/finance/dashboard", request.url));
+      return NextResponse.redirect(buildUrl("/nnak/finance/dashboard", request));
     }
 
     for (const guard of NNAK_ROLE_GUARDS) {
@@ -96,7 +112,7 @@ export function middleware(request: NextRequest) {
         pathname.startsWith(guard.prefix) &&
         !guard.allow.includes(nnakUser?.role || "")
       ) {
-        return NextResponse.redirect(new URL("/unauthorized", request.url));
+        return NextResponse.redirect(buildUrl("/unauthorized", request));
       }
     }
   }
