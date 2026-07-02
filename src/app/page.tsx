@@ -3,12 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+/**
+ * Root page — middleware handles the primary redirect (server-side).
+ * This client-side fallback only runs if middleware is bypassed.
+ * It reads the nnak_user cookie to decide where to send the user,
+ * matching the middleware logic exactly.
+ */
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to home page on load
-    router.replace("/nnak/dashboard");
+    const hasSession = document.cookie
+      .split("; ")
+      .some((c) => c.startsWith("nnak_user="));
+    router.replace(hasSession ? "/nnak/dashboard" : "/nnak/login");
   }, [router]);
 
   return (
