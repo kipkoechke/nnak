@@ -8,6 +8,11 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 
 const DONUT_COLORS = [
@@ -20,6 +25,9 @@ const DONUT_COLORS = [
   "#06b6d4", // cyan-500
   "#f97316", // orange-500
 ];
+
+const fmtKes = (v: string | number) =>
+  `KES ${Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
 const Kpi = ({
   label,
@@ -52,13 +60,9 @@ const Kpi = ({
 const DonutCard = ({
   title,
   data,
-  nameKey,
-  valueKey,
 }: {
   title: string;
   data: { name: string; value: number }[];
-  nameKey: string;
-  valueKey: string;
 }) => (
   <div className="bg-white border border-slate-200 rounded-lg p-4">
     <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
@@ -73,8 +77,8 @@ const DonutCard = ({
         <PieChart>
           <Pie
             data={data}
-            dataKey={valueKey}
-            nameKey={nameKey}
+            dataKey="value"
+            nameKey="name"
             cx="50%"
             cy="50%"
             innerRadius={60}
@@ -104,14 +108,15 @@ const DonutCard = ({
 );
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
-const monthsAgoIso = (n: number) => {
+const daysAgoIso = (n: number) => {
   const d = new Date();
-  d.setMonth(d.getMonth() - n);
+  d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
 };
 
 export default function AdminDashboard() {
-  const [start, setStart] = useState(monthsAgoIso(1));
+  // Default range: the last 30 days.
+  const [start, setStart] = useState(daysAgoIso(30));
   const [end, setEnd] = useState(todayIso());
 
   const params = useMemo(
@@ -122,15 +127,15 @@ export default function AdminDashboard() {
 
   const categoryChart = useMemo(
     () =>
-      (data?.member_category_totals ?? [])
-        .filter((r) => r.category_name)
-        .map((r) => ({ name: r.category_name!, value: r.total_members })),
+      (data?.categories ?? [])
+        .filter((r) => r.category && r.category !== "None")
+        .map((r) => ({ name: r.category, value: r.total })),
     [data],
   );
 
   const chapterChart = useMemo(
     () =>
-      (data?.chapter_totals ?? []).map((r) => ({
+      (data?.chapters ?? []).map((r) => ({
         name: r.chapter_label,
         value: r.total_members,
       })),
@@ -138,6 +143,9 @@ export default function AdminDashboard() {
   );
 
   const pendingMembers = data?.recent_pending_members ?? [];
+  const showTrend = data?.trendline?.some(
+    (t) => t.fully_paid || t.partially_paid || t.not_paid,
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -170,37 +178,282 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          {/* KPI row */}
+          {/* Member KPI row */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Kpi label="Total Members" value={data.total_members} />
-            <Kpi label="Active" value={data.active_members} tone="ok" />
-            <Kpi label="Inactive" value={data.inactive_members} tone="warn" />
+            <Kpi label="Total Members" value={data.members.total} />
+            <Kpi label="Active" value={data.members.active} tone="ok" />
+            <Kpi label="Inactive" value={data.members.inactive} tone="warn" />
             <Kpi
               label="Pending Approval"
-              value={data.pending_approval_members}
+              value={data.members.pending_approval}
               tone="warn"
             />
-            <Kpi label="New in range" value={data.new_members_in_range} />
+            <Kpi label="New This Period" value={data.members.new_this_period} />
             <Kpi
-              label="Collected (KES)"
-              value={Number(data.total_collected_amount || 0).toLocaleString()}
+              label="Corporate / Individual"
+              value={`${data.members.corporate} / ${data.members.individual}`}
             />
           </div>
 
+          {/* Revenue + invites strip */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <Kpi
+              label="Collected (period)"
+              value={fmtKes(data.revenue.collected_this_period)}
+              tone="ok"
+            />
+            <Kpi
+              label="Pending Invoices"
+              value={data.revenue.pending_invoices}
+              tone="warn"
+            />
+            <Kpi
+              label="Pending Amount"
+              value={fmtKes(data.revenue.pending_amount)}
+              tone="warn"
+            />
+            <Kpi label="Pending Invites" value={data.invites.pending_invites} />
+            <Kpi
+              label="Pending Transfers"
+              value={data.invites.pending_transfers}
+            />
+          </div>
+
+          {/* Batches — this month + all time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-white border border-slate-200 rounded-lg p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+                Batches — This Month
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-lg font-semibold text-slate-900">
+                    {data.batches.this_month.count}
+                  </div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Batches
+                  </div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-emerald-700">
+                    {data.batches.this_month.paid_count}
+                  </div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Paid
+                  </div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-amber-700">
+                    {data.batches.this_month.pending_count}
+                  </div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Pending
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-slate-100 mt-3 pt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Collected
+                  </div>
+                  <div className="font-semibold text-slate-900">
+                    {fmtKes(data.batches.this_month.total_collected)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Branch Share
+                  </div>
+                  <div className="font-semibold text-slate-900">
+                    {fmtKes(data.batches.this_month.branch_share)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    HQ Share
+                  </div>
+                  <div className="font-semibold text-slate-900">
+                    {fmtKes(data.batches.this_month.hq_share)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-lg p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+                Batches — All Time
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-center text-xs">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Collected
+                  </div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {fmtKes(data.batches.all_time.total_collected)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Commission
+                  </div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {fmtKes(data.batches.all_time.total_commission)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Branch Share
+                  </div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {fmtKes(data.batches.all_time.total_branch_share)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    HQ Share
+                  </div>
+                  <div className="text-base font-semibold text-slate-900">
+                    {fmtKes(data.batches.all_time.total_hq_share)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Paid Total
+                  </div>
+                  <div className="text-base font-semibold text-emerald-700">
+                    {fmtKes(data.batches.all_time.paid_total)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase">
+                    Pending Total
+                  </div>
+                  <div className="text-base font-semibold text-amber-700">
+                    {fmtKes(data.batches.all_time.pending_total)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payments trend */}
+          {showTrend && (
+            <div className="bg-white border border-slate-200 rounded-lg p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+                Payments Trend (invoices by status)
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart
+                  data={data.trendline}
+                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
+                  <XAxis
+                    dataKey="month_label"
+                    tick={{ fontSize: 10, fill: "#64748b" }}
+                    axisLine={{ stroke: "#e2e8f0" }}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={36}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11 }}
+                    iconType="plainline"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="fully_paid"
+                    name="Fully paid"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="partially_paid"
+                    name="Partially paid"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="not_paid"
+                    name="Not paid"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
           {/* Doughnut charts row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DonutCard
-              title="Members by Category"
-              data={categoryChart}
-              nameKey="name"
-              valueKey="value"
-            />
-            <DonutCard
-              title="Members by Chapter"
-              data={chapterChart}
-              nameKey="name"
-              valueKey="value"
-            />
+            <DonutCard title="Members by Category" data={categoryChart} />
+            <DonutCard title="Members by Chapter" data={chapterChart} />
+          </div>
+
+          {/* Branches table */}
+          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+              Branches
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-left text-xs text-slate-500">
+                  <tr>
+                    <th className="px-4 py-2">Branch</th>
+                    <th className="px-4 py-2">Employer Type</th>
+                    <th className="px-4 py-2 text-right">Members</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(data.branches ?? []).length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-4 py-6 text-center text-slate-500"
+                      >
+                        No branches.
+                      </td>
+                    </tr>
+                  ) : (
+                    data.branches.map((b) => (
+                      <tr key={b.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">
+                          {b.name}
+                        </td>
+                        <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                          {b.employer_type}
+                        </td>
+                        <td className="px-4 py-2 text-right text-slate-900">
+                          {b.members}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pending members table */}

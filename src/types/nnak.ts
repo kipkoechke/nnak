@@ -810,9 +810,8 @@ export interface RecordBatchPaymentInput {
 
 // ── Admin dashboard (GET /admin/dashboard?start_date&end_date) ─────
 export interface AdminDashboardCategoryRow {
-  category_id: string | null;
-  category_name: string | null;
-  total_members: number;
+  category: string;
+  total: number;
 }
 export interface AdminDashboardChapterRow {
   chapter: string;
@@ -860,20 +859,67 @@ export interface RecentPendingMember {
   created_at: string;
   updated_at: string;
 }
+export interface AdminDashboardMembers {
+  total: number;
+  active: number;
+  inactive: number;
+  pending_approval: number;
+  new_this_period: number;
+  corporate: number;
+  individual: number;
+}
+
+export interface AdminDashboardRevenue {
+  collected_this_period: string | number;
+  pending_invoices: number;
+  pending_amount: string | number;
+}
+
+export interface AdminDashboardBranchRow {
+  id: string;
+  name: string;
+  members: number;
+  employer_type: string;
+}
+
+export interface AdminBatchThisMonth {
+  count: number;
+  paid_count: number;
+  pending_count: number;
+  total_collected: string | number;
+  commission: string | number;
+  branch_share: string | number;
+  hq_share: string | number;
+}
+
+export interface AdminBatchAllTime {
+  total_collected: string | number;
+  total_commission: string | number;
+  total_branch_share: string | number;
+  total_hq_share: string | number;
+  paid_total: string | number;
+  pending_total: string | number;
+}
+
 export interface AdminDashboardData {
-  start_date: string;
-  end_date: string;
+  date_range: { start: string; end: string };
+  members: AdminDashboardMembers;
+  revenue: AdminDashboardRevenue;
+  categories: AdminDashboardCategoryRow[];
+  branches: AdminDashboardBranchRow[];
+  chapters: AdminDashboardChapterRow[];
+  batches: {
+    this_month: AdminBatchThisMonth;
+    all_time: AdminBatchAllTime;
+  };
+  invites: {
+    pending_invites: number;
+    pending_transfers: number;
+  };
+  recent_pending_members: RecentPendingMember[];
+  trendline?: PaymentTrendPoint[];
   supported_params: string[];
   applied_filters: Record<string, string>;
-  total_members: number;
-  active_members: number;
-  inactive_members: number;
-  pending_approval_members: number;
-  new_members_in_range: number;
-  member_category_totals: AdminDashboardCategoryRow[];
-  chapter_totals: AdminDashboardChapterRow[];
-  recent_pending_members: RecentPendingMember[];
-  total_collected_amount: string | number;
 }
 
 // ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)
