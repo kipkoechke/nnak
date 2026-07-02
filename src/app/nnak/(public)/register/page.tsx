@@ -169,6 +169,7 @@ export default function NnakRegisterPage() {
     "place_of_work",
     "county",
     "employer_type",
+    "branch_id",
   ];
 
   const handleNext = async (
@@ -475,11 +476,13 @@ export default function NnakRegisterPage() {
             render={({ field }) => (
               <SearchableSelect
                 label="Branch"
+                required
                 options={branchOptions}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder="Select branch (optional)"
+                placeholder="Select branch"
                 searchPlaceholder="Search branches…"
+                error={errors.branch_id?.message}
               />
             )}
           />
