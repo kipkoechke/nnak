@@ -26,9 +26,11 @@ import PageHeader from "@/components/common/PageHeader";
 import { useFinanceDashboard } from "@/hooks/use-finance";
 
 const toISO = (d: Date) => d.toISOString().slice(0, 10);
+// Default range: the last 30 days.
 const defaultRange = () => {
   const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
   return { start: toISO(start), end: toISO(today) };
 };
 

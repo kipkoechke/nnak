@@ -43,9 +43,9 @@ const fmtKes = (v: string | number) =>
   `KES ${Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
-const monthsAgoIso = (n: number) => {
+const daysAgoIso = (n: number) => {
   const d = new Date();
-  d.setMonth(d.getMonth() - n);
+  d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
 };
 
@@ -161,7 +161,8 @@ const BatchMetricsCard = ({
 );
 
 export default function BranchDashboard({ user }: { user: NnakUser }) {
-  const [start, setStart] = useState(monthsAgoIso(1));
+  // Default range: the last 30 days.
+  const [start, setStart] = useState(daysAgoIso(30));
   const [end, setEnd] = useState(todayIso());
   const params = useMemo(
     () => ({ start_date: start, end_date: end }),
