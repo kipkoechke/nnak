@@ -3,15 +3,22 @@ import { NNAK_TOKEN_KEY, NNAK_USER_COOKIE } from "./api";
 
 const STORAGE_KEY = "nnak_user";
 
+const isSecure = () => {
+  if (typeof window === "undefined") return false;
+  return window.location.protocol === "https:";
+};
+
 const setCookie = (name: string, value: string, days = 30) => {
   if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 86_400_000).toUTCString();
-  document.cookie = `${name}=${value}; path=/; expires=${expires}; SameSite=Lax`;
+  const secure = isSecure() ? "; Secure" : "";
+  document.cookie = `${name}=${value}; path=/; expires=${expires}; SameSite=Lax${secure}`;
 };
 
 const removeCookie = (name: string) => {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax`;
+  const secure = isSecure() ? "; Secure" : "";
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax${secure}`;
 };
 
 export const setNnakSession = (user: NnakUser, token: string) => {
