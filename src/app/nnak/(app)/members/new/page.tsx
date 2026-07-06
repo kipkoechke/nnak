@@ -427,11 +427,13 @@ export default function NewMemberPage() {
               render={({ field }) => (
                 <SearchableSelect
                   label="Chapter"
+                  required
                   options={chapterOptions}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Select chapter (optional)"
+                  placeholder="Select chapter"
                   searchPlaceholder="Search chapters…"
+                  error={errors.chapter?.message}
                 />
               )}
             />
