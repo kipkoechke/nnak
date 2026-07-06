@@ -53,7 +53,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <Field label="NCK Registration Number" value={member.profile?.nck_number} />
             <Field label="Phone" value={member.profile?.phone} />
             <Field label="National ID" value={member.profile?.identification_number} />
-            <Field label="Designation" value={member.profile?.designation} />
+            <Field label="Designation" value={member.profile?.designation?.toUpperCase()} />
             <Field label="County" value={member.profile?.county} />
             <Field label="Gender" value={member.profile?.gender} />
             <Field label="Category" value={category?.name || member.profile?.member_category?.name} />

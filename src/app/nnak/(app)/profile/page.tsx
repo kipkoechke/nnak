@@ -199,7 +199,7 @@ export default function ProfileSettingsPage() {
             <Item label="Phone" value={profile?.phone} />
             <Item label="County" value={profile?.county} />
             <Item label="ID Number" value={profile?.identification_number} />
-            <Item label="Designation" value={profile?.designation} />
+            <Item label="Designation" value={profile?.designation?.toUpperCase()} />
             <Item label="Place of Work" value={profile?.employer_name} />
           </dl>
         )}
