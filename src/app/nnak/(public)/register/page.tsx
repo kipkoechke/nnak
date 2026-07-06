@@ -169,6 +169,7 @@ export default function NnakRegisterPage() {
     "place_of_work",
     "county",
     "employer_type",
+    "chapter",
     "branch_id",
   ];
 
@@ -461,11 +462,13 @@ export default function NnakRegisterPage() {
             render={({ field }) => (
               <SearchableSelect
                 label="Chapter"
+                required
                 options={chapterOptions}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder="Select chapter (optional)"
+                placeholder="Select chapter"
                 searchPlaceholder="Search chapters…"
+                error={errors.chapter?.message}
               />
             )}
           />

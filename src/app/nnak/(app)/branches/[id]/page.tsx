@@ -109,7 +109,7 @@ export default function BranchDetailPage({
                     <div className="font-medium">{m.name || "—"}</div>
                     {m.email && <div className="text-xs text-slate-500">{m.email}</div>}
                   </td>
-                  <td className="px-3 py-2 text-xs">{m.designation || "—"}</td>
+                  <td className="px-3 py-2 text-xs">{m.designation?.toUpperCase() || "—"}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 hidden md:table-cell">{m.chapter_label || "—"}</td>
                   <td className="px-3 py-2 text-xs hidden md:table-cell">{m.member_category?.name || "—"}</td>
                   <td className="px-3 py-2">

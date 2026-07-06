@@ -41,7 +41,7 @@ export const registerSchema = z
     place_of_work: z.string().min(1, "Place of work is required"),
     county: z.string().min(1, "County is required"),
     employer_type: z.string().min(1, "Employer type is required"),
-    chapter: z.string().optional(),
+    chapter: z.string().min(1, "Chapter is required"),
     branch_id: z.string().min(1, "Branch is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
