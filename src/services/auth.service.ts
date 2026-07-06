@@ -47,6 +47,18 @@ export interface RegisterPayload {
   branch_id?: string;
 }
 
+/** Fields a member can edit on their own profile. All optional so the form
+ *  can send only what changed. */
+export interface UpdateProfilePayload {
+  name?: string;
+  phone?: string;
+  county?: string;
+  designation?: string;
+  place_of_work?: string;
+  employer_type?: string;
+  chapter?: string;
+}
+
 export const nnakAuth = {
   /** First-leg login. Returns a pending_token; complete with verifyOtp. */
   login: (body: { email: string; password: string }) =>
@@ -83,6 +95,13 @@ export const nnakAuth = {
     password: string;
     password_confirmation: string;
   }) => unwrap<null>(nnakApi.post("/change-password", body)),
+
+  /** Update the signed-in user's own profile. PUT /profile mirrors GET /profile
+   *  and returns the refreshed user (with nested profile). */
+  updateProfile: (body: UpdateProfilePayload) =>
+    unwrap<{ user: NnakUserWithProfile }>(nnakApi.put("/profile", body)).then(
+      (d) => d.user,
+    ),
 
   /** GET /profile -> { user: { ..., profile: {...} } }
    *  Demo sessions short-circuit to the locally seeded user so they don't
