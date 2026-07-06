@@ -91,6 +91,19 @@ export const useNnakChangePassword = () =>
     onError: (e) => toast.error(extractApiError(e, "Change failed")),
   });
 
+export const useNnakUpdateProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: nnakAuth.updateProfile,
+    onSuccess: (user) => {
+      if (user) qc.setQueryData(nqk.auth.me, user);
+      qc.invalidateQueries({ queryKey: nqk.auth.me });
+      toast.success("Profile updated");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Update failed")),
+  });
+};
+
 export const useNnakLogout = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -113,3 +126,4 @@ export const useSignup = useNnakRegister;
 export const useForgotPassword = useNnakForgotPassword;
 export const useResetPassword = useNnakResetPassword;
 export const useUpdateMyPassword = useNnakChangePassword;
+export const useUpdateMyProfile = useNnakUpdateProfile;

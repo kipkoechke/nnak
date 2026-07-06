@@ -33,6 +33,8 @@ interface SearchableSelectProps {
   searchPlaceholder?: string;
   required?: boolean;
   onSearchChange?: (search: string) => void;
+  /** Debounce delay (ms) before backend search fires as the user types. */
+  searchDebounceMs?: number;
   isLoading?: boolean;
   showSearchHint?: boolean;
   pagination?: PaginationInfo;
@@ -50,6 +52,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   searchPlaceholder = "Search...",
   required = false,
   onSearchChange,
+  searchDebounceMs = 300,
   isLoading = false,
   showSearchHint = false,
   pagination,
@@ -78,13 +81,16 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     }
   }, [isOpen]);
 
-  // Notify parent of search changes (for backend search)
-  // Only trigger search when dropdown is open
+  // Notify parent of search changes (for backend search), debounced so
+  // results stream in as the user types without an Enter press or a
+  // request per keystroke. Only triggers while the dropdown is open.
   useEffect(() => {
-    if (onSearchChange && isOpen) {
+    if (!onSearchChange || !isOpen) return;
+    const handle = setTimeout(() => {
       onSearchChange(searchQuery);
-    }
-  }, [searchQuery, onSearchChange, isOpen]);
+    }, searchDebounceMs);
+    return () => clearTimeout(handle);
+  }, [searchQuery, onSearchChange, isOpen, searchDebounceMs]);
 
   // Reset search when dropdown closes
   useEffect(() => {
