@@ -6,7 +6,7 @@ import {
   useNnakChangePassword,
   useNnakUpdateProfile,
 } from "@/hooks/use-auth";
-import { NNAK_ROLES } from "@/lib/rbac";
+import { NNAK_ROLES, isStaff } from "@/lib/rbac";
 import { MdModeEditOutline, MdLockOutline, MdPerson } from "react-icons/md";
 
 const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -92,6 +92,10 @@ export default function ProfileSettingsPage() {
     return <div className="p-4 text-sm text-slate-500">Not signed in.</div>;
 
   const profile = me.profile;
+  // Staff (admin, super_admin, finance, etc.) have no membership identity, so
+  // their profile shows only the account fields — keeping admin and
+  // super_admin profiles consistent with one another.
+  const staff = isStaff(me);
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -141,35 +145,45 @@ export default function ProfileSettingsPage() {
                 value={form.phone}
                 onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
               />
-              <TextField
-                label="County"
-                value={form.county}
-                onChange={(v) => setForm((f) => ({ ...f, county: v }))}
-              />
-              <TextField
-                label="Designation"
-                value={form.designation}
-                onChange={(v) => setForm((f) => ({ ...f, designation: v }))}
-              />
-              <TextField
-                label="Place of Work"
-                value={form.place_of_work}
-                onChange={(v) => setForm((f) => ({ ...f, place_of_work: v }))}
-              />
+              {!staff && (
+                <>
+                  <TextField
+                    label="County"
+                    value={form.county}
+                    onChange={(v) => setForm((f) => ({ ...f, county: v }))}
+                  />
+                  <TextField
+                    label="Designation"
+                    value={form.designation}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, designation: v }))
+                    }
+                  />
+                  <TextField
+                    label="Place of Work"
+                    value={form.place_of_work}
+                    onChange={(v) =>
+                      setForm((f) => ({ ...f, place_of_work: v }))
+                    }
+                  />
+                </>
+              )}
             </div>
-            {/* Read-only identity fields cannot be self-edited. */}
-            <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-              <Item
-                label="Membership Number"
-                value={profile?.membership_number}
-              />
-              <Item label="Account Number" value={profile?.account_number} />
-              <Item label="NCK Number" value={profile?.nck_number} />
-              <Item
-                label="ID Number"
-                value={profile?.identification_number}
-              />
-            </dl>
+            {/* Read-only identity fields cannot be self-edited (members only). */}
+            {!staff && (
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+                <Item
+                  label="Membership Number"
+                  value={profile?.membership_number}
+                />
+                <Item label="Account Number" value={profile?.account_number} />
+                <Item label="NCK Number" value={profile?.nck_number} />
+                <Item
+                  label="ID Number"
+                  value={profile?.identification_number}
+                />
+              </dl>
+            )}
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
@@ -190,17 +204,28 @@ export default function ProfileSettingsPage() {
           </form>
         ) : (
           <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Item
-              label="Membership Number"
-              value={profile?.membership_number}
-            />
-            <Item label="Account Number" value={profile?.account_number} />
-            <Item label="NCK Number" value={profile?.nck_number} />
+            <Item label="Email" value={me.email} />
             <Item label="Phone" value={profile?.phone} />
-            <Item label="County" value={profile?.county} />
-            <Item label="ID Number" value={profile?.identification_number} />
-            <Item label="Designation" value={profile?.designation?.toUpperCase()} />
-            <Item label="Place of Work" value={profile?.employer_name} />
+            {!staff && (
+              <>
+                <Item
+                  label="Membership Number"
+                  value={profile?.membership_number}
+                />
+                <Item label="Account Number" value={profile?.account_number} />
+                <Item label="NCK Number" value={profile?.nck_number} />
+                <Item label="County" value={profile?.county} />
+                <Item
+                  label="ID Number"
+                  value={profile?.identification_number}
+                />
+                <Item
+                  label="Designation"
+                  value={profile?.designation?.toUpperCase()}
+                />
+                <Item label="Place of Work" value={profile?.employer_name} />
+              </>
+            )}
           </dl>
         )}
       </div>

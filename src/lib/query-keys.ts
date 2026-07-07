@@ -19,6 +19,10 @@ export const nqk = {
     all: ["nnak", "categories"] as const,
     list: () => ["nnak", "categories", "list"] as const,
   },
+  admins: {
+    all: ["nnak", "admins"] as const,
+    list: () => ["nnak", "admins", "list"] as const,
+  },
   branches: {
     all: ["nnak", "branches"] as const,
     list: () => ["nnak", "branches", "list"] as const,

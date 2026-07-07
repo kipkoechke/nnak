@@ -149,6 +149,12 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.checkInAttendees,
   },
   {
+    name: "Admins",
+    icon: MdShield,
+    href: "/nnak/admins",
+    show: nnakCan.manageRoles,
+  },
+  {
     name: "Audit Log",
     icon: MdHistory,
     href: "/nnak/ilm/audit",
