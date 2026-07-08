@@ -128,7 +128,6 @@ export default function MemberDashboard() {
           >
             {status}
           </span>
-          {/* Pay now / Renew buttons temporarily disabled
           {invoice && !invoice.status ? (
             <button
               onClick={() => setShowPayModal(true)}
@@ -144,7 +143,6 @@ export default function MemberDashboard() {
               Renew My Membership <MdArrowForward className="w-3.5 h-3.5" />
             </Link>
           ) : null}
-          */}
         </div>
       </div>
 

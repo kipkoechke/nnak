@@ -250,7 +250,6 @@ export default function MyMembershipPage() {
                   </div>
                 </div>
               )}
-              {/* Subscribe / Pay buttons temporarily disabled
               {canPay ? (
                 <button
                   onClick={() => setShowPayModal(true)}
@@ -272,7 +271,6 @@ export default function MyMembershipPage() {
                   {subscribe.isPending ? "..." : renewLabel}
                 </button>
               )}
-              */}
             </div>
           ) : undefined
         }
