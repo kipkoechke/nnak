@@ -100,3 +100,22 @@ export const isStaff = (u?: NnakUser | null) =>
 
 export const isMemberRole = (u?: NnakUser | null) =>
   !!u && (u.role === "member" || u.role === "student");
+
+/**
+ * Individual members pay their own subscription directly. Branch / corporate
+ * members (and students) are billed collectively via their branch, so the
+ * self-service pay / subscribe buttons must not show for them.
+ *
+ * Keys off the member category when known; when the category is missing we
+ * fall back to "not attached to a branch" as the individual signal.
+ */
+export const isIndividualMember = (u?: NnakUser | null) => {
+  if (!u || u.role !== "member") return false;
+  const category = (
+    u.profile?.member_category?.name ??
+    u.profile?.member_category_name ??
+    ""
+  ).toLowerCase();
+  if (category) return category === "individual";
+  return !u.profile?.branch_id;
+};

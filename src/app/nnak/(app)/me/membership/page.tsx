@@ -12,6 +12,7 @@ import {
   useInvoiceStkQuery,
 } from "@/hooks/use-member-payments";
 import { nqk } from "@/lib/query-keys";
+import { isIndividualMember } from "@/lib/rbac";
 import DigitalIdCard, {
   downloadDigitalIdPdf,
 } from "@/app/nnak/(app)/members/[id]/DigitalIdCard";
@@ -162,7 +163,9 @@ export default function MyMembershipPage() {
     ...me,
     profile,
   };
-  const isStudent = me.role === "student";
+  // Only individual members pay their own subscription; branch/corporate
+  // members are billed via their branch and never see the pay/subscribe CTAs.
+  const canSelfPay = isIndividualMember(me);
 
   // Authoritative subscription lifecycle from GET /profile:
   //  • current_subscription  — the paid term covering today
@@ -237,7 +240,7 @@ export default function MyMembershipPage() {
       <PageHeader
         title="My Membership"
         action={
-          !isStudent ? (
+          canSelfPay ? (
             <div className="flex items-center gap-3">
               {displaySub && (
                 <div className="hidden sm:block text-right">
