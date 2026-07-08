@@ -59,7 +59,6 @@ export default function MySubscriptionsPage() {
             Extending adds a new term on top of your current expiry.
           </span>
         )}
-        {/* Subscribe / Extend button temporarily disabled
         <button
           onClick={startSubscription}
           disabled={subscribe.isPending}
@@ -71,7 +70,6 @@ export default function MySubscriptionsPage() {
               ? "Extend Subscription"
               : "New Subscription"}
         </button>
-        */}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
@@ -246,7 +244,6 @@ const DetailModal = ({
                   >
                     KES {balance.toLocaleString()}
                   </span>
-                  {/* Pay via M-Pesa button temporarily disabled
                   {balance > 0 && sub.invoice && !sub.invoice.status && (
                     <button
                       onClick={() => {
@@ -258,7 +255,6 @@ const DetailModal = ({
                       Pay via M-Pesa
                     </button>
                   )}
-                  */}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
                   Invoice: KES {invoiceAmount.toLocaleString()} · Paid: KES{" "}
