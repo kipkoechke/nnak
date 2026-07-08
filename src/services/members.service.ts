@@ -67,17 +67,43 @@ export const membersService = {
 
   getById: async (id: string) => {
     if (isDemoSession()) return mockStore.getMember(id);
+
+    // The list rows are always the fully-nested { ...user, profile } shape.
+    // The URL id may be either the user id or the profile id (the members
+    // list links with profile.id when present), so match on both.
+    const fromList = async () => {
+      const list = await nnakApi.get<MembersResponse>("/admin/members", {
+        params: { per_page: 200 },
+      });
+      return (
+        list.data?.data?.find((m) => m.id === id || m.profile?.id === id) ??
+        null
+      );
+    };
+
     try {
       const r = await nnakApi.get<{
         success: boolean;
-        data: NnakUser & { profile: NnakProfile | null };
+        data: (NnakUser & { profile?: NnakProfile | null }) | null;
       }>(`/admin/members/${id}`);
-      return r.data?.data ?? null;
+      const rec = r.data?.data ?? null;
+      // Well-formed nested record — use it directly.
+      if (rec?.profile) return rec as NnakUser & { profile: NnakProfile | null };
+      // Some detail endpoints return a flat member (fields at top level) or an
+      // empty record; prefer the complete nested list row when available.
+      const listed = await fromList();
+      if (listed) return listed;
+      // Last resort: expose the flat record itself as `profile` so the detail
+      // UI (which reads member.profile?.x) can still render what it has.
+      if (rec) {
+        return {
+          ...rec,
+          profile: rec as unknown as NnakProfile,
+        } as NnakUser & { profile: NnakProfile | null };
+      }
+      return null;
     } catch {
-      const list = await nnakApi.get<MembersResponse>("/admin/members", {
-        params: { per_page: 100 },
-      });
-      return list.data?.data?.find((m) => m.id === id) ?? null;
+      return await fromList();
     }
   },
 
