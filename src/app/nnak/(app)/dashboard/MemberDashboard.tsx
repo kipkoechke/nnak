@@ -14,6 +14,7 @@ import {
   useInvoiceStkQuery,
 } from "@/hooks/use-member-payments";
 import { useMyWorkstations } from "@/hooks/use-workstations";
+import { isIndividualMember } from "@/lib/rbac";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 
 const fmtDate = (iso?: string | null) =>
@@ -58,6 +59,8 @@ export default function MemberDashboard() {
   if (!me)
     return <div className="text-sm text-slate-500">Loading your portal…</div>;
   const profile = me.profile;
+  // Only individual members pay their own subscription.
+  const canSelfPay = isIndividualMember(me);
 
   // Profile-derived (no extra fetch): use employer_type from /profile as
   // the "category" label rather than calling /categories or /branches.
@@ -128,7 +131,9 @@ export default function MemberDashboard() {
           >
             {status}
           </span>
-          {invoice && !invoice.status ? (
+          {/* Payment CTAs are for individual members only; branch/corporate
+              members are billed via their branch. */}
+          {!canSelfPay ? null : invoice && !invoice.status ? (
             <button
               onClick={() => setShowPayModal(true)}
               className="inline-flex items-center gap-1.5 bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-white/95 shadow-sm"
