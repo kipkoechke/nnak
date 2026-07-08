@@ -8,6 +8,7 @@ import {
   useMySubscriptions,
 } from "@/hooks/use-subscriptions";
 import { useNnakMe } from "@/hooks/use-auth";
+import { isIndividualMember } from "@/lib/rbac";
 import StkPayModal from "@/components/common/StkPayModal";
 import type { MemberSubscription, SubscriptionInvoice } from "@/types/nnak";
 
@@ -31,6 +32,9 @@ export default function MySubscriptionsPage() {
   const subscribe = useCreateSubscription();
   const [openId, setOpenId] = useState<string | null>(null);
   const [payInvoice, setPayInvoice] = useState<SubscriptionInvoice | null>(null);
+  // Only individual members subscribe / pay themselves; branch and corporate
+  // members are billed through their branch.
+  const canSelfPay = isIndividualMember(me);
 
   // If any subscription is still active, creating a new one extends (stacks)
   // the runtime onto the current expiry — so the CTA reads "Extend".
@@ -53,24 +57,26 @@ export default function MySubscriptionsPage() {
         description="Your subscription history and invoices"
       />
 
-      <div className="flex items-center justify-end gap-3">
-        {hasActive && (
-          <span className="text-[11px] text-slate-500">
-            Extending adds a new term on top of your current expiry.
-          </span>
-        )}
-        <button
-          onClick={startSubscription}
-          disabled={subscribe.isPending}
-          className="bg-primary text-white text-sm font-medium px-3 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-        >
-          {subscribe.isPending
-            ? "Submitting…"
-            : hasActive
-              ? "Extend Subscription"
-              : "New Subscription"}
-        </button>
-      </div>
+      {canSelfPay && (
+        <div className="flex items-center justify-end gap-3">
+          {hasActive && (
+            <span className="text-[11px] text-slate-500">
+              Extending adds a new term on top of your current expiry.
+            </span>
+          )}
+          <button
+            onClick={startSubscription}
+            disabled={subscribe.isPending}
+            className="bg-primary text-white text-sm font-medium px-3 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+          >
+            {subscribe.isPending
+              ? "Submitting…"
+              : hasActive
+                ? "Extend Subscription"
+                : "New Subscription"}
+          </button>
+        </div>
+      )}
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
@@ -110,6 +116,7 @@ export default function MySubscriptionsPage() {
           id={openId}
           onClose={() => setOpenId(null)}
           onPay={(inv) => setPayInvoice(inv)}
+          canPay={canSelfPay}
         />
       )}
 
@@ -155,10 +162,12 @@ const DetailModal = ({
   id,
   onClose,
   onPay,
+  canPay,
 }: {
   id: string;
   onClose: () => void;
   onPay: (invoice: SubscriptionInvoice) => void;
+  canPay: boolean;
 }) => {
   const { data: sub, isLoading } = useMySubscription(id);
 
@@ -244,7 +253,7 @@ const DetailModal = ({
                   >
                     KES {balance.toLocaleString()}
                   </span>
-                  {balance > 0 && sub.invoice && !sub.invoice.status && (
+                  {canPay && balance > 0 && sub.invoice && !sub.invoice.status && (
                     <button
                       onClick={() => {
                         onPay(sub.invoice!);
