@@ -2,6 +2,7 @@
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import MobileFooterNav from "./MobileFooterNav";
+import SupportButton from "@/components/common/SupportButton";
 
 import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -46,6 +47,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       )}
 
       <MobileFooterNav />
+      <SupportButton />
     </div>
   );
 };
