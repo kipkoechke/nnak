@@ -15,23 +15,28 @@ jobs:
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_TOKEN
           script: |
             cd /var/www/nnak-frontend-dev
             
-            # If there is no .git folder, clone the dev branch directly into this folder
+            # If there is no .git folder, clone using the temporary GITHUB_TOKEN for authentication
             if [ ! -d ".git" ]; then
               echo "Repository not found. Cloning for the first time..."
-              git clone -b dev https://github.com/Data-Systems-Engineering-Ltd/nnak.git .
+              git clone -b dev https://x-access-token:$GITHUB_TOKEN@github.com/Data-Systems-Engineering-Ltd/nnak.git .
             else
               echo "Repository found. Pulling latest changes..."
+              # Update the remote URL to use the token in case it changed, then pull
+              git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/Data-Systems-Engineering-Ltd/nnak.git
               git fetch origin dev
               git reset --hard origin/dev
             fi
             
-            # Now that the files are guaranteed to be here, run Docker
+            # Run Docker using the specific dev file
             docker compose -f docker-compose.dev.yml down
             docker compose -f docker-compose.dev.yml up -d --build
