@@ -24,7 +24,7 @@ jobs:
           envs: GITHUB_TOKEN
           script: |
             cd /var/www/nnak-frontend-dev
-            
+
             # If there is no .git folder, clone using the temporary GITHUB_TOKEN for authentication
             if [ ! -d ".git" ]; then
               echo "Repository not found. Cloning for the first time..."
@@ -36,7 +36,70 @@ jobs:
               git fetch origin dev
               git reset --hard origin/dev
             fi
-            
-            # Run Docker using the specific dev file
+
+            # Stop and rebuild
             docker compose -f docker-compose.dev.yml down
-            docker compose -f docker-compose.dev.yml up -d --build 
+            docker compose -f docker-compose.dev.yml up -d --build
+
+            # Wait for app healthcheck to pass
+            echo "==> Waiting for dev app container to be healthy..."
+            for i in $(seq 1 30); do
+              STATUS=$(docker compose -f docker-compose.dev.yml ps --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
+              if [ "$STATUS" = "healthy" ]; then
+                echo "    Dev app is healthy after ${i}s."
+                break
+              fi
+              sleep 2
+            done
+
+            echo "==> Dev deploy complete!"
+
+      - name: Configure nginx for demo domain (root)
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            DOMAIN="demo.nnak.or.ke"
+            DEPLOY_PATH="/var/www/nnak-frontend-dev"
+
+            echo "==> Configuring nginx for $DOMAIN..."
+
+            # Copy demo nginx config from repo to host nginx
+            if [ -f "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" ]; then
+              cp "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" "/etc/nginx/conf.d/$DOMAIN.conf"
+              echo "    Demo nginx config installed."
+            else
+              echo "::warning:: Demo nginx config not found in repo."
+            fi
+
+            # Test and reload nginx
+            echo "==> Testing & reloading nginx..."
+            nginx -t && nginx -s reload && echo "    nginx reloaded successfully." || {
+              echo "::error:: nginx reload failed!"
+              nginx -t 2>&1 || true
+              exit 1
+            }
+
+      - name: Diagnostics
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/nnak-frontend-dev 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
+            echo "=== Dev container status ==="
+            docker compose -f docker-compose.dev.yml ps
+            echo ""
+            echo "=== Dev app logs (last 30 lines) ==="
+            docker compose -f docker-compose.dev.yml logs --tail=30 frontend-dev
+            echo ""
+            echo "=== Host nginx demo config ==="
+            cat /etc/nginx/conf.d/demo.nnak.or.ke.conf 2>/dev/null || echo "Config not found"
+            echo ""
+            echo "=== nginx status ==="
+            systemctl is-active nginx || true 
