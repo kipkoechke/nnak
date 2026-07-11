@@ -10,4 +10,4 @@ services:
       - "3020:3000"  # Maps VPS port 3020 to internal container port 3000
     environment:
       - NODE_ENV=development
-    restart: always
+    restart: always #on
