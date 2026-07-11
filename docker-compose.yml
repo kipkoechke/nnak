@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_NNAK_API_URL: ${NEXT_PUBLIC_NNAK_API_URL:-}
     image: nnak:latest
     restart: unless-stopped
     # Bind to a specific host port so the host nginx can proxy to it.
