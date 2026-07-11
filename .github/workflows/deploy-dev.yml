@@ -4,14 +4,25 @@ on:
   push:
     branches:
       - dev
+  workflow_dispatch:
+
+concurrency:
+  group: development-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 22 ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -38,13 +49,13 @@ jobs:
             fi
 
             # Stop and rebuild
-            docker compose -f docker-compose.dev.yml down
-            docker compose -f docker-compose.dev.yml up -d --build
+            docker compose -f docker-compose-dev.yml down
+            docker compose -f docker-compose-dev.yml up -d --build
 
             # Wait for app healthcheck to pass
             echo "==> Waiting for dev app container to be healthy..."
             for i in $(seq 1 30); do
-              STATUS=$(docker compose -f docker-compose.dev.yml ps --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
+              STATUS=$(docker compose -f docker-compose-dev.yml ps --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
               if [ "$STATUS" = "healthy" ]; then
                 echo "    Dev app is healthy after ${i}s."
                 break
@@ -93,10 +104,10 @@ jobs:
           script: |
             cd /var/www/nnak-frontend-dev 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
             echo "=== Dev container status ==="
-            docker compose -f docker-compose.dev.yml ps
+            docker compose -f docker-compose-dev.yml ps
             echo ""
             echo "=== Dev app logs (last 30 lines) ==="
-            docker compose -f docker-compose.dev.yml logs --tail=30 frontend-dev
+            docker compose -f docker-compose-dev.yml logs --tail=30 frontend-dev
             echo ""
             echo "=== Host nginx demo config ==="
             cat /etc/nginx/conf.d/demo.nnak.or.ke.conf 2>/dev/null || echo "Config not found"
