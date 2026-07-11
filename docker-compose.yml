@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
-    image: lems-app:latest
+    image: nnak:latest
     restart: unless-stopped
     # Bind to a specific host port so the host nginx can proxy to it.
     # Default: 3010 — change APP_PORT in .env if that port is in use.
