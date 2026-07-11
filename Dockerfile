@@ -25,8 +25,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build args injected at build time (optional; for NEXT_PUBLIC_ vars)
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_NNAK_API_URL
+ENV NEXT_PUBLIC_NNAK_API_URL=${NEXT_PUBLIC_NNAK_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm build
