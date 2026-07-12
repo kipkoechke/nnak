@@ -13,6 +13,8 @@ const PUBLIC_ROUTES = [
 const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
   { prefix: "/nnak/admins", allow: ["super_admin"] },
   { prefix: "/nnak/categories", allow: ["super_admin", "admin"] },
+  { prefix: "/nnak/institutions", allow: ["super_admin", "admin"] },
+  { prefix: "/nnak/mpesa-transactions", allow: ["super_admin", "admin", "finance"] },
   { prefix: "/nnak/byproduct", allow: ["super_admin", "admin", "finance"] },
   { prefix: "/nnak/events", allow: ["super_admin", "admin", "events"] },
   { prefix: "/nnak/checkin", allow: ["super_admin", "admin", "events"] },

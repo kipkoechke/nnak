@@ -137,6 +137,18 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.upgradeCategory,
   },
   {
+    name: "Institutions",
+    icon: MdBusiness,
+    href: "/nnak/institutions",
+    show: nnakCan.manageMembers,
+  },
+  {
+    name: "M-Pesa Transactions",
+    icon: MdPayments,
+    href: "/nnak/mpesa-transactions",
+    show: nnakCan.viewFinancials,
+  },
+  {
     name: "Analytics",
     icon: MdAnalytics,
     href: "/nnak/analytics",

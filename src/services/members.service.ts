@@ -132,6 +132,31 @@ export const membersService = {
     );
   },
 
+  // ── Bulk import (Excel) ───────────────────────────────────────────
+  /** GET /admin/members/import/template — download the import spreadsheet. */
+  importTemplate: async (): Promise<Blob> => {
+    const r = await nnakApi.get("/admin/members/import/template", {
+      responseType: "blob",
+    });
+    return r.data as Blob;
+  },
+  /** POST /admin/members/import — bulk import members from an Excel file. */
+  importMembers: async (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return unwrap<{ imported?: number; failed?: number; errors?: unknown[] }>(
+      nnakApi.post("/admin/members/import", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    );
+  },
+
+  /** POST /admin/students/{user_id}/convert — upgrade a student to a member. */
+  convertStudent: async (userId: string) =>
+    unwrap<NnakUser & { profile: NnakProfile | null }>(
+      nnakApi.post(`/admin/students/${userId}/convert`),
+    ),
+
   // ── Legacy demo helpers ───────────────────────────────────────────
   create: async (input: {
     name: string;

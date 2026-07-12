@@ -2,7 +2,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useMember, useSetMemberStatus } from "@/hooks/use-members";
+import { useMember, useSetMemberStatus, useConvertStudent } from "@/hooks/use-members";
 import { useBranchMember } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakMe } from "@/hooks/use-auth";
@@ -23,6 +23,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
   const { data: cats = [] } = useCategories();
   const setStatusM = useSetMemberStatus();
+  const convertStudent = useConvertStudent();
   const stk = useStkPush();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
 
@@ -68,6 +69,18 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               )}
               {member.profile?.status === "active" && (
                 <button onClick={() => setShowSuspendModal(true)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Suspend</button>
+              )}
+              {member.role === "student" && (
+                <button
+                  onClick={() => {
+                    if (confirm(`Convert ${member.name} from student to full member?`))
+                      convertStudent.mutate(member.id);
+                  }}
+                  disabled={convertStudent.isPending}
+                  className="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
+                >
+                  {convertStudent.isPending ? "Converting…" : "Convert to Member"}
+                </button>
               )}
               {category && (
                 <button onClick={collectAnnual} disabled={stk.isPending} className="bg-primary text-white text-xs px-3 py-1.5 rounded">
