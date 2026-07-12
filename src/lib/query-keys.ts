@@ -103,6 +103,13 @@ export const nqk = {
         p ?? {},
       ] as const,
   },
+  eventPackages: {
+    all: ["nnak", "event-packages"] as const,
+    list: (eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "event-packages", "list", eventId, p ?? {}] as const,
+    detail: (eventId: string, id: string) =>
+      ["nnak", "event-packages", "detail", eventId, id] as const,
+  },
   sponsors: {
     all: ["nnak", "sponsors"] as const,
     list: (eventId: string, p?: Record<string, unknown>) =>
