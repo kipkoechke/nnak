@@ -27,6 +27,12 @@ import {
 } from "react-icons/md";
 import { useEvent, useDeleteEvent } from "@/hooks/use-events";
 import {
+  useEventPackages,
+  useCreateEventPackage,
+  useUpdateEventPackage,
+  useDeleteEventPackage,
+} from "@/hooks/use-event-packages";
+import {
   useAgendas,
   useCreateAgenda,
   useUpdateAgenda,
@@ -315,6 +321,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { key: "overview", label: "Overview", icon: MdEvent },
+  { key: "packages", label: "Tickets", icon: MdPayments },
   { key: "agendas", label: "Agendas", icon: MdSchedule },
   { key: "speakers", label: "Speakers", icon: MdMic },
   { key: "agendaSpeakers", label: "Agenda Speakers", icon: MdRecordVoiceOver },
@@ -334,6 +341,7 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
   const { data: event, isLoading } = useEvent(eventId);
 
   // Pull counts for the tab badges
+  const { data: packagesData } = useEventPackages(eventId);
   const { data: agendasData } = useAgendas(eventId);
   const { data: speakersData } = useSpeakers(eventId);
   const { data: sponsorsData } = useSponsors(eventId);
@@ -341,12 +349,13 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
 
   const counts: Record<string, number> = useMemo(
     () => ({
+      packages: packagesData?.data?.length ?? 0,
       agendas: agendasData?.data?.length ?? 0,
       speakers: speakersData?.data?.length ?? 0,
       sponsors: sponsorsData?.data?.length ?? 0,
       exhibitors: exhibitorsData?.data?.length ?? 0,
     }),
-    [agendasData, speakersData, sponsorsData, exhibitorsData],
+    [packagesData, agendasData, speakersData, sponsorsData, exhibitorsData],
   );
 
   if (isLoading) {
@@ -414,6 +423,7 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
       {/* Tab content */}
       <div className="px-4 py-6">
         {tab === "overview" && <OverviewTab event={event} />}
+        {tab === "packages" && <PackagesTab eventId={eventId} />}
         {tab === "agendas" && <AgendasTab eventId={eventId} />}
         {tab === "speakers" && <SpeakersTab eventId={eventId} />}
         {tab === "agendaSpeakers" && <AgendaSpeakersTab eventId={eventId} />}
@@ -720,6 +730,281 @@ const Row = ({
     </span>
   </div>
 );
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Packages (Tickets) Tab
+ * ────────────────────────────────────────────────────────────────────── */
+
+const emptyPackage = {
+  name: "",
+  description: "",
+  cost: "",
+  capacity: "",
+  is_member_only: false,
+  is_available: true,
+  has_limit: false,
+  max_entries: "",
+};
+
+function PackagesTab({ eventId }: { eventId: string }) {
+  const { data: packagesData, isLoading } = useEventPackages(eventId);
+  const createPackage = useCreateEventPackage();
+  const updatePackage = useUpdateEventPackage();
+  const deletePackage = useDeleteEventPackage();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyPackage);
+
+  const reset = () => {
+    setForm(emptyPackage);
+    setEditId(null);
+    setModalOpen(false);
+  };
+
+  const packages = packagesData?.data ?? [];
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const input = {
+      name: form.name,
+      description: form.description || null,
+      cost: form.cost === "" ? 0 : Number(form.cost),
+      capacity: form.capacity === "" ? null : Number(form.capacity),
+      is_member_only: form.is_member_only,
+      is_available: form.is_available,
+      has_limit: form.has_limit,
+      max_entries:
+        form.has_limit && form.max_entries !== ""
+          ? Number(form.max_entries)
+          : null,
+    };
+    if (editId)
+      updatePackage.mutate({ eventId, id: editId, input }, { onSuccess: reset });
+    else createPackage.mutate({ eventId, input }, { onSuccess: reset });
+  };
+
+  const saving = createPackage.isPending || updatePackage.isPending;
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Tickets"
+        description="Set the ticket tiers (packages) attendees book and pay for"
+        count={packages.length}
+        action={
+          <AddBtn
+            onClick={() => {
+              setForm(emptyPackage);
+              setEditId(null);
+              setModalOpen(true);
+            }}
+            label="New ticket"
+          />
+        }
+      />
+
+      {isLoading ? (
+        <SkeletonGrid />
+      ) : packages.length === 0 ? (
+        <EmptyState
+          icon={MdPayments}
+          title="No tickets yet"
+          description="Add ticket tiers so members and the public can book and pay for this event."
+          action={
+            <AddBtn
+              onClick={() => setModalOpen(true)}
+              label="Add the first ticket"
+            />
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {packages.map((p) => (
+            <div
+              key={p.id}
+              className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-primary hover:shadow-sm transition-all"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h4 className="font-semibold text-slate-900 truncate">
+                    {p.name}
+                  </h4>
+                  <div className="text-lg font-bold text-slate-900 mt-1">
+                    KES {Number(p.cost ?? p.price ?? 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setEditId(p.id);
+                      setForm({
+                        name: p.name,
+                        description: p.description || "",
+                        cost: String(p.cost ?? p.price ?? ""),
+                        capacity:
+                          p.capacity != null ? String(p.capacity) : "",
+                        is_member_only: !!p.is_member_only,
+                        is_available: p.is_available ?? true,
+                        has_limit: !!p.has_limit,
+                        max_entries:
+                          p.max_entries != null ? String(p.max_entries) : "",
+                      });
+                      setModalOpen(true);
+                    }}
+                    className="p-1.5 text-slate-500 hover:text-primary rounded hover:bg-slate-100"
+                    title="Edit"
+                  >
+                    <MdEdit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete ticket "${p.name}"?`))
+                        deletePackage.mutate({ eventId, id: p.id });
+                    }}
+                    className="p-1.5 text-slate-500 hover:text-red-600 rounded hover:bg-red-50"
+                    title="Delete"
+                  >
+                    <MdDelete className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              {p.description && (
+                <p className="text-sm text-slate-600 mt-2 line-clamp-2">
+                  {p.description}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {p.is_member_only && (
+                  <span className="text-[10px] uppercase tracking-wide font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    Members only
+                  </span>
+                )}
+                <span
+                  className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full ${
+                    p.is_available ?? true
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {p.is_available ?? true ? "Available" : "Unavailable"}
+                </span>
+                {p.has_limit && p.max_entries != null && (
+                  <span className="text-[10px] uppercase tracking-wide font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">
+                    Limit {p.max_entries}
+                  </span>
+                )}
+                {p.capacity != null && (
+                  <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                    Capacity {p.capacity}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal
+        open={modalOpen}
+        onClose={reset}
+        title={editId ? "Edit ticket" : "New ticket"}
+        size="lg"
+      >
+        <form onSubmit={submit} className="space-y-3">
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+            required
+            placeholder="e.g. Early Bird"
+          />
+          <TextArea
+            label="Description"
+            value={form.description}
+            onChange={(v) => setForm({ ...form, description: v })}
+            placeholder="What's included in this ticket?"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="Cost (KES)"
+              type="number"
+              value={form.cost}
+              onChange={(v) => setForm({ ...form, cost: v })}
+              required
+            />
+            <Field
+              label="Capacity (optional)"
+              type="number"
+              value={form.capacity}
+              onChange={(v) => setForm({ ...form, capacity: v })}
+              placeholder="Seats available"
+            />
+          </div>
+          <div className="flex flex-wrap gap-4 pt-1">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.is_member_only}
+                onChange={(e) =>
+                  setForm({ ...form, is_member_only: e.target.checked })
+                }
+                className="rounded border-slate-300"
+              />
+              Members only
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.is_available}
+                onChange={(e) =>
+                  setForm({ ...form, is_available: e.target.checked })
+                }
+                className="rounded border-slate-300"
+              />
+              Available for booking
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.has_limit}
+                onChange={(e) =>
+                  setForm({ ...form, has_limit: e.target.checked })
+                }
+                className="rounded border-slate-300"
+              />
+              Limit entries per booking
+            </label>
+          </div>
+          {form.has_limit && (
+            <Field
+              label="Max entries per booking"
+              type="number"
+              value={form.max_entries}
+              onChange={(v) => setForm({ ...form, max_entries: v })}
+            />
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {saving ? "Saving…" : editId ? "Save changes" : "Create ticket"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
  *  Agendas Tab
