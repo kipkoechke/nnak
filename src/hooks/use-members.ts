@@ -69,6 +69,34 @@ export const useSetMemberStatus = () => {
 const apiErrMsg = (e: unknown, fb: string) =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message || fb;
 
+export const useImportMembers = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => membersService.importMembers(file),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      const n = res?.imported;
+      toast.success(
+        typeof n === "number" ? `Imported ${n} members` : "Members imported",
+      );
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Import failed")),
+  });
+};
+
+export const useConvertStudent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => membersService.convertStudent(userId),
+    onSuccess: (_, userId) => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      qc.invalidateQueries({ queryKey: nqk.members.detail(userId) });
+      toast.success("Student converted to member");
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Conversion failed")),
+  });
+};
+
 export const usePendingMembers = (p: { page?: number; per_page?: number } = {}) =>
   useQuery({
     queryKey: nqk.members.pending(p as Record<string, unknown>),
