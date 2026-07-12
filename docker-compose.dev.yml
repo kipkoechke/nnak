@@ -1,20 +1,19 @@
 services:
-  # ── Next.js application ──────────────────────────────────
-  app:
+  # ── Next.js application (development) ────────────────────
+  frontend-dev:
+    container_name: nnak-frontend-dev-app
+    image: nnak-dev:latest
     build:
       context: .
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_NNAK_API_URL: ${NEXT_PUBLIC_NNAK_API_URL:-}
-    image: nnak:latest
-    restart: unless-stopped
-    # Bind to a specific host port so the host nginx can proxy to it.
-    # Default: 3010 — change APP_PORT in .env if that port is in use.
     ports:
-      - "${APP_PORT:-3010}:3000"
+      - "3020:3000"  # Maps VPS port 3020 to internal container port 3000
     environment:
-      NODE_ENV: production
-      NEXT_TELEMETRY_DISABLED: "1"
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    restart: unless-stopped
     networks:
       - web
     healthcheck:
