@@ -24,6 +24,11 @@ import {
   MdRecordVoiceOver,
   MdSchedule,
   MdStore,
+  MdConfirmationNumber,
+  MdQrCodeScanner,
+  MdReceiptLong,
+  MdHowToReg,
+  MdCheckCircle,
 } from "react-icons/md";
 import { useEvent, useDeleteEvent } from "@/hooks/use-events";
 import {
@@ -32,6 +37,16 @@ import {
   useUpdateEventPackage,
   useDeleteEventPackage,
 } from "@/hooks/use-event-packages";
+import {
+  useEventAttendees,
+  useCreateEventAttendee,
+  useEventScanners,
+  useCreateEventScanner,
+  useDeleteEventScanner,
+  useEventBookings,
+  useAttendanceReport,
+  useAttendanceScan,
+} from "@/hooks/use-event-operations";
 import {
   useAgendas,
   useCreateAgenda,
@@ -329,6 +344,10 @@ const TABS: TabDef[] = [
   { key: "breakoutSpeakers", label: "Breakout Speakers", icon: MdGroups },
   { key: "sponsors", label: "Sponsors & Partners", icon: MdHandshake },
   { key: "exhibitors", label: "Exhibitors", icon: MdStore },
+  { key: "bookings", label: "Bookings", icon: MdReceiptLong },
+  { key: "attendees", label: "Attendees", icon: MdConfirmationNumber },
+  { key: "attendance", label: "Attendance", icon: MdHowToReg },
+  { key: "scanners", label: "Scanners", icon: MdQrCodeScanner },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -346,6 +365,9 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
   const { data: speakersData } = useSpeakers(eventId);
   const { data: sponsorsData } = useSponsors(eventId);
   const { data: exhibitorsData } = useExhibitors(eventId);
+  const { data: bookingsData } = useEventBookings(eventId);
+  const { data: attendeesData } = useEventAttendees(eventId);
+  const { data: scannersData } = useEventScanners(eventId);
 
   const counts: Record<string, number> = useMemo(
     () => ({
@@ -354,8 +376,20 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
       speakers: speakersData?.data?.length ?? 0,
       sponsors: sponsorsData?.data?.length ?? 0,
       exhibitors: exhibitorsData?.data?.length ?? 0,
+      bookings: bookingsData?.data?.length ?? 0,
+      attendees: attendeesData?.data?.length ?? 0,
+      scanners: scannersData?.data?.length ?? 0,
     }),
-    [packagesData, agendasData, speakersData, sponsorsData, exhibitorsData],
+    [
+      packagesData,
+      agendasData,
+      speakersData,
+      sponsorsData,
+      exhibitorsData,
+      bookingsData,
+      attendeesData,
+      scannersData,
+    ],
   );
 
   if (isLoading) {
@@ -433,6 +467,10 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
         )}
         {tab === "sponsors" && <SponsorsTab eventId={eventId} />}
         {tab === "exhibitors" && <ExhibitorsTab eventId={eventId} />}
+        {tab === "bookings" && <BookingsTab eventId={eventId} />}
+        {tab === "attendees" && <AttendeesTab eventId={eventId} />}
+        {tab === "attendance" && <AttendanceTab eventId={eventId} />}
+        {tab === "scanners" && <ScannersTab eventId={eventId} />}
       </div>
     </div>
   );
@@ -1002,6 +1040,542 @@ function PackagesTab({ eventId }: { eventId: string }) {
           </div>
         </form>
       </Modal>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Bookings Tab
+ * ────────────────────────────────────────────────────────────────────── */
+
+const bookingStatusTone = (s?: string | null) => {
+  const v = (s || "").toLowerCase();
+  if (["paid", "confirmed", "completed", "success"].includes(v))
+    return "bg-emerald-50 text-emerald-700";
+  if (["pending", "processing"].includes(v)) return "bg-amber-50 text-amber-700";
+  if (["cancelled", "failed", "expired"].includes(v))
+    return "bg-red-50 text-red-700";
+  return "bg-slate-100 text-slate-600";
+};
+
+function BookingsTab({ eventId }: { eventId: string }) {
+  const { data, isLoading } = useEventBookings(eventId);
+  const bookings = data?.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Bookings"
+        description="Every ticket booking placed for this event"
+        count={bookings.length}
+      />
+      {isLoading ? (
+        <SkeletonList />
+      ) : bookings.length === 0 ? (
+        <EmptyState
+          icon={MdReceiptLong}
+          title="No bookings yet"
+          description="Bookings appear here once members or the public reserve tickets."
+        />
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2">Booking</th>
+                  <th className="px-4 py-2">Booker</th>
+                  <th className="px-4 py-2">Ticket</th>
+                  <th className="px-4 py-2 text-right">Attendees</th>
+                  <th className="px-4 py-2 text-right">Amount</th>
+                  <th className="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {bookings.map((b) => (
+                  <tr key={b.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2 font-mono text-xs text-slate-700">
+                      {b.booking_number || b.reference || b.id.slice(0, 8)}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="font-medium text-slate-900">
+                        {b.name || "—"}
+                      </div>
+                      {b.email && (
+                        <div className="text-xs text-slate-500">{b.email}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-slate-600">
+                      {b.package?.name || "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {b.attendees_count ?? b.attendees?.length ?? "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-slate-900">
+                      {b.amount != null
+                        ? `KES ${Number(b.amount).toLocaleString()}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${bookingStatusTone(
+                          b.status || b.payment_status,
+                        )}`}
+                      >
+                        {b.status || b.payment_status || "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Attendees Tab
+ * ────────────────────────────────────────────────────────────────────── */
+
+const emptyAttendee = {
+  name: "",
+  email: "",
+  phone: "",
+  type: "vip",
+};
+
+function AttendeesTab({ eventId }: { eventId: string }) {
+  const { data, isLoading } = useEventAttendees(eventId);
+  const createAttendee = useCreateEventAttendee();
+  const { data: packagesData } = useEventPackages(eventId);
+  const packages = packagesData?.data ?? [];
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(emptyAttendee);
+  const [packageId, setPackageId] = useState("");
+
+  const reset = () => {
+    setForm(emptyAttendee);
+    setPackageId("");
+    setModalOpen(false);
+  };
+
+  const attendees = data?.data ?? [];
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createAttendee.mutate(
+      {
+        eventId,
+        input: {
+          name: form.name,
+          email: form.email || null,
+          phone: form.phone || null,
+          type: form.type,
+          package_id: packageId || null,
+        },
+      },
+      { onSuccess: reset },
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Attendees"
+        description="Booked ticket holders plus manually-added VIPs, staff and guests"
+        count={attendees.length}
+        action={
+          <AddBtn onClick={() => setModalOpen(true)} label="Add attendee" />
+        }
+      />
+
+      {isLoading ? (
+        <SkeletonList />
+      ) : attendees.length === 0 ? (
+        <EmptyState
+          icon={MdConfirmationNumber}
+          title="No attendees yet"
+          description="Add VIPs, staff or guests here, or wait for ticket bookings to come in."
+          action={
+            <AddBtn onClick={() => setModalOpen(true)} label="Add an attendee" />
+          }
+        />
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">Contact</th>
+                  <th className="px-4 py-2">Type</th>
+                  <th className="px-4 py-2">Ticket</th>
+                  <th className="px-4 py-2">Checked in</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {attendees.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2 font-medium text-slate-900">
+                      {a.name}
+                    </td>
+                    <td className="px-4 py-2 text-slate-600">
+                      <div>{a.email || "—"}</div>
+                      {a.phone && (
+                        <div className="text-xs text-slate-400">{a.phone}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        {a.type || "booked"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs text-slate-600">
+                      {a.ticket_number || "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      {a.checked_in ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
+                          <MdCheckCircle className="w-4 h-4" />
+                          {a.checked_in_at ? fmtTime(a.checked_in_at) : "Yes"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <Modal open={modalOpen} onClose={reset} title="Add attendee">
+        <form onSubmit={submit} className="space-y-3">
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+            required
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(v) => setForm({ ...form, email: v })}
+            />
+            <Field
+              label="Phone"
+              value={form.phone}
+              onChange={(v) => setForm({ ...form, phone: v })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Type
+              </label>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              >
+                {["vip", "staff", "sponsor", "exhibitor", "guest"].map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Ticket (optional)
+              </label>
+              <select
+                value={packageId}
+                onChange={(e) => setPackageId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              >
+                <option value="">— None —</option>
+                {packages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createAttendee.isPending}
+              className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {createAttendee.isPending ? "Adding…" : "Add attendee"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Attendance Tab (scan + report)
+ * ────────────────────────────────────────────────────────────────────── */
+
+function AttendanceTab({ eventId }: { eventId: string }) {
+  const { data: report, isLoading } = useAttendanceReport(eventId);
+  const scan = useAttendanceScan();
+  const [ticket, setTicket] = useState("");
+  const [last, setLast] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticket.trim()) return;
+    const r = await scan
+      .mutateAsync({ eventId, ticketNumber: ticket.trim() })
+      .catch(() => null);
+    if (r) {
+      const name = r.attendee?.name || ticket.trim();
+      setLast(
+        r.already_checked_in
+          ? `${name} was already checked in`
+          : `Checked in ${name}`,
+      );
+      setTicket("");
+    }
+  };
+
+  const total = report?.total ?? report?.attendees?.length ?? 0;
+  const checkedIn =
+    report?.checked_in ??
+    report?.attendees?.filter((a) => a.checked_in).length ??
+    0;
+  const rate = total ? Math.round((checkedIn / total) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Attendance"
+        description="Scan tickets to check attendees in and track turnout"
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1 bg-white border border-slate-200 rounded-xl p-4">
+          <h4 className="text-sm font-semibold text-slate-900 mb-3">
+            Scan a ticket
+          </h4>
+          <form onSubmit={submit} className="space-y-3">
+            <input
+              value={ticket}
+              onChange={(e) => setTicket(e.target.value)}
+              placeholder="Ticket number"
+              autoFocus
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+            />
+            <button
+              type="submit"
+              disabled={scan.isPending || !ticket.trim()}
+              className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {scan.isPending ? "Checking in…" : "Check in"}
+            </button>
+            {last && (
+              <div className="text-xs text-emerald-700 flex items-center gap-1">
+                <MdCheckCircle className="w-4 h-4" /> {last}
+              </div>
+            )}
+          </form>
+        </div>
+
+        <div className="lg:col-span-2 grid grid-cols-3 gap-3">
+          <StatTile label="Registered" value={total} />
+          <StatTile label="Checked in" value={checkedIn} tone="ok" />
+          <StatTile label="Turnout" value={`${rate}%`} />
+        </div>
+      </div>
+
+      {isLoading ? (
+        <SkeletonList />
+      ) : (report?.attendees?.length ?? 0) > 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">Ticket</th>
+                  <th className="px-4 py-2">Type</th>
+                  <th className="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {report!.attendees!.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-2 font-medium text-slate-900">
+                      {a.name}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs text-slate-600">
+                      {a.ticket_number || "—"}
+                    </td>
+                    <td className="px-4 py-2 text-slate-600">
+                      {a.type || "booked"}
+                    </td>
+                    <td className="px-4 py-2">
+                      {a.checked_in ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
+                          <MdCheckCircle className="w-4 h-4" />
+                          {a.checked_in_at ? fmtTime(a.checked_in_at) : "In"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          Not checked in
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon={MdHowToReg}
+          title="No attendance data yet"
+          description="Once tickets are scanned, turnout details show up here."
+        />
+      )}
+    </div>
+  );
+}
+
+const StatTile = ({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "default" | "ok";
+}) => (
+  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
+    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+      {label}
+    </div>
+    <div
+      className={`text-2xl font-bold mt-1 ${
+        tone === "ok" ? "text-emerald-700" : "text-slate-900"
+      }`}
+    >
+      {value}
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────────────────────
+ *  Scanners Tab
+ * ────────────────────────────────────────────────────────────────────── */
+
+function ScannersTab({ eventId }: { eventId: string }) {
+  const { data, isLoading } = useEventScanners(eventId);
+  const createScanner = useCreateEventScanner();
+  const deleteScanner = useDeleteEventScanner();
+  const [value, setValue] = useState("");
+
+  const scanners = data?.data ?? [];
+
+  const add = (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = value.trim();
+    if (!v) return;
+    // Accept an email or a user id.
+    const input = v.includes("@") ? { email: v } : { user_id: v };
+    createScanner.mutate({ eventId, input }, { onSuccess: () => setValue("") });
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Scanners"
+        description="Nominate staff who can scan tickets and check attendees in"
+        count={scanners.length}
+      />
+
+      <form
+        onSubmit={add}
+        className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row gap-2"
+      >
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Scanner email or user id"
+          className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        />
+        <button
+          type="submit"
+          disabled={createScanner.isPending || !value.trim()}
+          className="inline-flex items-center justify-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+        >
+          <MdAdd className="w-4 h-4" />
+          {createScanner.isPending ? "Adding…" : "Nominate"}
+        </button>
+      </form>
+
+      {isLoading ? (
+        <SkeletonList />
+      ) : scanners.length === 0 ? (
+        <EmptyState
+          icon={MdQrCodeScanner}
+          title="No scanners nominated"
+          description="Nominate staff by email or user id so they can check attendees in."
+        />
+      ) : (
+        <div className="space-y-2">
+          {scanners.map((s) => (
+            <div
+              key={s.id}
+              className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3"
+            >
+              <Avatar name={s.name || s.email || s.user_id} />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-900 truncate">
+                  {s.name || s.email || s.user_id}
+                </div>
+                {s.email && s.name && (
+                  <div className="text-xs text-slate-500 truncate">
+                    {s.email}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  if (confirm("Remove this scanner?"))
+                    deleteScanner.mutate({ eventId, scannerId: s.id });
+                }}
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                title="Remove"
+              >
+                <MdDelete className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
