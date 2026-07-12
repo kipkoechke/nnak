@@ -1469,6 +1469,81 @@ export interface CreateEventPackageInput {
   max_entries?: number | null;
 }
 
+// ── Event operations: attendees, scanners, bookings, attendance ────
+export interface EventAttendee {
+  id: string;
+  event_id?: string;
+  booking_id?: string | null;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  /** booked | vip | staff | sponsor | exhibitor | speaker | guest */
+  type?: string | null;
+  ticket_number?: string | null;
+  package_id?: string | null;
+  package?: MemberEventPackage | null;
+  checked_in?: boolean;
+  checked_in_at?: string | null;
+  created_at?: string;
+}
+
+export interface CreateAttendeeInput {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  /** vip | staff | sponsor | exhibitor | guest */
+  type: string;
+  package_id?: string | null;
+}
+
+export interface EventScanner {
+  id: string;
+  event_id?: string;
+  user_id: string;
+  name?: string | null;
+  email?: string | null;
+  created_at?: string;
+}
+
+export interface CreateScannerInput {
+  /** Provide the user id (or email) of the person to nominate. */
+  user_id?: string;
+  email?: string;
+}
+
+export interface EventBooking {
+  id: string;
+  event_id?: string;
+  reference?: string | null;
+  booking_number?: string | null;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  status?: string | null;
+  payment_status?: string | null;
+  amount?: number | string | null;
+  attendees_count?: number | null;
+  package?: MemberEventPackage | null;
+  attendees?: EventAttendee[];
+  created_at?: string;
+}
+
+export interface AttendanceReport {
+  total?: number;
+  checked_in?: number;
+  not_checked_in?: number;
+  attendees?: EventAttendee[];
+  [key: string]: unknown;
+}
+
+export interface AttendanceScanResult {
+  attendee?: EventAttendee | null;
+  status?: string;
+  message?: string;
+  already_checked_in?: boolean;
+  [key: string]: unknown;
+}
+
 export interface MemberEventDetail extends MemberEvent {
   location_coordinates?: { lat: number; lng: number } | null;
   metadata?: {

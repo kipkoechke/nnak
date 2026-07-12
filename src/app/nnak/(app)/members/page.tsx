@@ -1,15 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { MdAdd, MdSearch } from "react-icons/md";
+import { MdAdd, MdSearch, MdUploadFile, MdDownload } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import {
   useApproveMember,
+  useImportMembers,
   useMembers,
   useRejectMember,
   useSetMemberStatus,
 } from "@/hooks/use-members";
+import { membersService } from "@/services/members.service";
 import { useBranchMembers } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
@@ -66,7 +68,27 @@ export default function MembersPage() {
   const setStatusM = useSetMemberStatus();
   const approve = useApproveMember();
   const reject = useRejectMember();
+  const importMembers = useImportMembers();
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const canApprove = !isBranchManager && nnakCan.approveMembers(me);
+  const canImport = !isBranchManager && nnakCan.manageMembers(me);
+
+  const onImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) importMembers.mutate(file);
+    e.target.value = "";
+  };
+
+  const downloadTemplate = async () => {
+    const blob = await membersService.importTemplate().catch(() => null);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "members-import-template.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const [confirmAction, setConfirmAction] = useState<{
     type: "suspend" | "reject";
@@ -80,12 +102,39 @@ export default function MembersPage() {
         title="Members"
         description="NNAK member register"
         action={
-          <Link
-            href="/nnak/members/new"
-            className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm"
-          >
-            <MdAdd className="w-4 h-4" /> New Member
-          </Link>
+          <div className="flex items-center gap-2">
+            {canImport && (
+              <>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={onImportFile}
+                  className="hidden"
+                />
+                <button
+                  onClick={downloadTemplate}
+                  className="inline-flex items-center gap-1 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-50"
+                >
+                  <MdDownload className="w-4 h-4" /> Template
+                </button>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={importMembers.isPending}
+                  className="inline-flex items-center gap-1 border border-primary text-primary px-3 py-1.5 rounded-lg text-sm hover:bg-primary-subtle disabled:opacity-50"
+                >
+                  <MdUploadFile className="w-4 h-4" />
+                  {importMembers.isPending ? "Importing…" : "Import"}
+                </button>
+              </>
+            )}
+            <Link
+              href="/nnak/members/new"
+              className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm"
+            >
+              <MdAdd className="w-4 h-4" /> New Member
+            </Link>
+          </div>
         }
       />
 
