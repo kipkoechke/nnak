@@ -1453,6 +1453,22 @@ export interface MemberEventPackage {
   max_entries?: number | null;
 }
 
+// Admin-managed event package (ticket tier). Reuses the read shape; the
+// entity fields match MemberEventPackage returned by the public/member APIs.
+export type EventPackage = MemberEventPackage;
+
+export interface CreateEventPackageInput {
+  name: string;
+  description?: string | null;
+  /** Ticket price. API accepts numeric or decimal-string. */
+  cost: number | string;
+  capacity?: number | null;
+  is_member_only?: boolean;
+  is_available?: boolean;
+  has_limit?: boolean;
+  max_entries?: number | null;
+}
+
 export interface MemberEventDetail extends MemberEvent {
   location_coordinates?: { lat: number; lng: number } | null;
   metadata?: {
