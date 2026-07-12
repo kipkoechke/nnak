@@ -1,0 +1,198 @@
+name: Deploy Development
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: development-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 22 ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_TOKEN
+          script: |
+            cd /var/www/nnak-frontend-dev
+
+            # If there is no .git folder, clone using the temporary GITHUB_TOKEN for authentication
+            if [ ! -d ".git" ]; then
+              echo "Repository not found. Cloning for the first time..."
+              git clone -b dev https://x-access-token:$GITHUB_TOKEN@github.com/Data-Systems-Engineering-Ltd/nnak.git .
+            else
+              echo "Repository found. Pulling latest changes..."
+              # Update the remote URL to use the token in case it changed, then pull
+              git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/Data-Systems-Engineering-Ltd/nnak.git
+              git fetch origin dev
+              git reset --hard origin/dev
+            fi
+
+            # Stop and rebuild
+            docker compose -f docker-compose-dev.yml down
+            docker compose -f docker-compose-dev.yml up -d --build
+
+            # Wait for app healthcheck to pass
+            echo "==> Waiting for dev app container to be healthy..."
+            for i in $(seq 1 30); do
+              STATUS=$(docker compose -f docker-compose-dev.yml ps --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
+              if [ "$STATUS" = "healthy" ]; then
+                echo "    Dev app is healthy after ${i}s."
+                break
+              fi
+              sleep 2
+            done
+
+            echo "==> Dev deploy complete!"
+
+      - name: Configure nginx & SSL for demo domain (root)
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            DOMAIN="demo.nnak.or.ke"
+            DEPLOY_PATH="/var/www/nnak-frontend-dev"
+            CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+            LETSENCRYPT_EMAIL="admin@nnak.or.ke"
+
+            echo "==> Configuring nginx & SSL for $DOMAIN..."
+
+            # Ensure ACME challenge webroot exists
+            mkdir -p /var/www/certbot
+
+            # ── Check if SSL certificate already exists ─────
+            if [ -f "$CERT_PATH" ]; then
+              echo "    SSL certificate found — deploying full HTTPS config."
+
+              # Deploy the full HTTPS nginx config
+              if [ -f "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" ]; then
+                cp "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" "/etc/nginx/conf.d/$DOMAIN.conf"
+                echo "    Demo nginx config (HTTPS) installed."
+              else
+                echo "::warning:: Demo nginx config not found in repo."
+              fi
+
+              # Test and reload nginx
+              nginx -t && nginx -s reload && echo "    nginx reloaded successfully." || {
+                echo "::error:: nginx reload failed!"
+                nginx -t 2>&1 || true
+                exit 1
+              }
+
+            else
+              echo "    No SSL certificate yet — deploying HTTP-only config first..."
+
+              # ── Deploy HTTP-only temp config so certbot can validate ──
+              cat > "/etc/nginx/conf.d/$DOMAIN.conf" << 'NGINX_HTTP'
+            server {
+                listen      80;
+                listen      [::]:80;
+                server_name demo.nnak.or.ke;
+
+                location /.well-known/acme-challenge/ {
+                    root /var/www/certbot;
+                }
+
+                location / {
+                    proxy_pass http://127.0.0.1:3020;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_read_timeout 60s;
+                }
+
+                client_max_body_size 20M;
+            }
+            NGINX_HTTP
+
+              nginx -t && nginx -s reload && echo "    HTTP-only config active." || {
+                echo "::error:: nginx reload failed on HTTP-only config!"
+                nginx -t 2>&1 || true
+                exit 1
+              }
+
+              # ── Obtain SSL certificate via certbot webroot ──
+              echo "==> Requesting SSL certificate for $DOMAIN..."
+              if certbot certonly --webroot -w /var/www/certbot \
+                  -d "$DOMAIN" \
+                  --non-interactive --agree-tos \
+                  --email "$LETSENCRYPT_EMAIL"; then
+                echo "    SSL certificate obtained successfully."
+
+                # ── Now deploy the full HTTPS config ──
+                if [ -f "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" ]; then
+                  cp "$DEPLOY_PATH/nginx/conf.d/demo.nnak.or.ke.conf" "/etc/nginx/conf.d/$DOMAIN.conf"
+                  echo "    Full HTTPS config installed."
+                fi
+
+                nginx -t && nginx -s reload && echo "    nginx reloaded with HTTPS." || {
+                  echo "::error:: nginx reload failed after HTTPS config!"
+                  nginx -t 2>&1 || true
+                  exit 1
+                }
+              else
+                echo "::warning:: certbot failed — keeping HTTP-only config. Check DNS and firewall."
+              fi
+            fi
+
+            # ── Setup automatic cert renewal cron if not already present ──
+            if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
+              echo "==> Installing certbot renewal cron job..."
+              (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'nginx -s reload'") | crontab -
+              echo "    Renewal cron installed."
+            fi
+
+      - name: Diagnostics
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/nnak-frontend-dev 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
+            echo "=== Dev container status ==="
+            docker compose -f docker-compose-dev.yml ps
+            echo ""
+            echo "=== Dev app logs (last 30 lines) ==="
+            docker compose -f docker-compose-dev.yml logs --tail=30 frontend-dev
+            echo ""
+            echo "=== SSL certificates ==="
+            certbot certificates 2>/dev/null || echo "certbot not available"
+            echo ""
+            echo "=== Host nginx demo config ==="
+            cat /etc/nginx/conf.d/demo.nnak.or.ke.conf 2>/dev/null || echo "Config not found"
+            echo ""
+            echo "=== nginx status ==="
+            systemctl is-active nginx || true
+            echo ""
+            echo "=== Check HTTPS on demo.nnak.or.ke ==="
+            curl -sI https://demo.nnak.or.ke 2>&1 | head -5 || echo "HTTPS check failed" 
