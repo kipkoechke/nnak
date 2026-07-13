@@ -104,6 +104,33 @@ export const useNnakUpdateProfile = () => {
   });
 };
 
+// ── Provisional account onboarding (migration claim flow) ───────────
+export const useOnboardingLookup = () =>
+  useMutation({
+    mutationFn: nnakAuth.onboardingLookup,
+    onError: (e) => toast.error(extractApiError(e, "Account lookup failed")),
+  });
+
+export const useOnboardingClaim = () =>
+  useMutation({
+    mutationFn: nnakAuth.onboardingClaim,
+    onError: (e) => toast.error(extractApiError(e, "Could not claim account")),
+  });
+
+export const useOnboardingVerifyClaim = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: nnakAuth.onboardingVerifyClaim,
+    onSuccess: (data) => {
+      setNnakSession(data.user, data.token);
+      qc.setQueryData(nqk.auth.me, data.user as NnakUserWithProfile);
+      qc.invalidateQueries({ queryKey: nqk.auth.me });
+      toast.success(`Welcome, ${data.user.name}`);
+    },
+    onError: (e) => toast.error(extractApiError(e, "OTP verification failed")),
+  });
+};
+
 export const useNnakLogout = () => {
   const qc = useQueryClient();
   return useMutation({
