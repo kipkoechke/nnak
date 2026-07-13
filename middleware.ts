@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = [
   "/nnak/reset-password",
   "/unauthorized",
   "/nnak/register/student",
+  "/nnak/onboarding",
 ];
 
 const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
