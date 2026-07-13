@@ -25,10 +25,29 @@ nnakApi.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+// A 401 on the pre-auth endpoints is an expected credential/OTP failure, not
+// a session expiry — it must not clear the token or fire the expired flow
+// (which would log a user out mid sign-in).
+const AUTH_FLOW_PATHS = [
+  "/login",
+  "/register",
+  "/verify-otp",
+  "/resend-otp",
+  "/forgot-password",
+  "/reset-password",
+  "/onboarding/",
+];
+
 nnakApi.interceptors.response.use(
   (r) => r,
   (err: AxiosError) => {
-    if (err.response?.status === 401 && typeof window !== "undefined") {
+    const url = err.config?.url || "";
+    const isAuthFlow = AUTH_FLOW_PATHS.some((p) => url.includes(p));
+    if (
+      err.response?.status === 401 &&
+      !isAuthFlow &&
+      typeof window !== "undefined"
+    ) {
       localStorage.removeItem(NNAK_TOKEN_KEY);
       window.dispatchEvent(new CustomEvent("nnak:auth-expired"));
     }
