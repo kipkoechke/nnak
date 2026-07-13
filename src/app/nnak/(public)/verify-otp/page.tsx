@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useResendOtp, useVerifyOtp } from "@/hooks/use-auth";
@@ -25,12 +25,21 @@ export default function VerifyOtpPage() {
   const verify = useVerifyOtp();
   const resend = useResendOtp();
 
+  // Guard against double submission: OtpInput's onComplete can re-fire, and a
+  // second verify with an already-consumed code returns 401 (which would log
+  // the freshly-authenticated user straight back out). Only submit a given
+  // code once; unlock on failure so the user can retry a corrected code.
+  const submittedCode = useRef<string>("");
+
   const runVerify = async (code: string) => {
     if (!pendingToken || code.length < 6 || verify.isPending) return;
+    if (submittedCode.current === code) return;
+    submittedCode.current = code;
     const r = await verify
       .mutateAsync({ pending_token: pendingToken, otp: code })
       .catch(() => null);
     if (r) router.push(redirect);
+    else submittedCode.current = ""; // allow retry after a failed attempt
   };
 
   const submit = (e: React.FormEvent) => {
@@ -45,6 +54,7 @@ export default function VerifyOtpPage() {
       .catch(() => null);
     if (r?.pending_token) setPendingToken(r.pending_token);
     if (r?.expires_in) setExpiresIn(r.expires_in);
+    submittedCode.current = "";
     setOtp("");
     setRestartKey((k) => k + 1);
   };
