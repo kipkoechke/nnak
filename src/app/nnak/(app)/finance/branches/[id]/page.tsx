@@ -83,7 +83,7 @@ export default function FinanceBranchDetailPage({
                 <tr>
                   <th className="px-3 py-2">Member</th>
                   <th className="px-3 py-2">Membership No.</th>
-                  <th className="px-3 py-2">Chapter</th>
+                  <th className="px-3 py-2">Chapter of Interest</th>
                   <th className="px-3 py-2">Category</th>
                   <th className="px-3 py-2">Subscription</th>
                   <th className="px-3 py-2 text-right">Pending Inv.</th>

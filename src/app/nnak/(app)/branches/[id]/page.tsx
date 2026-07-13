@@ -95,7 +95,7 @@ export default function BranchDetailPage({
                 <th className="px-3 py-2">Membership No</th>
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Designation</th>
-                <th className="px-3 py-2 hidden md:table-cell">Chapter</th>
+                <th className="px-3 py-2 hidden md:table-cell">Chapter of Interest</th>
                 <th className="px-3 py-2 hidden md:table-cell">Category</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 text-right">Pending (KES)</th>

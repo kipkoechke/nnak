@@ -468,7 +468,7 @@ export default function AdminDashboard() {
                     <th className="px-4 py-2">Name</th>
                     <th className="px-4 py-2">Email</th>
                     <th className="px-4 py-2">Category</th>
-                    <th className="px-4 py-2">Chapter</th>
+                    <th className="px-4 py-2">Chapter of Interest</th>
                     <th className="px-4 py-2">Branch</th>
                     <th className="px-4 py-2">NCK Number</th>
                     <th className="px-4 py-2 text-right">Date</th>
