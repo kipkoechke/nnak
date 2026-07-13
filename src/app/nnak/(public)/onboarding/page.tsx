@@ -51,7 +51,7 @@ export default function OnboardingPage() {
   const { data: qualifications = [] } = useProfessionalQualifications();
   const { data: genders = [] } = useGenders();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [idNumber, setIdNumber] = useState("");
   const [account, setAccount] = useState<OnboardingLookupResult | null>(null);
   const [pendingToken, setPendingToken] = useState("");
@@ -101,7 +101,13 @@ export default function OnboardingPage() {
     setStep(2);
   };
 
-  // Step 2 — submit full details and request an OTP.
+  // Step 2 — basic account details, then move on to professional details.
+  const onAccountNext = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep(3);
+  };
+
+  // Step 3 — submit full details and request an OTP.
   const onClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await claim
@@ -110,7 +116,7 @@ export default function OnboardingPage() {
     if (!res?.pending_token) return;
     setPendingToken(res.pending_token);
     if (res.otp) setOtp(res.otp);
-    setStep(3);
+    setStep(4);
   };
 
   // Step 3 — verify the OTP; on success the session is set by the hook.
@@ -138,13 +144,13 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 text-[11px] font-medium">
-        {["Verify ID", "Your details", "Confirm OTP"].map((s, i) => {
-          const n = (i + 1) as 1 | 2 | 3;
+      <div className="flex items-center gap-1.5 text-[11px] font-medium flex-wrap">
+        {["Verify ID", "Account", "Professional", "Confirm OTP"].map((s, i) => {
+          const n = (i + 1) as 1 | 2 | 3 | 4;
           const done = step > n;
           const active = step === n;
           return (
-            <div key={s} className="flex items-center gap-2">
+            <div key={s} className="flex items-center gap-1.5">
               <span
                 className={`flex items-center gap-1 px-2 py-1 rounded-full ${
                   active
@@ -156,7 +162,7 @@ export default function OnboardingPage() {
               >
                 {done ? <MdCheckCircle className="w-3.5 h-3.5" /> : `${n}.`} {s}
               </span>
-              {n < 3 && <span className="text-slate-300">→</span>}
+              {n < 4 && <span className="text-slate-300">→</span>}
             </div>
           );
         })}
@@ -191,13 +197,14 @@ export default function OnboardingPage() {
       )}
 
       {step === 2 && (
-        <form onSubmit={onClaim} className="space-y-4">
+        <form onSubmit={onAccountNext} className="space-y-4">
           {account?.membership_number && (
             <div className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md px-3 py-2">
               Match found · Membership {account.membership_number}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <p className="text-xs text-slate-500">Your account details</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
             <Labelled label="Full name" required>
               <input
                 value={form.name}
@@ -257,6 +264,29 @@ export default function OnboardingPage() {
                 className={inputCls}
               />
             </Labelled>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
+            >
+              Continue
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === 3 && (
+        <form onSubmit={onClaim} className="space-y-4">
+          <p className="text-xs text-slate-500">Professional details</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
             <Labelled label="Chapter of Interest" required>
               <select
                 value={form.chapter}
@@ -332,7 +362,7 @@ export default function OnboardingPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => setStep(2)}
               className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
             >
               Back
@@ -348,7 +378,7 @@ export default function OnboardingPage() {
         </form>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <form onSubmit={onVerify} className="space-y-4">
           <p className="text-sm text-slate-600">
             We sent a verification code to{" "}
@@ -374,7 +404,7 @@ export default function OnboardingPage() {
           </button>
           <button
             type="button"
-            onClick={() => setStep(2)}
+            onClick={() => setStep(3)}
             className="w-full text-xs text-slate-500 hover:underline"
           >
             Back to details
