@@ -238,6 +238,7 @@ export default function NnakRegisterPage() {
       email: data.email,
       redirect: "/nnak/dashboard",
     });
+    if (r.expires_in) params.set("expires_in", String(r.expires_in));
     if (r.otp) params.set("hint", r.otp);
     router.push(`/nnak/verify-otp?${params.toString()}`);
   };

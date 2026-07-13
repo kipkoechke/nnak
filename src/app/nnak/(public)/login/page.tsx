@@ -21,6 +21,7 @@ export default function NnakLoginPage() {
       email,
       redirect,
     });
+    if (res.expires_in) params.set("expires_in", String(res.expires_in));
     if (res.otp) params.set("hint", res.otp);
     router.push(`/nnak/verify-otp?${params.toString()}`);
   };

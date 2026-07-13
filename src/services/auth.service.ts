@@ -133,6 +133,19 @@ export const nnakAuth = {
       (d) => d.user,
     ),
 
+  /** Upload/replace the signed-in user's profile picture. Sent as multipart
+   *  with a spoofed PATCH so PHP parses the file upload. */
+  updateProfilePicture: (file: File) => {
+    const body = new FormData();
+    body.append("photo", file);
+    body.append("_method", "PATCH");
+    return unwrap<{ user: NnakUserWithProfile }>(
+      nnakApi.post("/profile", body, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+    ).then((d) => d.user);
+  },
+
   /** GET /profile -> { user: { ..., profile: {...} } }
    *  Demo sessions short-circuit to the locally seeded user so they don't
    *  401 against the real backend and trip the auth-expired interceptor. */
