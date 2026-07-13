@@ -1,13 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import {
   useNnakMe,
   useNnakChangePassword,
   useNnakUpdateProfile,
+  useNnakUpdateProfilePicture,
 } from "@/hooks/use-auth";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
-import { MdModeEditOutline, MdLockOutline, MdPerson } from "react-icons/md";
+import {
+  MdModeEditOutline,
+  MdLockOutline,
+  MdPerson,
+  MdPhotoCamera,
+} from "react-icons/md";
 
 const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div>
@@ -20,6 +26,14 @@ export default function ProfileSettingsPage() {
   const { data: me, isLoading } = useNnakMe();
   const changePassword = useNnakChangePassword();
   const updateProfile = useNnakUpdateProfile();
+  const updatePicture = useNnakUpdateProfilePicture();
+  const photoRef = useRef<HTMLInputElement | null>(null);
+
+  const onPhotoPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) updatePicture.mutate(file);
+    e.target.value = "";
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
@@ -108,8 +122,40 @@ export default function ProfileSettingsPage() {
       <div className="bg-white border border-slate-200 rounded-lg p-4">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-full bg-primary-subtle flex items-center justify-center border-2 border-primary-muted shrink-0">
-              <MdPerson className="w-6 h-6 text-primary" />
+            <div className="relative shrink-0 group">
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                onChange={onPhotoPick}
+                className="hidden"
+              />
+              <div className="w-14 h-14 rounded-full bg-primary-subtle flex items-center justify-center border-2 border-primary-muted overflow-hidden">
+                {profile?.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.photo_url}
+                    alt={me.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <MdPerson className="w-7 h-7 text-primary" />
+                )}
+                {updatePicture.isPending && (
+                  <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-[10px] text-slate-600 rounded-full">
+                    …
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => photoRef.current?.click()}
+                disabled={updatePicture.isPending}
+                title="Change profile picture"
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center shadow ring-2 ring-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                <MdPhotoCamera className="w-3.5 h-3.5" />
+              </button>
             </div>
             <div className="min-w-0">
               <div className="text-base font-semibold text-slate-900 truncate">
