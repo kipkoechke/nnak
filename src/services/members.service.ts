@@ -47,6 +47,74 @@ export interface MemberListQuery {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+type MemberRecord = NnakUser & { profile: NnakProfile | null };
+
+/**
+ * The admin members API returns a *flat* member (fields at the top level:
+ * nck_number, membership_type, chapter, branch_name, is_active, …), while the
+ * UI reads them under `member.profile`. Normalise either shape into the nested
+ * view model so the list and detail screens render without per-field guards.
+ */
+const normalizeMember = (raw: unknown): MemberRecord => {
+  const row = (raw ?? {}) as Record<string, unknown>;
+  const val = <T = string>(k: string) => row[k] as T | undefined;
+
+  // Already nested — trust it, but ensure a profile object exists.
+  if (row.profile && typeof row.profile === "object") {
+    return row as unknown as MemberRecord;
+  }
+
+  const branchObj = row.branch as { id?: string; name?: string } | undefined;
+  const branchName = branchObj?.name ?? (val("branch_name") as string | undefined);
+  const branchId = branchObj?.id ?? (val("branch_id") as string | undefined) ?? null;
+  const category = val("membership_type") ?? val("member_category");
+  const approved = val<boolean>("is_approved");
+  const subActive =
+    val<boolean>("subscription_active") ?? val<boolean>("is_active") ?? false;
+
+  const profile = {
+    id: (val("profile_id") ?? val("id")) as string,
+    user_id: val("id") as string,
+    account_number: (val("account_number") ?? "") as string,
+    membership_number: val("membership_number") ?? null,
+    nck_number: val("nck_number") ?? null,
+    phone: val("phone") ?? null,
+    identification_number:
+      val("national_id") ?? val("identification_number") ?? null,
+    identification_type: val("identification_type") ?? null,
+    professional_qualification: val("professional_qualification") ?? null,
+    professional_cadre: val("professional_cadre") ?? null,
+    designation: val("designation") ?? null,
+    date_of_birth: val("date_of_birth") ?? null,
+    gender: (val("gender") ?? "") as string,
+    county: val("county") ?? null,
+    chapter: val("chapter_code") ?? null,
+    chapter_label: val("chapter") ?? null,
+    member_category: category ? { id: "", name: category as string } : null,
+    member_category_id: val("member_category_id") ?? null,
+    branch: branchName ? { id: branchId, name: branchName } : null,
+    branch_id: branchId,
+    is_approved: approved,
+    approved_at: val("approved_at") ?? null,
+    status: (val("status") ?? (approved ? "active" : "pending")) as string,
+    subscription_active: subActive,
+    subscription_expires_at:
+      val("subscription_ends_on") ?? val("subscription_expires_at") ?? null,
+    active_subscription: row.active_subscription ?? null,
+    created_at: (val("created_at") ?? "") as string,
+    updated_at: (val("updated_at") ?? "") as string,
+  } as unknown as NnakProfile;
+
+  return {
+    id: val("id") as string,
+    name: (val("name") ?? "") as string,
+    email: (val("email") ?? "") as string,
+    role: (val("role") ?? "member") as NnakUser["role"],
+    email_verified_at: val("email_verified_at") ?? null,
+    profile,
+  } as MemberRecord;
+};
+
 export const membersService = {
   list: async (params?: MemberListQuery) => {
     if (isDemoSession()) {
@@ -58,50 +126,43 @@ export const membersService = {
     const r = await nnakApi.get<MembersResponse>("/admin/members", { params });
     const pagination = r.data?.pagination;
     return {
-      data: r.data?.data ?? [],
+      data: (r.data?.data ?? []).map(normalizeMember),
       pagination,
       // Backwards-compat alias so existing call-sites using `.meta` still work.
       meta: pagination,
     };
   },
 
-  getById: async (id: string) => {
-    if (isDemoSession()) return mockStore.getMember(id);
+  getById: async (id: string): Promise<MemberRecord | null> => {
+    if (isDemoSession()) return mockStore.getMember(id) as MemberRecord | null;
 
-    // The list rows are always the fully-nested { ...user, profile } shape.
-    // The URL id may be either the user id or the profile id (the members
-    // list links with profile.id when present), so match on both.
+    // Fallback: scan the list (flat rows) and match on user or profile id.
     const fromList = async () => {
       const list = await nnakApi.get<MembersResponse>("/admin/members", {
         params: { per_page: 200 },
       });
-      return (
-        list.data?.data?.find((m) => m.id === id || m.profile?.id === id) ??
-        null
-      );
+      const found = (list.data?.data ?? [])
+        .map(normalizeMember)
+        .find((m) => m.id === id || m.profile?.id === id);
+      return found ?? null;
     };
 
     try {
+      // Detail endpoint returns { data: { member, contributions, pending_invoices } }
+      // where `member` is flat; older/other shapes return the member directly.
       const r = await nnakApi.get<{
         success: boolean;
-        data: (NnakUser & { profile?: NnakProfile | null }) | null;
+        data:
+          | ({ member?: unknown } & Record<string, unknown>)
+          | null;
       }>(`/admin/members/${id}`);
-      const rec = r.data?.data ?? null;
-      // Well-formed nested record — use it directly.
-      if (rec?.profile) return rec as NnakUser & { profile: NnakProfile | null };
-      // Some detail endpoints return a flat member (fields at top level) or an
-      // empty record; prefer the complete nested list row when available.
-      const listed = await fromList();
-      if (listed) return listed;
-      // Last resort: expose the flat record itself as `profile` so the detail
-      // UI (which reads member.profile?.x) can still render what it has.
-      if (rec) {
-        return {
-          ...rec,
-          profile: rec as unknown as NnakProfile,
-        } as NnakUser & { profile: NnakProfile | null };
-      }
-      return null;
+      const data = r.data?.data ?? null;
+      const rec =
+        data && typeof data === "object" && "member" in data
+          ? (data as { member?: unknown }).member
+          : data;
+      if (rec && typeof rec === "object") return normalizeMember(rec);
+      return await fromList();
     } catch {
       return await fromList();
     }
