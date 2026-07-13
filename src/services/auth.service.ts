@@ -59,6 +59,36 @@ export interface UpdateProfilePayload {
   chapter?: string;
 }
 
+/** Result of GET provisional account lookup. Fields are best-effort — the
+ *  backend returns whatever it can safely reveal to confirm a match. */
+export interface OnboardingLookupResult {
+  found: boolean;
+  identification_number?: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  membership_number?: string | null;
+  nck_number?: string | null;
+  claimed?: boolean;
+  [key: string]: unknown;
+}
+
+export interface OnboardingClaimPayload {
+  identification_number: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  chapter: string;
+  professional_qualification: string;
+  professional_cadre: string;
+  gender: string;
+  date_of_birth: string;
+  designation: string;
+  institution: string;
+  nck_number: string;
+}
+
 export const nnakAuth = {
   /** First-leg login. Returns a pending_token; complete with verifyOtp. */
   login: (body: { email: string; password: string }) =>
@@ -114,6 +144,23 @@ export const nnakAuth = {
       (d) => d.user,
     );
   },
+
+  // ── Provisional account onboarding (migration claim flow) ──────────
+  /** Look up an imported/provisional account by ID number. */
+  onboardingLookup: (body: { identification_number: string }) =>
+    unwrap<OnboardingLookupResult>(
+      nnakApi.post("/onboarding/lookup", body),
+    ),
+
+  /** Submit full details for a provisional account and request an OTP. */
+  onboardingClaim: (body: OnboardingClaimPayload) =>
+    unwrap<PendingOtpResponse>(nnakApi.post("/onboarding/claim", body)),
+
+  /** Verify the OTP and activate the claimed account (issues a token). */
+  onboardingVerifyClaim: (body: { pending_token: string; otp: string }) =>
+    unwrap<NnakLoginResponse>(
+      nnakApi.post("/onboarding/verify-claim", body),
+    ),
 
   logout: () => nnakApi.post("/logout").then(() => undefined),
 
