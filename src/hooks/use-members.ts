@@ -72,7 +72,11 @@ const apiErrMsg = (e: unknown, fb: string) =>
 export const useImportMembers = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => membersService.importMembers(file),
+    mutationFn: (input: {
+      file: File;
+      branch_id: string;
+      member_category_code?: string;
+    }) => membersService.importMembers(input),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: nqk.members.all });
       const n = res?.imported;

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { MdAdd, MdSearch, MdUploadFile, MdDownload } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
@@ -69,14 +69,31 @@ export default function MembersPage() {
   const approve = useApproveMember();
   const reject = useRejectMember();
   const importMembers = useImportMembers();
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const canApprove = !isBranchManager && nnakCan.approveMembers(me);
   const canImport = !isBranchManager && nnakCan.manageMembers(me);
 
-  const onImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) importMembers.mutate(file);
-    e.target.value = "";
+  const [showImport, setShowImport] = useState(false);
+  const [importBranch, setImportBranch] = useState("");
+  const [importCategory, setImportCategory] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+
+  const submitImport = () => {
+    if (!importFile || !importBranch) return;
+    importMembers.mutate(
+      {
+        file: importFile,
+        branch_id: importBranch,
+        member_category_code: importCategory || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowImport(false);
+          setImportFile(null);
+          setImportBranch("");
+          setImportCategory("");
+        },
+      },
+    );
   };
 
   const downloadTemplate = async () => {
@@ -105,13 +122,6 @@ export default function MembersPage() {
           <div className="flex items-center gap-2">
             {canImport && (
               <>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={onImportFile}
-                  className="hidden"
-                />
                 <button
                   onClick={downloadTemplate}
                   className="inline-flex items-center gap-1 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-50"
@@ -119,12 +129,10 @@ export default function MembersPage() {
                   <MdDownload className="w-4 h-4" /> Template
                 </button>
                 <button
-                  onClick={() => fileRef.current?.click()}
-                  disabled={importMembers.isPending}
-                  className="inline-flex items-center gap-1 border border-primary text-primary px-3 py-1.5 rounded-lg text-sm hover:bg-primary-subtle disabled:opacity-50"
+                  onClick={() => setShowImport(true)}
+                  className="inline-flex items-center gap-1 border border-primary text-primary px-3 py-1.5 rounded-lg text-sm hover:bg-primary-subtle"
                 >
-                  <MdUploadFile className="w-4 h-4" />
-                  {importMembers.isPending ? "Importing…" : "Import"}
+                  <MdUploadFile className="w-4 h-4" /> Import
                 </button>
               </>
             )}
@@ -377,6 +385,94 @@ export default function MembersPage() {
             setConfirmAction(null);
           }}
         />
+      </ModalShell>
+
+      <ModalShell isOpen={showImport} onClose={() => setShowImport(false)}>
+        <div className="p-5 space-y-4 w-full max-w-md">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Import Members
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Download the template, fill it in, then upload it here. All rows
+              are imported into the selected branch.
+            </p>
+          </div>
+
+          <button
+            onClick={downloadTemplate}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <MdDownload className="w-4 h-4" /> Download import template
+          </button>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Branch <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={importBranch}
+              onChange={(e) => setImportBranch(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">Select branch…</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Member category (optional)
+            </label>
+            <select
+              value={importCategory}
+              onChange={(e) => setImportCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">Use category from file</option>
+              {cats.map((c) => (
+                <option key={c.id} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              File <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Excel/CSV, up to 10 MB.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={() => setShowImport(false)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitImport}
+              disabled={!importFile || !importBranch || importMembers.isPending}
+              className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {importMembers.isPending ? "Importing…" : "Import"}
+            </button>
+          </div>
+        </div>
       </ModalShell>
     </div>
   );
