@@ -22,13 +22,17 @@ export default function VerifyOtpPage() {
   const verify = useVerifyOtp();
   const resend = useResendOtp();
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingToken || otp.length < 6) return;
+  const runVerify = async (code: string) => {
+    if (!pendingToken || code.length < 6 || verify.isPending) return;
     const r = await verify
-      .mutateAsync({ pending_token: pendingToken, otp })
+      .mutateAsync({ pending_token: pendingToken, otp: code })
       .catch(() => null);
     if (r) router.push(redirect);
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    runVerify(otp);
   };
 
   const onResend = async () => {
@@ -85,6 +89,7 @@ export default function VerifyOtpPage() {
         length={6}
         autoFocus
         disabled={verify.isPending}
+        onComplete={runVerify}
       />
 
       <OtpCountdown
