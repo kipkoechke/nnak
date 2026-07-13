@@ -201,10 +201,18 @@ export const membersService = {
     });
     return r.data as Blob;
   },
-  /** POST /admin/members/import — bulk import members from an Excel file. */
-  importMembers: async (file: File) => {
+  /** POST /admin/members/import — bulk import members from an Excel file.
+   *  Requires a target branch; an optional category code applies to all rows. */
+  importMembers: async (input: {
+    file: File;
+    branch_id: string;
+    member_category_code?: string;
+  }) => {
     const body = new FormData();
-    body.append("file", file);
+    body.append("file", input.file);
+    body.append("branch_id", input.branch_id);
+    if (input.member_category_code)
+      body.append("member_category_code", input.member_category_code);
     return unwrap<{ imported?: number; failed?: number; errors?: unknown[] }>(
       nnakApi.post("/admin/members/import", body, {
         headers: { "Content-Type": "multipart/form-data" },
