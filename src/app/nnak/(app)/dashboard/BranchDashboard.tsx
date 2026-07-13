@@ -466,7 +466,7 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
                     <th className="px-4 py-2">Name</th>
                     <th className="px-4 py-2">Email</th>
                     <th className="px-4 py-2">Category</th>
-                    <th className="px-4 py-2">Chapter</th>
+                    <th className="px-4 py-2">Chapter of Interest</th>
                     <th className="px-4 py-2">NCK</th>
                     <th className="px-4 py-2">Subscription</th>
                     <th className="px-4 py-2">Status</th>
