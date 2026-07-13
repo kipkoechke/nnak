@@ -108,7 +108,7 @@ export default function FinanceMembersPage() {
                 <th className="px-3 py-2">Membership No.</th>
                 <th className="px-3 py-2">Type</th>
                 <th className="px-3 py-2">Branch</th>
-                <th className="px-3 py-2">Chapter</th>
+                <th className="px-3 py-2">Chapter of Interest</th>
                 <th className="px-3 py-2 text-center">Aging (mo.)</th>
                 <th className="px-3 py-2">Coverage Ends</th>
                 <th className="px-3 py-2">Status</th>

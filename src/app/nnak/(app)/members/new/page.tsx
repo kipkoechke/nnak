@@ -426,7 +426,7 @@ export default function NewMemberPage() {
               name="chapter"
               render={({ field }) => (
                 <SearchableSelect
-                  label="Chapter"
+                  label="Chapter of Interest"
                   required
                   options={chapterOptions}
                   value={field.value}

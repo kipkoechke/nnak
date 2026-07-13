@@ -361,10 +361,12 @@ export default function MyMembershipPage() {
                 label="Designation"
                 value={profile.designation?.toUpperCase() || "—"}
               />
+              {/* NCK Verification temporarily hidden
               <Item
                 label="NCK Verification"
                 value={profile.is_verified ? "Verified" : "Pending"}
               />
+              */}
               <Item label="Member since" value={fmtDate(profile.created_at)} />
               <Item
                 label="Subscription valid until"

@@ -81,7 +81,7 @@ export default function FinanceMemberDetailPage({
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Item label="Membership No." value={member.membership_number} />
           <Item label="Membership Type" value={member.membership_type} />
-          <Item label="Chapter" value={member.chapter} />
+          <Item label="Chapter of Interest" value={member.chapter} />
           <Item label="Designation" value={member.designation?.toUpperCase()} />
           <Item label="NCK Number" value={member.nck_number} />
           <Item label="Phone" value={member.phone} />
