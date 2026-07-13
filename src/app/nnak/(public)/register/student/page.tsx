@@ -70,6 +70,7 @@ export default function StudentRegisterPage() {
             email: values.email,
             redirect: "/nnak/dashboard",
           });
+          if (data.expires_in) params.set("expires_in", String(data.expires_in));
           if (data.otp) params.set("hint", data.otp);
           router.push(`/nnak/verify-otp?${params.toString()}`);
         },

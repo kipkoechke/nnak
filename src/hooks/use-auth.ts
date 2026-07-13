@@ -104,6 +104,19 @@ export const useNnakUpdateProfile = () => {
   });
 };
 
+export const useNnakUpdateProfilePicture = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => nnakAuth.updateProfilePicture(file),
+    onSuccess: (user) => {
+      if (user) qc.setQueryData(nqk.auth.me, user);
+      qc.invalidateQueries({ queryKey: nqk.auth.me });
+      toast.success("Profile picture updated");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Upload failed")),
+  });
+};
+
 // ── Provisional account onboarding (migration claim flow) ───────────
 export const useOnboardingLookup = () =>
   useMutation({
