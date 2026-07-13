@@ -6,7 +6,8 @@ import { useResendOtp, useVerifyOtp } from "@/hooks/use-auth";
 import { OtpCountdown, OtpInput } from "@/components/common/OtpInput";
 import { MdMailOutline } from "react-icons/md";
 
-const RESEND_SECONDS = 60;
+// Fallback only — the real window comes from the API's `expires_in`.
+const DEFAULT_EXPIRES_IN = 900;
 
 export default function VerifyOtpPage() {
   const router = useRouter();
@@ -15,9 +16,11 @@ export default function VerifyOtpPage() {
   const email = sp.get("email") || "";
   const hint = sp.get("hint") || "";
   const redirect = sp.get("redirect") || "/nnak/dashboard";
+  const expiresInParam = Number(sp.get("expires_in")) || DEFAULT_EXPIRES_IN;
 
   const [pendingToken, setPendingToken] = useState(pendingTokenParam);
   const [otp, setOtp] = useState(hint);
+  const [expiresIn, setExpiresIn] = useState(expiresInParam);
   const [restartKey, setRestartKey] = useState(0);
   const verify = useVerifyOtp();
   const resend = useResendOtp();
@@ -41,6 +44,7 @@ export default function VerifyOtpPage() {
       .mutateAsync({ pending_token: pendingToken })
       .catch(() => null);
     if (r?.pending_token) setPendingToken(r.pending_token);
+    if (r?.expires_in) setExpiresIn(r.expires_in);
     setOtp("");
     setRestartKey((k) => k + 1);
   };
@@ -93,7 +97,7 @@ export default function VerifyOtpPage() {
       />
 
       <OtpCountdown
-        seconds={RESEND_SECONDS}
+        seconds={expiresIn}
         onResend={onResend}
         pending={resend.isPending}
         restartKey={restartKey}
