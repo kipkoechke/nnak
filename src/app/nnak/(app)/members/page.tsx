@@ -231,7 +231,7 @@ export default function MembersPage() {
                   <tr>
                     <th className="px-4 py-2">Name</th>
                     <th className="px-4 py-2 hidden md:table-cell">
-                      NCK Reg #
+                      Membership No.
                     </th>
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>
@@ -253,7 +253,7 @@ export default function MembersPage() {
                         <div className="text-xs text-slate-500">{m.email}</div>
                       </td>
                       <td className="px-4 py-2 hidden md:table-cell">
-                        {m.profile?.nck_number || "—"}
+                        {m.profile?.membership_number || "—"}
                       </td>
                       <td className="px-4 py-2 hidden md:table-cell">
                         {m.profile?.member_category?.name ||
