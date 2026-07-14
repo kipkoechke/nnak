@@ -15,13 +15,18 @@ import {
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import { claimSchema, type ClaimFormValues } from "@/schemas/auth.schema";
+import {
+  claimSchema,
+  otpSchema,
+  type ClaimFormValues,
+  type OtpFormValues,
+} from "@/schemas/auth.schema";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { DatePicker } from "@/components/common/DatePicker";
 import type { OnboardingLookupResult } from "@/services/auth.service";
-import { MdBadge, MdCheckCircle } from "react-icons/md";
+import { MdBadge } from "react-icons/md";
 
 const GENDER_OPTS = [
   { value: "female", label: "Female" },
@@ -35,39 +40,6 @@ const STEPS = [
   { id: 3, label: "Professional" },
   { id: 4, label: "Confirm OTP" },
 ] as const;
-
-// A controlled text field styled to match the RHF-bound InputField, for the
-// two fields outside the react-hook-form (ID lookup and OTP).
-const PlainField = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required,
-  mono,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  mono?: boolean;
-}) => (
-  <div>
-    <label className="text-gray-700 mb-2 flex text-xs sm:text-sm font-semibold">
-      {label}
-      {required && <span className="ml-1 text-red-500">*</span>}
-    </label>
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={`border-gray-300 focus:border-primary text-gray-900 focus:ring-primary hover:border-gray-400 w-full rounded-lg placeholder:text-gray-500 border px-4 py-3 text-sm transition-all duration-300 focus:ring-1 focus:outline-none ${
-        mono ? "font-mono tracking-widest" : ""
-      }`}
-    />
-  </div>
-);
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -88,21 +60,21 @@ export default function OnboardingPage() {
   );
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [idNumber, setIdNumber] = useState("");
   const [account, setAccount] = useState<OnboardingLookupResult | null>(null);
   const [pendingToken, setPendingToken] = useState("");
-  const [otp, setOtp] = useState("");
 
   const {
     register,
     handleSubmit,
     control,
     trigger,
+    getValues,
     setValue,
     formState: { errors },
   } = useForm<ClaimFormValues>({
     resolver: zodResolver(claimSchema),
     defaultValues: {
+      identification_number: "",
       name: "",
       email: "",
       phone: "",
@@ -118,6 +90,11 @@ export default function OnboardingPage() {
     },
   });
 
+  const otpForm = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { otp: "" },
+  });
+
   const step2Fields: (keyof ClaimFormValues)[] = [
     "name",
     "email",
@@ -128,7 +105,7 @@ export default function OnboardingPage() {
   ];
 
   const handleNext = async (
-    target: 2 | 3 | 4,
+    target: 2 | 3,
     fields: (keyof ClaimFormValues)[],
   ) => {
     const valid = await trigger(fields);
@@ -144,10 +121,12 @@ export default function OnboardingPage() {
   };
 
   // Step 1 — look up the provisional account by ID number.
-  const onLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onLookup = async () => {
+    const valid = await trigger("identification_number");
+    if (!valid) return;
+    const idNumber = getValues("identification_number").trim();
     const res = await lookup
-      .mutateAsync({ identification_number: idNumber.trim() })
+      .mutateAsync({ identification_number: idNumber })
       .catch(() => null);
     if (!res) return;
     if (res.found === false || res.claimed) {
@@ -170,19 +149,21 @@ export default function OnboardingPage() {
   // Step 3 — submit full details and request an OTP.
   const onClaim = async (values: ClaimFormValues) => {
     const res = await claim
-      .mutateAsync({ identification_number: idNumber.trim(), ...values })
+      .mutateAsync({
+        ...values,
+        identification_number: values.identification_number.trim(),
+      })
       .catch(() => null);
     if (!res?.pending_token) return;
     setPendingToken(res.pending_token);
-    if (res.otp) setOtp(res.otp);
+    if (res.otp) otpForm.setValue("otp", res.otp);
     setStep(4);
   };
 
   // Step 4 — verify the OTP; on success the session is set by the hook.
-  const onVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onVerify = async (values: OtpFormValues) => {
     const r = await verify
-      .mutateAsync({ pending_token: pendingToken, otp: otp.trim() })
+      .mutateAsync({ pending_token: pendingToken, otp: values.otp.trim() })
       .catch(() => null);
     if (r) router.push(redirect);
   };
@@ -234,17 +215,24 @@ export default function OnboardingPage() {
 
       {/* Step 1 — Verify ID */}
       {step === 1 && (
-        <form onSubmit={onLookup} className="space-y-4">
-          <PlainField
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onLookup();
+          }}
+          className="space-y-4"
+        >
+          <InputField
             label="ID / National ID Number"
-            value={idNumber}
-            onChange={setIdNumber}
+            type="text"
             placeholder="Enter your ID number"
+            register={register("identification_number")}
+            error={errors.identification_number?.message}
             required
           />
           <button
             type="submit"
-            disabled={lookup.isPending || !idNumber.trim()}
+            disabled={lookup.isPending}
             className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
           >
             {lookup.isPending ? "Checking…" : "Continue"}
@@ -450,22 +438,25 @@ export default function OnboardingPage() {
 
       {/* Step 4 — Confirm OTP */}
       {step === 4 && (
-        <form onSubmit={onVerify} className="space-y-4">
+        <form
+          onSubmit={otpForm.handleSubmit(onVerify)}
+          className="space-y-4"
+        >
           <p className="text-sm text-slate-600">
             We sent a verification code to your email. Enter it below to finish
             claiming your account.
           </p>
-          <PlainField
+          <InputField
             label="Verification Code"
-            value={otp}
-            onChange={setOtp}
+            type="text"
             placeholder="Enter the code"
+            register={otpForm.register("otp")}
+            error={otpForm.formState.errors.otp?.message}
             required
-            mono
           />
           <button
             type="submit"
-            disabled={verify.isPending || !otp.trim()}
+            disabled={verify.isPending}
             className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
           >
             {verify.isPending ? "Verifying…" : "Activate account"}
