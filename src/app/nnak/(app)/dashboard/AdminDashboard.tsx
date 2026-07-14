@@ -499,7 +499,9 @@ const HBarChart = ({
   title: string;
   data: { name: string; value: number }[];
 }) => {
-  const rows = data.filter((d) => Number(d.value) > 0);
+  const rows = data
+    .filter((d) => Number(d.value) > 0)
+    .sort((a, b) => b.value - a.value);
   const height = Math.max(160, rows.length * 34 + 24);
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4">
@@ -536,7 +538,7 @@ const HBarChart = ({
               tick={{ fontSize: 11, fill: "#475569" }}
               axisLine={false}
               tickLine={false}
-              width={180}
+              width={130}
             />
             <Tooltip
               cursor={{ fill: "#f8fafc" }}
