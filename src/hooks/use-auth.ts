@@ -4,7 +4,12 @@ import toast from "react-hot-toast";
 import { nnakAuth, type NnakUserWithProfile } from "@/services/auth.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import { clearNnakSession, getNnakUser, setNnakSession } from "@/lib/auth";
+import {
+  clearNnakSession,
+  getNnakUser,
+  setNnakSession,
+  setNnakTokenExpiry,
+} from "@/lib/auth";
 
 export const useNnakMe = () =>
   useQuery<NnakUserWithProfile | null>({
@@ -50,6 +55,7 @@ export const useVerifyOtp = () => {
     mutationFn: nnakAuth.verifyOtp,
     onSuccess: (data) => {
       setNnakSession(data.user, data.token);
+      setNnakTokenExpiry(data.expires_at ?? data.expires_in);
       // Seed the cache for instant UI, then invalidate so React Query
       // immediately refetches GET /profile to hydrate user.profile.
       // Without the invalidate, staleTime would keep this thin verify-otp
@@ -136,6 +142,7 @@ export const useOnboardingVerifyClaim = () => {
     mutationFn: nnakAuth.onboardingVerifyClaim,
     onSuccess: (data) => {
       setNnakSession(data.user, data.token);
+      setNnakTokenExpiry(data.expires_at ?? data.expires_in);
       qc.setQueryData(nqk.auth.me, data.user as NnakUserWithProfile);
       qc.invalidateQueries({ queryKey: nqk.auth.me });
       toast.success(`Welcome, ${data.user.name}`);
