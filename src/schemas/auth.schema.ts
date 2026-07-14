@@ -97,3 +97,29 @@ export const studentRegisterSchema = z
   });
 
 export type StudentRegisterFormValues = z.infer<typeof studentRegisterSchema>;
+
+// ── Provisional account claim (onboarding) ────────────────────────
+export const claimSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  phone: z.string().min(1, "Phone number is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  gender: z.string().min(1, "Please select a gender"),
+  date_of_birth: z
+    .string()
+    .min(1, "Date of birth is required")
+    .refine(
+      (val) => val <= eighteenYearsAgo(),
+      "You must be at least 18 years old",
+    ),
+  chapter: z.string().min(1, "Chapter is required"),
+  professional_qualification: z
+    .string()
+    .min(1, "Professional qualification is required"),
+  professional_cadre: z.string().min(1, "Professional cadre is required"),
+  designation: z.string().min(1, "Designation is required"),
+  institution: z.string().min(1, "Institution is required"),
+  nck_number: z.string().min(1, "NCK number is required"),
+});
+
+export type ClaimFormValues = z.infer<typeof claimSchema>;

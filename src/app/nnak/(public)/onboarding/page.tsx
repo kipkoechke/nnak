@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useOnboardingLookup,
   useOnboardingClaim,
@@ -12,28 +14,58 @@ import {
   useChapters,
   useProfessionalCadres,
   useProfessionalQualifications,
-  useGenders,
 } from "@/hooks/use-enums";
+import { claimSchema, type ClaimFormValues } from "@/schemas/auth.schema";
+import { InputField } from "@/components/common/InputField";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { DatePicker } from "@/components/common/DatePicker";
 import type { OnboardingLookupResult } from "@/services/auth.service";
 import { MdBadge, MdCheckCircle } from "react-icons/md";
 
-const inputCls =
-  "w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary";
+const GENDER_OPTS = [
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "other", label: "Other" },
+];
 
-const Labelled = ({
+const STEPS = [
+  { id: 1, label: "Verify ID" },
+  { id: 2, label: "Account" },
+  { id: 3, label: "Professional" },
+  { id: 4, label: "Confirm OTP" },
+] as const;
+
+// A controlled text field styled to match the RHF-bound InputField, for the
+// two fields outside the react-hook-form (ID lookup and OTP).
+const PlainField = ({
   label,
+  value,
+  onChange,
+  placeholder,
   required,
-  children,
+  mono,
 }: {
   label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
   required?: boolean;
-  children: React.ReactNode;
+  mono?: boolean;
 }) => (
   <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
+    <label className="text-gray-700 mb-2 flex text-xs sm:text-sm font-semibold">
+      {label}
+      {required && <span className="ml-1 text-red-500">*</span>}
     </label>
-    {children}
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`border-gray-300 focus:border-primary text-gray-900 focus:ring-primary hover:border-gray-400 w-full rounded-lg placeholder:text-gray-500 border px-4 py-3 text-sm transition-all duration-300 focus:ring-1 focus:outline-none ${
+        mono ? "font-mono tracking-widest" : ""
+      }`}
+    />
   </div>
 );
 
@@ -49,7 +81,11 @@ export default function OnboardingPage() {
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
   const { data: qualifications = [] } = useProfessionalQualifications();
-  const { data: genders = [] } = useGenders();
+
+  const chapterOptions = useMemo(
+    () => chapters.map((c) => ({ value: c.value, label: c.label })),
+    [chapters],
+  );
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [idNumber, setIdNumber] = useState("");
@@ -57,22 +93,55 @@ export default function OnboardingPage() {
   const [pendingToken, setPendingToken] = useState("");
   const [otp, setOtp] = useState("");
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    chapter: "",
-    professional_qualification: "",
-    professional_cadre: "",
-    gender: "",
-    date_of_birth: "",
-    designation: "",
-    institution: "",
-    nck_number: "",
+  const {
+    register,
+    handleSubmit,
+    control,
+    trigger,
+    setValue,
+    formState: { errors },
+  } = useForm<ClaimFormValues>({
+    resolver: zodResolver(claimSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      gender: "",
+      date_of_birth: "",
+      chapter: "",
+      professional_qualification: "",
+      professional_cadre: "",
+      designation: "",
+      institution: "",
+      nck_number: "",
+    },
   });
-  const set = (k: keyof typeof form, v: string) =>
-    setForm((f) => ({ ...f, [k]: v }));
+
+  const step2Fields: (keyof ClaimFormValues)[] = [
+    "name",
+    "email",
+    "phone",
+    "password",
+    "gender",
+    "date_of_birth",
+  ];
+
+  const handleNext = async (
+    target: 2 | 3 | 4,
+    fields: (keyof ClaimFormValues)[],
+  ) => {
+    const valid = await trigger(fields);
+    if (valid) setStep(target);
+    else {
+      const first = fields.find((f) => errors[f]);
+      if (first)
+        toast.error(
+          (errors[first]?.message as string) ||
+            "Please fix the highlighted field",
+        );
+    }
+  };
 
   // Step 1 — look up the provisional account by ID number.
   const onLookup = async (e: React.FormEvent) => {
@@ -91,27 +160,17 @@ export default function OnboardingPage() {
     }
     setAccount(res);
     // Prefill anything the backend safely returns.
-    setForm((f) => ({
-      ...f,
-      name: res.name ?? f.name,
-      email: res.email ?? f.email,
-      phone: res.phone ?? f.phone,
-      nck_number: res.nck_number ?? f.nck_number,
-    }));
+    if (res.name) setValue("name", res.name);
+    if (res.email) setValue("email", res.email);
+    if (res.phone) setValue("phone", res.phone);
+    if (res.nck_number) setValue("nck_number", res.nck_number);
     setStep(2);
   };
 
-  // Step 2 — basic account details, then move on to professional details.
-  const onAccountNext = (e: React.FormEvent) => {
-    e.preventDefault();
-    setStep(3);
-  };
-
   // Step 3 — submit full details and request an OTP.
-  const onClaim = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onClaim = async (values: ClaimFormValues) => {
     const res = await claim
-      .mutateAsync({ identification_number: idNumber.trim(), ...form })
+      .mutateAsync({ identification_number: idNumber.trim(), ...values })
       .catch(() => null);
     if (!res?.pending_token) return;
     setPendingToken(res.pending_token);
@@ -119,7 +178,7 @@ export default function OnboardingPage() {
     setStep(4);
   };
 
-  // Step 3 — verify the OTP; on success the session is set by the hook.
+  // Step 4 — verify the OTP; on success the session is set by the hook.
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = await verify
@@ -144,46 +203,49 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-1.5 text-[11px] font-medium flex-wrap">
-        {["Verify ID", "Account", "Professional", "Confirm OTP"].map((s, i) => {
-          const n = (i + 1) as 1 | 2 | 3 | 4;
-          const done = step > n;
-          const active = step === n;
-          return (
-            <div key={s} className="flex items-center gap-1.5">
-              <span
-                className={`flex items-center gap-1 px-2 py-1 rounded-full ${
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : done
-                      ? "text-emerald-700"
-                      : "text-slate-400"
-                }`}
-              >
-                {done ? <MdCheckCircle className="w-3.5 h-3.5" /> : `${n}.`} {s}
-              </span>
-              {n < 4 && <span className="text-slate-300">→</span>}
-            </div>
-          );
-        })}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          {STEPS.map((s) => (
+            <div
+              key={s.id}
+              className={`flex-1 h-1 rounded-full ${
+                step >= s.id ? "bg-primary" : "bg-slate-200"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between text-xs">
+          {STEPS.map((s) => (
+            <span
+              key={s.id}
+              className={
+                step === s.id
+                  ? "text-primary font-semibold"
+                  : step > s.id
+                    ? "text-slate-700"
+                    : "text-slate-400"
+              }
+            >
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
+      {/* Step 1 — Verify ID */}
       {step === 1 && (
         <form onSubmit={onLookup} className="space-y-4">
-          <Labelled label="ID / National ID number" required>
-            <input
-              value={idNumber}
-              onChange={(e) => setIdNumber(e.target.value)}
-              required
-              autoFocus
-              placeholder="Enter your ID number"
-              className={inputCls}
-            />
-          </Labelled>
+          <PlainField
+            label="ID / National ID Number"
+            value={idNumber}
+            onChange={setIdNumber}
+            placeholder="Enter your ID number"
+            required
+          />
           <button
             type="submit"
             disabled={lookup.isPending || !idNumber.trim()}
-            className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
           >
             {lookup.isPending ? "Checking…" : "Continue"}
           </button>
@@ -196,181 +258,189 @@ export default function OnboardingPage() {
         </form>
       )}
 
+      {/* Step 2 — Account */}
       {step === 2 && (
-        <form onSubmit={onAccountNext} className="space-y-4">
+        <div className="space-y-4">
           {account?.membership_number && (
             <div className="text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md px-3 py-2">
               Match found · Membership {account.membership_number}
             </div>
           )}
-          <p className="text-xs text-slate-500">Your account details</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-            <Labelled label="Full name" required>
-              <input
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
+          <InputField
+            label="Full Name"
+            type="text"
+            placeholder="e.g. Jane Achieng Omondi"
+            register={register("name")}
+            error={errors.name?.message}
+            required
+          />
+          <InputField
+            label="Email"
+            type="email"
+            placeholder="e.g. jane.omondi@example.com"
+            register={register("email")}
+            error={errors.email?.message}
+            required
+          />
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field }) => (
+              <PhoneInputField
+                label="Phone"
                 required
-                className={inputCls}
+                value={field.value}
+                onChange={field.onChange}
+                defaultCountry="KE"
+                error={errors.phone?.message}
               />
-            </Labelled>
-            <Labelled label="Email" required>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="Phone" required>
-              <input
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="Password" required>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                required
-                minLength={8}
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="Gender" required>
-              <select
-                value={form.gender}
-                onChange={(e) => set("gender", e.target.value)}
-                required
-                className={inputCls}
-              >
-                <option value="">Select…</option>
-                {genders.map((g) => (
-                  <option key={g} value={g}>
-                    {g.charAt(0).toUpperCase() + g.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
-            <Labelled label="Date of birth" required>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => set("date_of_birth", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
+            )}
+          />
+          <InputField
+            label="Password"
+            type="password"
+            placeholder="At least 8 characters"
+            register={register("password")}
+            error={errors.password?.message}
+            required
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller
+              control={control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <DatePicker
+                  label="Date of Birth"
+                  required
+                  value={field.value}
+                  onChange={field.onChange}
+                  maxDate={new Date()}
+                  error={errors.date_of_birth?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Gender"
+                  required
+                  options={GENDER_OPTS}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select gender"
+                  error={errors.gender?.message}
+                />
+              )}
+            />
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+              className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50"
             >
               Back
             </button>
             <button
-              type="submit"
-              className="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
+              type="button"
+              onClick={() => handleNext(3, step2Fields)}
+              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90"
             >
               Continue
             </button>
           </div>
-        </form>
+        </div>
       )}
 
+      {/* Step 3 — Professional */}
       {step === 3 && (
-        <form onSubmit={onClaim} className="space-y-4">
-          <p className="text-xs text-slate-500">Professional details</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-            <Labelled label="Chapter of Interest" required>
-              <select
-                value={form.chapter}
-                onChange={(e) => set("chapter", e.target.value)}
-                required
-                className={inputCls}
-              >
-                <option value="">Select…</option>
-                {chapters.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
-            <Labelled label="Professional qualification" required>
-              <select
-                value={form.professional_qualification}
-                onChange={(e) =>
-                  set("professional_qualification", e.target.value)
-                }
-                required
-                className={inputCls}
-              >
-                <option value="">Select…</option>
-                {qualifications.map((q) => (
-                  <option key={q.value} value={q.value}>
-                    {q.label}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
-            <Labelled label="Professional cadre" required>
-              <select
-                value={form.professional_cadre}
-                onChange={(e) => set("professional_cadre", e.target.value)}
-                required
-                className={inputCls}
-              >
-                <option value="">Select…</option>
-                {cadres.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
-            <Labelled label="Designation" required>
-              <input
-                value={form.designation}
-                onChange={(e) => set("designation", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="Institution" required>
-              <input
-                value={form.institution}
-                onChange={(e) => set("institution", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="NCK number" required>
-              <input
-                value={form.nck_number}
-                onChange={(e) => set("nck_number", e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Labelled>
+        <form onSubmit={handleSubmit(onClaim)} className="space-y-4">
+          <InputField
+            label="NCK Registration Number"
+            type="text"
+            placeholder="e.g. NCK/2024/98765"
+            register={register("nck_number")}
+            error={errors.nck_number?.message}
+            required
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller
+              control={control}
+              name="professional_qualification"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Highest Professional Qualification"
+                  required
+                  options={qualifications}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select qualification"
+                  error={errors.professional_qualification?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="professional_cadre"
+              render={({ field }) => (
+                <SearchableSelect
+                  label="Professional Cadre"
+                  required
+                  options={cadres}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select cadre"
+                  error={errors.professional_cadre?.message}
+                />
+              )}
+            />
           </div>
+          <Controller
+            control={control}
+            name="chapter"
+            render={({ field }) => (
+              <SearchableSelect
+                label="Chapter of Interest"
+                required
+                options={chapterOptions}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select chapter"
+                searchPlaceholder="Search chapters…"
+                error={errors.chapter?.message}
+              />
+            )}
+          />
+          <InputField
+            label="Designation"
+            type="text"
+            placeholder="e.g. Registered Nurse"
+            register={register("designation")}
+            error={errors.designation?.message}
+            required
+          />
+          <InputField
+            label="Institution"
+            type="text"
+            placeholder="e.g. Kenyatta National Hospital"
+            register={register("institution")}
+            error={errors.institution?.message}
+            required
+          />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+              className="flex-1 border border-slate-300 text-slate-700 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-slate-50"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={claim.isPending}
-              className="flex-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+              className="flex-1 bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
               {claim.isPending ? "Submitting…" : "Send code"}
             </button>
@@ -378,27 +448,25 @@ export default function OnboardingPage() {
         </form>
       )}
 
+      {/* Step 4 — Confirm OTP */}
       {step === 4 && (
         <form onSubmit={onVerify} className="space-y-4">
           <p className="text-sm text-slate-600">
-            We sent a verification code to{" "}
-            <span className="font-medium text-slate-900">{form.email}</span>.
-            Enter it below to finish claiming your account.
+            We sent a verification code to your email. Enter it below to finish
+            claiming your account.
           </p>
-          <Labelled label="Verification code" required>
-            <input
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              autoFocus
-              placeholder="Enter the code"
-              className={`${inputCls} font-mono tracking-widest`}
-            />
-          </Labelled>
+          <PlainField
+            label="Verification Code"
+            value={otp}
+            onChange={setOtp}
+            placeholder="Enter the code"
+            required
+            mono
+          />
           <button
             type="submit"
             disabled={verify.isPending || !otp.trim()}
-            className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
           >
             {verify.isPending ? "Verifying…" : "Activate account"}
           </button>
