@@ -100,6 +100,7 @@ export type StudentRegisterFormValues = z.infer<typeof studentRegisterSchema>;
 
 // ── Provisional account claim (onboarding) ────────────────────────
 export const claimSchema = z.object({
+  identification_number: z.string().min(1, "ID number is required"),
   name: z.string().min(1, "Full name is required"),
   email: z.string().min(1, "Email is required").email("Enter a valid email"),
   phone: z.string().min(1, "Phone number is required"),
@@ -123,3 +124,9 @@ export const claimSchema = z.object({
 });
 
 export type ClaimFormValues = z.infer<typeof claimSchema>;
+
+export const otpSchema = z.object({
+  otp: z.string().min(1, "Verification code is required"),
+});
+
+export type OtpFormValues = z.infer<typeof otpSchema>;
