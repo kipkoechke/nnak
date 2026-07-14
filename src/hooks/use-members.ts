@@ -29,6 +29,14 @@ export const useMember = (id: string) =>
     enabled: !!id,
   });
 
+/** Full admin detail incl. contributions + pending invoices. */
+export const useMemberDetail = (id: string, opts?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...nqk.members.detail(id), "full"],
+    queryFn: () => membersService.getDetail(id),
+    enabled: (opts?.enabled ?? true) && !!id,
+  });
+
 export const useCreateMember = () => {
   const qc = useQueryClient();
   return useMutation({

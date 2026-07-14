@@ -49,6 +49,48 @@ const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
 
 type MemberRecord = NnakUser & { profile: NnakProfile | null };
 
+/** A settled contribution/payment in a member's history. */
+export interface MemberContribution {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  payment_method: string | null;
+  payment_reference: string | null;
+  membership_type: string | null;
+  paid_at: string | null;
+}
+
+/** An unpaid invoice awaiting settlement. Best-effort — the backend returns
+ *  whatever fields it has for the outstanding item. */
+export interface PendingInvoice {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  due_date?: string | null;
+  membership_type?: string | null;
+  status?: string | null;
+  [key: string]: unknown;
+}
+
+export interface MemberContributions {
+  lifetime_paid: number;
+  lifetime_pending: number;
+  history: MemberContribution[];
+  pagination?: NnakPagination;
+}
+
+export interface MemberDetail {
+  member: MemberRecord;
+  contributions: MemberContributions;
+  pending_invoices: PendingInvoice[];
+}
+
+const EMPTY_CONTRIBUTIONS: MemberContributions = {
+  lifetime_paid: 0,
+  lifetime_pending: 0,
+  history: [],
+};
+
 /**
  * The admin members API returns a *flat* member (fields at the top level:
  * nck_number, membership_type, chapter, branch_name, is_active, …), while the
@@ -166,6 +208,37 @@ export const membersService = {
     } catch {
       return await fromList();
     }
+  },
+
+  /** Full admin member detail incl. contribution history and pending invoices.
+   *  GET /admin/members/{id} -> { member, contributions, pending_invoices }. */
+  getDetail: async (id: string): Promise<MemberDetail | null> => {
+    if (isDemoSession()) {
+      const m = mockStore.getMember(id) as MemberRecord | null;
+      return m
+        ? { member: m, contributions: EMPTY_CONTRIBUTIONS, pending_invoices: [] }
+        : null;
+    }
+    const r = await nnakApi.get<{
+      success: boolean;
+      data: {
+        member?: unknown;
+        contributions?: Partial<MemberContributions>;
+        pending_invoices?: PendingInvoice[];
+      } | null;
+    }>(`/admin/members/${id}`);
+    const data = r.data?.data;
+    if (!data?.member) return null;
+    return {
+      member: normalizeMember(data.member),
+      contributions: {
+        lifetime_paid: data.contributions?.lifetime_paid ?? 0,
+        lifetime_pending: data.contributions?.lifetime_pending ?? 0,
+        history: data.contributions?.history ?? [],
+        pagination: data.contributions?.pagination,
+      },
+      pending_invoices: data.pending_invoices ?? [],
+    };
   },
 
   // ── Admin approval flow ────────────────────────────────────────────

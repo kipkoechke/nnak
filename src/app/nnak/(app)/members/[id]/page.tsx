@@ -2,7 +2,11 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useMember, useSetMemberStatus, useConvertStudent } from "@/hooks/use-members";
+import {
+  useMemberDetail,
+  useSetMemberStatus,
+  useConvertStudent,
+} from "@/hooks/use-members";
 import { useBranchMember } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakMe } from "@/hooks/use-auth";
@@ -17,9 +21,16 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const { data: me } = useNnakMe();
   const isBranchManager = me?.role === "branch" || me?.role === "branch_manager";
 
-  const adminMember = useMember(!isBranchManager ? id : "");
+  const adminDetail = useMemberDetail(id, { enabled: !isBranchManager });
   const branchMember = useBranchMember(isBranchManager ? id : undefined);
-  const { data: member, isLoading } = isBranchManager ? branchMember : adminMember;
+  const member = isBranchManager
+    ? branchMember.data
+    : adminDetail.data?.member;
+  const isLoading = isBranchManager
+    ? branchMember.isLoading
+    : adminDetail.isLoading;
+  const contributions = adminDetail.data?.contributions;
+  const pendingInvoices = adminDetail.data?.pending_invoices ?? [];
 
   const { data: cats = [] } = useCategories();
   const setStatusM = useSetMemberStatus();
@@ -95,6 +106,120 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
+      {!isBranchManager && (
+        <>
+          {/* Contributions */}
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-800">
+                Contributions
+              </h3>
+              {contributions && (
+                <div className="flex gap-4 text-xs">
+                  <span className="text-slate-500">
+                    Lifetime paid{" "}
+                    <span className="font-semibold text-emerald-600">
+                      {money(contributions.lifetime_paid)}
+                    </span>
+                  </span>
+                  <span className="text-slate-500">
+                    Pending{" "}
+                    <span className="font-semibold text-amber-600">
+                      {money(contributions.lifetime_pending)}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+            {!contributions?.history.length ? (
+              <p className="text-xs text-slate-500">
+                No contributions recorded yet.
+              </p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-[11px] uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Invoice</th>
+                      <th className="px-3 py-2">Amount</th>
+                      <th className="px-3 py-2 hidden sm:table-cell">Method</th>
+                      <th className="px-3 py-2 hidden md:table-cell">
+                        Reference
+                      </th>
+                      <th className="px-3 py-2">Paid On</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {contributions.history.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-medium text-slate-700">
+                          {c.invoice_number || "—"}
+                        </td>
+                        <td className="px-3 py-2">{money(c.amount)}</td>
+                        <td className="px-3 py-2 hidden sm:table-cell capitalize">
+                          {c.payment_method?.replace(/_/g, " ") || "—"}
+                        </td>
+                        <td className="px-3 py-2 hidden md:table-cell text-slate-500">
+                          {c.payment_reference || "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {c.paid_at
+                            ? new Date(c.paid_at).toLocaleDateString()
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pending invoices */}
+          <div className="bg-white border border-slate-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+              Pending Invoices
+            </h3>
+            {!pendingInvoices.length ? (
+              <p className="text-xs text-slate-500">No pending invoices.</p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-[11px] uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Invoice</th>
+                      <th className="px-3 py-2">Amount</th>
+                      <th className="px-3 py-2 hidden sm:table-cell">Due</th>
+                      <th className="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pendingInvoices.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-medium text-slate-700">
+                          {inv.invoice_number || "—"}
+                        </td>
+                        <td className="px-3 py-2">{money(inv.amount)}</td>
+                        <td className="px-3 py-2 hidden sm:table-cell">
+                          {inv.due_date
+                            ? new Date(inv.due_date).toLocaleDateString()
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-200 capitalize">
+                            {inv.status || "pending"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       <ModalShell isOpen={showSuspendModal} onClose={() => setShowSuspendModal(false)}>
         <DeleteConfirmationModal
           itemName={member.name}
@@ -112,6 +237,12 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
+const money = (n: number) =>
+  `KES ${Number(n || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
 
 const Field = ({ label, value }: { label: string; value?: string | null }) => (
   <div>
