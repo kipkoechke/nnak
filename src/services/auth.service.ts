@@ -137,7 +137,7 @@ export const nnakAuth = {
    *  with a spoofed PATCH so PHP parses the file upload. */
   updateProfilePicture: (file: File) => {
     const body = new FormData();
-    body.append("photo", file);
+    body.append("photo_url", file);
     body.append("_method", "PATCH");
     return unwrap<{ user: NnakUserWithProfile }>(
       nnakApi.post("/profile", body, {
@@ -161,9 +161,7 @@ export const nnakAuth = {
   // ── Provisional account onboarding (migration claim flow) ──────────
   /** Look up an imported/provisional account by ID number. */
   onboardingLookup: (body: { identification_number: string }) =>
-    unwrap<OnboardingLookupResult>(
-      nnakApi.post("/onboarding/lookup", body),
-    ),
+    unwrap<OnboardingLookupResult>(nnakApi.post("/onboarding/lookup", body)),
 
   /** Submit full details for a provisional account and request an OTP. */
   onboardingClaim: (body: OnboardingClaimPayload) =>
@@ -171,9 +169,7 @@ export const nnakAuth = {
 
   /** Verify the OTP and activate the claimed account (issues a token). */
   onboardingVerifyClaim: (body: { pending_token: string; otp: string }) =>
-    unwrap<NnakLoginResponse>(
-      nnakApi.post("/onboarding/verify-claim", body),
-    ),
+    unwrap<NnakLoginResponse>(nnakApi.post("/onboarding/verify-claim", body)),
 
   logout: () => nnakApi.post("/logout").then(() => undefined),
 
