@@ -1,9 +1,10 @@
 "use client";
 import { useMemo, useState } from "react";
+import { MdCalendarToday, MdReceipt } from "react-icons/md";
 import { useAdminDashboard } from "@/hooks/use-admin-dashboard";
 import {
-  PieChart,
-  Pie,
+  Bar,
+  BarChart,
   Cell,
   ResponsiveContainer,
   Tooltip,
@@ -15,97 +16,23 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const DONUT_COLORS = [
-  "#3b82f6", // blue-500
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#ef4444", // red-500
-  "#8b5cf6", // violet-500
-  "#ec4899", // pink-500
-  "#06b6d4", // cyan-500
-  "#f97316", // orange-500
+const CHART_COLORS = [
+  "#2563eb",
+  "#059669",
+  "#d97706",
+  "#7c3aed",
+  "#dc2626",
+  "#0891b2",
+  "#db2777",
+  "#ea580c",
 ];
 
 const fmtKes = (v: string | number) =>
   `KES ${Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-
-const Kpi = ({
-  label,
-  value,
-  hint,
-  tone = "default",
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  tone?: "default" | "warn" | "danger" | "ok";
-}) => (
-  <div
-    className={`bg-white rounded-lg border p-4 ${
-      tone === "warn"
-        ? "border-amber-200"
-        : tone === "danger"
-          ? "border-red-200"
-          : tone === "ok"
-            ? "border-emerald-200"
-            : "border-slate-200"
-    }`}
-  >
-    <div className="text-xs text-slate-500">{label}</div>
-    <div className="text-2xl font-semibold text-slate-900 mt-1">{value}</div>
-    {hint && <div className="text-[11px] text-slate-400 mt-1">{hint}</div>}
-  </div>
-);
-
-const DonutCard = ({
-  title,
-  data,
-}: {
-  title: string;
-  data: { name: string; value: number }[];
-}) => (
-  <div className="bg-white border border-slate-200 rounded-lg p-4">
-    <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
-      {title}
-    </div>
-    {data.length === 0 ? (
-      <p className="text-sm text-slate-400 py-4 text-center">
-        No data available.
-      </p>
-    ) : (
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={100}
-            paddingAngle={2}
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              borderRadius: "8px",
-              border: "1px solid #e2e8f0",
-              fontSize: "13px",
-            }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: "12px" }}
-            iconType="circle"
-            iconSize={8}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    )}
-  </div>
-);
+const fmtCompact = (n: number) =>
+  Math.abs(n) >= 1000
+    ? `${(n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`
+    : `${n}`;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const daysAgoIso = (n: number) => {
@@ -148,200 +75,107 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-end gap-2 text-sm">
-        <div>
-          <label className="block text-[11px] text-slate-500 mb-1">From</label>
+    <div className="flex flex-col gap-4">
+      {/* Date range */}
+      <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+        <MdCalendarToday className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-500 font-medium">From</label>
           <input
             type="date"
             value={start}
             onChange={(e) => setStart(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+            className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
           />
         </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 mb-1">To</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-500 font-medium">To</label>
           <input
             type="date"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-md text-sm"
+            className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary"
           />
         </div>
       </div>
 
       {isLoading && !data ? (
-        <div className="text-sm text-slate-500">Loading admin KPIs…</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white border border-slate-200 rounded-lg p-4 animate-pulse h-20"
+            />
+          ))}
+        </div>
       ) : !data ? (
-        <div className="text-sm text-slate-500">
+        <div className="py-8 text-sm text-center text-slate-400">
           No data available for this period.
         </div>
       ) : (
         <>
-          {/* Member KPI row */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Kpi label="Total Members" value={data.members.total} />
-            <Kpi label="Active" value={data.members.active} tone="ok" />
-            <Kpi label="Inactive" value={data.members.inactive} tone="warn" />
-            <Kpi
-              label="Pending Approval"
-              value={data.members.pending_approval}
-              tone="warn"
-            />
-            <Kpi label="New This Period" value={data.members.new_this_period} />
-            <Kpi
-              label="Corporate / Individual"
-              value={`${data.members.corporate} / ${data.members.individual}`}
-            />
-          </div>
-
-          {/* Revenue + invites strip */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Kpi
-              label="Collected (period)"
-              value={fmtKes(data.revenue.collected_this_period)}
-              tone="ok"
-            />
-            <Kpi
-              label="Pending Invoices"
-              value={data.revenue.pending_invoices}
-              tone="warn"
-            />
-            <Kpi
-              label="Pending Amount"
-              value={fmtKes(data.revenue.pending_amount)}
-              tone="warn"
-            />
-            <Kpi label="Pending Invites" value={data.invites.pending_invites} />
-            <Kpi
-              label="Pending Transfers"
-              value={data.invites.pending_transfers}
-            />
-          </div>
-
-          {/* Batches — this month + all time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="bg-white border border-slate-200 rounded-lg p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
-                Batches — This Month
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-lg font-semibold text-slate-900">
-                    {data.batches.this_month.count}
-                  </div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Batches
-                  </div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-emerald-700">
-                    {data.batches.this_month.paid_count}
-                  </div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Paid
-                  </div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-amber-700">
-                    {data.batches.this_month.pending_count}
-                  </div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Pending
-                  </div>
-                </div>
-              </div>
-              <div className="border-t border-slate-100 mt-3 pt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Collected
-                  </div>
-                  <div className="font-semibold text-slate-900">
-                    {fmtKes(data.batches.this_month.total_collected)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Branch Share
-                  </div>
-                  <div className="font-semibold text-slate-900">
-                    {fmtKes(data.batches.this_month.branch_share)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    HQ Share
-                  </div>
-                  <div className="font-semibold text-slate-900">
-                    {fmtKes(data.batches.this_month.hq_share)}
-                  </div>
-                </div>
-              </div>
+          {/* Members */}
+          <section className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Members
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <KpiCard label="Total Members" value={data.members.total} />
+              <KpiCard label="Active" value={data.members.active} accent="emerald" />
+              <KpiCard label="Inactive" value={data.members.inactive} accent="amber" />
+              <KpiCard
+                label="Pending Approval"
+                value={data.members.pending_approval}
+                accent="amber"
+              />
+              <KpiCard
+                label="New This Period"
+                value={data.members.new_this_period}
+                accent="blue"
+              />
+              <KpiCard
+                label="Corporate / Individual"
+                value={`${data.members.corporate} / ${data.members.individual}`}
+              />
             </div>
+          </section>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
-                Batches — All Time
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-center text-xs">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Collected
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_collected)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Commission
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_commission)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Branch Share
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_branch_share)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    HQ Share
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_hq_share)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Paid Total
-                  </div>
-                  <div className="text-base font-semibold text-emerald-700">
-                    {fmtKes(data.batches.all_time.paid_total)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Pending Total
-                  </div>
-                  <div className="text-base font-semibold text-amber-700">
-                    {fmtKes(data.batches.all_time.pending_total)}
-                  </div>
-                </div>
-              </div>
+          {/* Revenue */}
+          <section className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Revenue
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <KpiCard
+                label="Collected (period)"
+                value={fmtKes(data.revenue.collected_this_period)}
+                accent="emerald"
+              />
+              <KpiCard
+                label="Pending Invoices"
+                value={data.revenue.pending_invoices}
+                accent="amber"
+              />
+              <KpiCard
+                label="Pending Amount"
+                value={fmtKes(data.revenue.pending_amount)}
+                accent="amber"
+              />
             </div>
+          </section>
+
+          {/* Members split charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <HBarChart title="Members by Category" data={categoryChart} />
+            <HBarChart title="Members by Chapter" data={chapterChart} />
           </div>
 
           {/* Payments trend */}
           {showTrend && (
-            <div className="bg-white border border-slate-200 rounded-lg p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
                 Payments Trend (invoices by status)
-              </div>
+              </h3>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart
                   data={data.trendline}
@@ -373,15 +207,12 @@ export default function AdminDashboard() {
                       border: "1px solid #e2e8f0",
                     }}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: 11 }}
-                    iconType="plainline"
-                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
                   <Line
                     type="monotone"
                     dataKey="fully_paid"
                     name="Fully paid"
-                    stroke="#10b981"
+                    stroke="#059669"
                     strokeWidth={2}
                     dot={{ r: 2 }}
                   />
@@ -389,7 +220,7 @@ export default function AdminDashboard() {
                     type="monotone"
                     dataKey="partially_paid"
                     name="Partially paid"
-                    stroke="#f59e0b"
+                    stroke="#d97706"
                     strokeWidth={2}
                     dot={{ r: 2 }}
                   />
@@ -397,7 +228,7 @@ export default function AdminDashboard() {
                     type="monotone"
                     dataKey="not_paid"
                     name="Not paid"
-                    stroke="#ef4444"
+                    stroke="#dc2626"
                     strokeWidth={2}
                     dot={{ r: 2 }}
                   />
@@ -406,20 +237,93 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Doughnut charts row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DonutCard title="Members by Category" data={categoryChart} />
-            <DonutCard title="Members by Chapter" data={chapterChart} />
+          {/* Batches */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                <MdReceipt className="w-4 h-4" /> Batches — This Month
+              </h3>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <MiniStat label="Batches" value={data.batches.this_month.count} />
+                <MiniStat
+                  label="Paid"
+                  value={data.batches.this_month.paid_count}
+                  accent="emerald"
+                />
+                <MiniStat
+                  label="Pending"
+                  value={data.batches.this_month.pending_count}
+                  accent="amber"
+                />
+              </div>
+              <div className="border-t border-slate-100 mt-3 pt-3 grid grid-cols-3 gap-2 text-center">
+                <MiniStat
+                  label="Collected"
+                  value={fmtKes(data.batches.this_month.total_collected)}
+                  small
+                />
+                <MiniStat
+                  label="Branch Share"
+                  value={fmtKes(data.batches.this_month.branch_share)}
+                  small
+                />
+                <MiniStat
+                  label="HQ Share"
+                  value={fmtKes(data.batches.this_month.hq_share)}
+                  small
+                />
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                <MdReceipt className="w-4 h-4" /> Batches — All Time
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                <MiniStat
+                  label="Collected"
+                  value={fmtKes(data.batches.all_time.total_collected)}
+                  small
+                />
+                <MiniStat
+                  label="Commission"
+                  value={fmtKes(data.batches.all_time.total_commission)}
+                  small
+                />
+                <MiniStat
+                  label="Branch Share"
+                  value={fmtKes(data.batches.all_time.total_branch_share)}
+                  small
+                />
+                <MiniStat
+                  label="HQ Share"
+                  value={fmtKes(data.batches.all_time.total_hq_share)}
+                  small
+                />
+                <MiniStat
+                  label="Paid Total"
+                  value={fmtKes(data.batches.all_time.paid_total)}
+                  accent="emerald"
+                  small
+                />
+                <MiniStat
+                  label="Pending Total"
+                  value={fmtKes(data.batches.all_time.pending_total)}
+                  accent="amber"
+                  small
+                />
+              </div>
+            </div>
           </div>
 
           {/* Branches table */}
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Branches
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs text-slate-500">
+                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-4 py-2">Branch</th>
                     <th className="px-4 py-2">Employer Type</th>
@@ -431,7 +335,7 @@ export default function AdminDashboard() {
                     <tr>
                       <td
                         colSpan={3}
-                        className="px-4 py-6 text-center text-slate-500"
+                        className="px-4 py-6 text-center text-slate-400"
                       >
                         No branches.
                       </td>
@@ -454,16 +358,16 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
           {/* Pending members table */}
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Recent Pending Approvals
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs text-slate-500">
+                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-4 py-2">Name</th>
                     <th className="px-4 py-2">Email</th>
@@ -479,7 +383,7 @@ export default function AdminDashboard() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-4 py-6 text-center text-slate-500"
+                        className="px-4 py-6 text-center text-slate-400"
                       >
                         No pending approvals.
                       </td>
@@ -522,9 +426,135 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         </>
       )}
     </div>
   );
 }
+
+const KpiCard = ({
+  label,
+  value,
+  accent = "slate",
+}: {
+  label: string;
+  value: string | number;
+  accent?: "slate" | "emerald" | "amber" | "blue";
+}) => {
+  const cls = {
+    slate: "text-slate-900",
+    emerald: "text-emerald-700",
+    amber: "text-amber-600",
+    blue: "text-blue-700",
+  }[accent];
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className={`text-xl font-bold mt-1 ${cls}`}>{value}</div>
+    </div>
+  );
+};
+
+const MiniStat = ({
+  label,
+  value,
+  accent = "slate",
+  small = false,
+}: {
+  label: string;
+  value: string | number;
+  accent?: "slate" | "emerald" | "amber";
+  small?: boolean;
+}) => {
+  const cls = {
+    slate: "text-slate-900",
+    emerald: "text-emerald-700",
+    amber: "text-amber-600",
+  }[accent];
+  return (
+    <div>
+      <div
+        className={`${small ? "text-sm" : "text-lg"} font-bold ${cls}`}
+      >
+        {value}
+      </div>
+      <div className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">
+        {label}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Horizontal bar chart — used for category/chapter breakdowns where the
+ * labels are long enough to overlap in a legend or on an x-axis.
+ */
+const HBarChart = ({
+  title,
+  data,
+}: {
+  title: string;
+  data: { name: string; value: number }[];
+}) => {
+  const rows = data.filter((d) => Number(d.value) > 0);
+  const height = Math.max(160, rows.length * 34 + 24);
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+        {title}
+      </h3>
+      {rows.length === 0 ? (
+        <div className="h-40 flex items-center justify-center text-sm text-slate-400">
+          No data for this period.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={height}>
+          <BarChart
+            data={rows}
+            layout="vertical"
+            margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              horizontal={false}
+              stroke="#f1f5f9"
+            />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 11, fill: "#64748b" }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+              tickFormatter={(v: number) => fmtCompact(v)}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fontSize: 11, fill: "#475569" }}
+              axisLine={false}
+              tickLine={false}
+              width={180}
+            />
+            <Tooltip
+              cursor={{ fill: "#f8fafc" }}
+              formatter={(v) => [Number(v).toLocaleString(), "Members"]}
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: "1px solid #e2e8f0",
+              }}
+            />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+              {rows.map((_, i) => (
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+};
