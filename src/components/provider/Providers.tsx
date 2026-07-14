@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import ThemeProvider from "./ThemeProvider";
 import { clearNnakSession } from "@/lib/auth";
+import { useTokenRefresh } from "@/hooks/use-token-refresh";
 
 export default function Providers({
   children,
@@ -22,6 +23,8 @@ export default function Providers({
         },
       }),
   );
+
+  useTokenRefresh();
 
   useEffect(() => {
     const handler = () => {

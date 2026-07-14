@@ -2,6 +2,7 @@ import type { NnakUser } from "@/types/nnak";
 import { NNAK_TOKEN_KEY, NNAK_USER_COOKIE } from "./api";
 
 const STORAGE_KEY = "nnak_user";
+const TOKEN_EXPIRY_KEY = "nnak_token_expires_at";
 
 const isSecure = () => {
   if (typeof window === "undefined") return false;
@@ -30,6 +31,46 @@ export const setNnakSession = (user: NnakUser, token: string) => {
   })));
 };
 
+/** Persist just the refreshed token (and optional new expiry) without
+ *  touching the cached user — used by the background refresh loop. */
+export const updateNnakToken = (token: string, expiresAt?: string | number) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NNAK_TOKEN_KEY, token);
+  if (expiresAt !== undefined) setNnakTokenExpiry(expiresAt);
+};
+
+export const setNnakTokenExpiry = (expiresAt: string | number) => {
+  if (typeof window === "undefined") return;
+  // Accept an ISO string, an epoch-ms/seconds, or a seconds-from-now value.
+  let iso: string;
+  if (typeof expiresAt === "number") {
+    // Small numbers are a lifetime in seconds; large ones an absolute epoch.
+    const ms =
+      expiresAt < 1e10
+        ? Date.now() + expiresAt * 1000 // seconds-from-now
+        : expiresAt; // epoch ms
+    iso = new Date(ms).toISOString();
+  } else {
+    iso = expiresAt;
+  }
+  localStorage.setItem(TOKEN_EXPIRY_KEY, iso);
+};
+
+/** Milliseconds until the current token expires, or null if unknown. */
+export const getNnakTokenTtl = (): number | null => {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(TOKEN_EXPIRY_KEY);
+  if (!raw) return null;
+  const t = new Date(raw).getTime();
+  if (Number.isNaN(t)) return null;
+  return t - Date.now();
+};
+
+export const getNnakToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(NNAK_TOKEN_KEY);
+};
+
 export const getNnakUser = (): NnakUser | null => {
   if (typeof window === "undefined") return null;
   try {
@@ -44,6 +85,7 @@ export const clearNnakSession = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(NNAK_TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
   removeCookie(NNAK_USER_COOKIE);
 };
 
