@@ -15,7 +15,9 @@ export default function Pagination({
   onPageChange,
 }: PaginationProps) {
   return (
-    <div className="bg-white px-3 md:px-4 py-2 border-t border-slate-200 flex items-center justify-between gap-2 rounded-b-lg shrink-0">
+    // Extra right padding reserves space for the floating support FAB
+    // (fixed bottom-right) so it never overlaps the Next button.
+    <div className="bg-white pl-3 md:pl-4 pr-20 md:pr-24 py-2 border-t border-slate-200 flex items-center justify-between gap-2 rounded-b-lg shrink-0">
       <p className="text-xs md:text-sm text-slate-500 shrink-0">
         <span className="hidden sm:inline">Page </span>
         {currentPage}
