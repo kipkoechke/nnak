@@ -79,13 +79,13 @@ export default function OnboardingPage() {
       email: "",
       phone: "",
       password: "",
+      password_confirmation: "",
       gender: "",
       date_of_birth: "",
       chapter: "",
       professional_qualification: "",
       professional_cadre: "",
       designation: "",
-      institution: "",
       nck_number: "",
     },
   });
@@ -100,6 +100,7 @@ export default function OnboardingPage() {
     "email",
     "phone",
     "password",
+    "password_confirmation",
     "gender",
     "date_of_birth",
   ];
@@ -152,6 +153,7 @@ export default function OnboardingPage() {
       .mutateAsync({
         ...values,
         identification_number: values.identification_number.trim(),
+        phone: values.phone.replace(/^\+/, ""),
       })
       .catch(() => null);
     if (!res?.pending_token) return;
@@ -284,14 +286,24 @@ export default function OnboardingPage() {
               />
             )}
           />
-          <InputField
-            label="Password"
-            type="password"
-            placeholder="At least 8 characters"
-            register={register("password")}
-            error={errors.password?.message}
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Password"
+              type="password"
+              placeholder="At least 8 characters"
+              register={register("password")}
+              error={errors.password?.message}
+              required
+            />
+            <InputField
+              label="Confirm Password"
+              type="password"
+              placeholder="Re-enter your password"
+              register={register("password_confirmation")}
+              error={errors.password_confirmation?.message}
+              required
+            />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Controller
               control={control}
@@ -407,14 +419,6 @@ export default function OnboardingPage() {
             placeholder="e.g. Registered Nurse"
             register={register("designation")}
             error={errors.designation?.message}
-            required
-          />
-          <InputField
-            label="Institution"
-            type="text"
-            placeholder="e.g. Kenyatta National Hospital"
-            register={register("institution")}
-            error={errors.institution?.message}
             required
           />
           <div className="flex gap-2">
