@@ -79,13 +79,13 @@ export interface OnboardingClaimPayload {
   email: string;
   phone: string;
   password: string;
+  password_confirmation: string;
   chapter: string;
   professional_qualification: string;
   professional_cadre: string;
   gender: string;
   date_of_birth: string;
   designation: string;
-  institution: string;
   nck_number: string;
 }
 
