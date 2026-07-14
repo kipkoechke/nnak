@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -9,24 +9,23 @@ import {
   useOnboardingLookup,
   useOnboardingClaim,
   useOnboardingVerifyClaim,
+  useResendOtp,
 } from "@/hooks/use-auth";
 import {
   useChapters,
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import {
-  claimSchema,
-  otpSchema,
-  type ClaimFormValues,
-  type OtpFormValues,
-} from "@/schemas/auth.schema";
+import { claimSchema, type ClaimFormValues } from "@/schemas/auth.schema";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { DatePicker } from "@/components/common/DatePicker";
+import { OtpCountdown, OtpInput } from "@/components/common/OtpInput";
 import type { OnboardingLookupResult } from "@/services/auth.service";
-import { MdBadge } from "react-icons/md";
+import { MdBadge, MdMailOutline } from "react-icons/md";
+
+const DEFAULT_EXPIRES_IN = 900;
 
 const GENDER_OPTS = [
   { value: "female", label: "Female" },
@@ -49,6 +48,7 @@ export default function OnboardingPage() {
   const lookup = useOnboardingLookup();
   const claim = useOnboardingClaim();
   const verify = useOnboardingVerifyClaim();
+  const resend = useResendOtp();
 
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
@@ -62,6 +62,12 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [account, setAccount] = useState<OnboardingLookupResult | null>(null);
   const [pendingToken, setPendingToken] = useState("");
+  const [otp, setOtp] = useState("");
+  const [expiresIn, setExpiresIn] = useState(DEFAULT_EXPIRES_IN);
+  const [restartKey, setRestartKey] = useState(0);
+  // Guard against OtpInput's onComplete re-firing (a second verify with an
+  // already-consumed code 401s and would bounce the just-authenticated user).
+  const submittedCode = useRef<string>("");
 
   const {
     register,
@@ -88,11 +94,6 @@ export default function OnboardingPage() {
       designation: "",
       nck_number: "",
     },
-  });
-
-  const otpForm = useForm<OtpFormValues>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: { otp: "" },
   });
 
   const step2Fields: (keyof ClaimFormValues)[] = [
@@ -158,16 +159,35 @@ export default function OnboardingPage() {
       .catch(() => null);
     if (!res?.pending_token) return;
     setPendingToken(res.pending_token);
-    if (res.otp) otpForm.setValue("otp", res.otp);
+    setExpiresIn(res.expires_in || DEFAULT_EXPIRES_IN);
+    if (res.otp) setOtp(res.otp);
+    submittedCode.current = "";
     setStep(4);
   };
 
-  // Step 4 — verify the OTP; on success the session is set by the hook.
-  const onVerify = async (values: OtpFormValues) => {
+  // Step 4 — verify the OTP automatically once 6 digits are entered; on
+  // success the session is set by the hook.
+  const runVerify = async (code: string) => {
+    if (!pendingToken || code.length < 6 || verify.isPending) return;
+    if (submittedCode.current === code) return;
+    submittedCode.current = code;
     const r = await verify
-      .mutateAsync({ pending_token: pendingToken, otp: values.otp.trim() })
+      .mutateAsync({ pending_token: pendingToken, otp: code.trim() })
       .catch(() => null);
     if (r) router.push(redirect);
+    else submittedCode.current = ""; // allow retry after a failed attempt
+  };
+
+  const onResendOtp = async () => {
+    if (!pendingToken) return;
+    const r = await resend
+      .mutateAsync({ pending_token: pendingToken })
+      .catch(() => null);
+    if (r?.pending_token) setPendingToken(r.pending_token);
+    if (r?.expires_in) setExpiresIn(r.expires_in);
+    submittedCode.current = "";
+    setOtp("");
+    setRestartKey((k) => k + 1);
   };
 
   return (
@@ -287,24 +307,6 @@ export default function OnboardingPage() {
             )}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InputField
-              label="Password"
-              type="password"
-              placeholder="At least 8 characters"
-              register={register("password")}
-              error={errors.password?.message}
-              required
-            />
-            <InputField
-              label="Confirm Password"
-              type="password"
-              placeholder="Re-enter your password"
-              register={register("password_confirmation")}
-              error={errors.password_confirmation?.message}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Controller
               control={control}
               name="date_of_birth"
@@ -333,6 +335,24 @@ export default function OnboardingPage() {
                   error={errors.gender?.message}
                 />
               )}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Password"
+              type="password"
+              placeholder="At least 8 characters"
+              register={register("password")}
+              error={errors.password?.message}
+              required
+            />
+            <InputField
+              label="Confirm Password"
+              type="password"
+              placeholder="Re-enter your password"
+              register={register("password_confirmation")}
+              error={errors.password_confirmation?.message}
+              required
             />
           </div>
           <div className="flex gap-2">
@@ -442,26 +462,52 @@ export default function OnboardingPage() {
 
       {/* Step 4 — Confirm OTP */}
       {step === 4 && (
-        <form
-          onSubmit={otpForm.handleSubmit(onVerify)}
-          className="space-y-4"
-        >
-          <p className="text-sm text-slate-600">
-            We sent a verification code to your email. Enter it below to finish
-            claiming your account.
-          </p>
-          <InputField
-            label="Verification Code"
-            type="text"
-            placeholder="Enter the code"
-            register={otpForm.register("otp")}
-            error={otpForm.formState.errors.otp?.message}
-            required
-          />
-          <button
-            type="submit"
+        <div className="space-y-5">
+          <div className="flex flex-col items-center text-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <MdMailOutline className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-semibold text-slate-900">
+              Verify your account
+            </h3>
+            <p className="text-xs text-slate-500">
+              Enter the 6-digit code we sent
+              {getValues("email") ? (
+                <>
+                  {" "}
+                  to{" "}
+                  <span className="font-semibold text-slate-700">
+                    {getValues("email")}
+                  </span>
+                </>
+              ) : (
+                " to your email"
+              )}
+              . Your account activates automatically once it&apos;s correct.
+            </p>
+          </div>
+
+          <OtpInput
+            value={otp}
+            onChange={setOtp}
+            length={6}
+            autoFocus
             disabled={verify.isPending}
-            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+            onComplete={runVerify}
+          />
+
+          <OtpCountdown
+            seconds={expiresIn}
+            onResend={onResendOtp}
+            pending={resend.isPending}
+            restartKey={restartKey}
+          />
+
+          <button
+            type="button"
+            onClick={() => runVerify(otp)}
+            disabled={verify.isPending || otp.length < 6}
+            className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {verify.isPending ? "Verifying…" : "Activate account"}
           </button>
@@ -472,7 +518,7 @@ export default function OnboardingPage() {
           >
             Back to details
           </button>
-        </form>
+        </div>
       )}
     </div>
   );
