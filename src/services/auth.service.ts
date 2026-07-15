@@ -126,10 +126,10 @@ export const nnakAuth = {
     password_confirmation: string;
   }) => unwrap<null>(nnakApi.post("/change-password", body)),
 
-  /** Update the signed-in user's own profile. PUT /profile mirrors GET /profile
-   *  and returns the refreshed user (with nested profile). */
+  /** Update the signed-in user's own profile. PATCH /profile returns the
+   *  refreshed user (with nested profile). */
   updateProfile: (body: UpdateProfilePayload) =>
-    unwrap<{ user: NnakUserWithProfile }>(nnakApi.put("/profile", body)).then(
+    unwrap<{ user: NnakUserWithProfile }>(nnakApi.patch("/profile", body)).then(
       (d) => d.user,
     ),
 
