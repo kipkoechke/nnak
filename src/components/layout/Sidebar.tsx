@@ -305,7 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
 
   return (
     <div
-      className={`bg-primary-dark text-white flex flex-col transition-all duration-300 fixed md:relative inset-y-0 left-0 z-50 w-64 md:w-56 ${
+      className={`bg-primary-dark text-white flex flex-col min-h-0 overflow-hidden transition-all duration-300 fixed md:relative inset-y-0 left-0 z-50 w-64 md:w-56 ${
         isMobileMenuOpen
           ? "translate-x-0"
           : "-translate-x-full md:translate-x-0"
@@ -321,7 +321,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, onClose }) => {
         </button>
       </div>
 
-      <nav className="flex-1 py-2 px-3 overflow-y-auto">
+      <nav className="flex-1 min-h-0 py-2 px-3 overflow-y-auto">
         {groups.map((g) => {
           const visible = g.items.filter((i) =>
             i.show ? i.show(user) : true,
