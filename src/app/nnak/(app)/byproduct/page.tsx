@@ -1,7 +1,13 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductApiList, useUploadByProductFile, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
+import { ModalShell } from "@/components/common/Modal";
+import {
+  useByProductApiList,
+  useByProductUploadStatus,
+  useUploadByProductFile,
+  useDownloadByProductTemplate,
+} from "@/hooks/use-byproduct";
 import { MdUpload, MdClose } from "react-icons/md";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -20,6 +26,9 @@ export default function ByProductPage() {
   const [file, setFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState(monthsAgoIso(1));
   const [endDate, setEndDate] = useState(todayIso());
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const { data: detail, isLoading: detailLoading } =
+    useByProductUploadStatus(detailId ?? undefined);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,11 +134,12 @@ export default function ByProductPage() {
               <th className="px-3 py-2">Processed</th>
               <th className="px-3 py-2">Failed</th>
               <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {uploads.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
             )}
             {uploads.map((u) => (
               <tr key={u.id}>
@@ -145,11 +155,85 @@ export default function ByProductPage() {
                     "bg-slate-100 text-slate-600"
                   }`}>{u.status}</span>
                 </td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    onClick={() => setDetailId(u.id)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    More
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <ModalShell isOpen={!!detailId} onClose={() => setDetailId(null)}>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Upload details
+            </h3>
+            <button
+              onClick={() => setDetailId(null)}
+              className="text-slate-400 hover:text-slate-600"
+              aria-label="Close"
+            >
+              <MdClose className="w-5 h-5" />
+            </button>
+          </div>
+          {detailLoading && !detail ? (
+            <p className="text-sm text-slate-500">Loading…</p>
+          ) : !detail ? (
+            <p className="text-sm text-slate-500">No details available.</p>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div className="font-medium text-slate-900 break-all">
+                {detail.file_name || "—"}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Detail label="Status" value={detail.status} />
+                <Detail
+                  label="Period"
+                  value={`${new Date(detail.start_date).toLocaleDateString()} — ${new Date(detail.end_date).toLocaleDateString()}`}
+                />
+                <Detail label="Total rows" value={String(detail.total_rows ?? 0)} />
+                <Detail
+                  label="Processed"
+                  value={String(detail.processed_rows ?? 0)}
+                />
+                <Detail label="Failed" value={String(detail.failed_rows ?? 0)} />
+                <Detail
+                  label="Skipped"
+                  value={String(detail.skipped_count ?? 0)}
+                />
+                <Detail
+                  label="Uploaded"
+                  value={new Date(detail.created_at).toLocaleString()}
+                />
+              </div>
+              {detail.errors && (
+                <div>
+                  <div className="text-[11px] uppercase text-slate-500 mb-1">
+                    Errors
+                  </div>
+                  <pre className="text-xs bg-red-50 text-red-700 border border-red-200 rounded-md p-2 whitespace-pre-wrap max-h-40 overflow-auto">
+                    {detail.errors}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </ModalShell>
     </div>
   );
 }
+
+const Detail = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <div className="text-[11px] uppercase text-slate-500">{label}</div>
+    <div className="text-slate-800 capitalize">{value || "—"}</div>
+  </div>
+);
