@@ -149,6 +149,12 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.viewFinancials,
   },
   {
+    name: "Branch Batching",
+    icon: MdAttachMoney,
+    href: "/nnak/finance/batches",
+    show: nnakCan.viewFinancials,
+  },
+  {
     name: "Analytics",
     icon: MdAnalytics,
     href: "/nnak/analytics",

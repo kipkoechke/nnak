@@ -200,8 +200,7 @@ export default function OnboardingPage() {
           </h2>
         </div>
         <p className="text-xs text-slate-500 mt-1">
-          If your record was migrated by NNAK, confirm your ID to activate your
-          online account.
+          Please fill in the required details to activate your account.
         </p>
       </div>
 

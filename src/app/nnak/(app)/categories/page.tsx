@@ -92,7 +92,7 @@ export default function CategoriesPage() {
                 <td className="px-3 py-2 font-medium">{c.name}</td>
                 <td className="px-3 py-2 capitalize">{c.code}</td>
                 <td className="px-3 py-2 capitalize">{c.billing_frequency}</td>
-                <td className="px-3 py-2">KES {c.annual_fee.toLocaleString()}</td>
+                <td className="px-3 py-2">KES {(c.annual_fee ?? 0).toLocaleString()}</td>
                 <td className="px-3 py-2">{c.monthly_fee ? `KES ${c.monthly_fee.toLocaleString()}` : "—"}</td>
                 <td className="px-3 py-2 text-right">
                   <button onClick={() => beginEdit(c)} className="text-xs text-primary mr-2">Edit</button>

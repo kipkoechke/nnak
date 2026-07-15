@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { MdAdd, MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import {
   useAdminInstitutions,
   useCreateInstitution,
@@ -205,25 +206,12 @@ export default function InstitutionsPage() {
           </table>
         </div>
         {pagination && pagination.last_page > 1 && (
-          <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 text-xs text-slate-500">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="px-2 py-1 rounded hover:bg-slate-100 disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span>
-              Page {pagination.current_page} of {pagination.last_page}
-            </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= pagination.last_page}
-              className="px-2 py-1 rounded hover:bg-slate-100 disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <Pagination
+            currentPage={pagination.current_page}
+            totalPages={pagination.last_page}
+            totalItems={pagination.total}
+            onPageChange={setPage}
+          />
         )}
       </div>
     </div>
