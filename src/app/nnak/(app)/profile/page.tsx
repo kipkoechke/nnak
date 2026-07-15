@@ -17,7 +17,9 @@ import {
 
 const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div>
-    <dt className="text-[11px] uppercase tracking-wide text-slate-500">{label}</dt>
+    <dt className="text-[11px] uppercase tracking-wide text-slate-500">
+      {label}
+    </dt>
     <dd className="text-sm text-slate-900 mt-0.5">{value || "—"}</dd>
   </div>
 );
@@ -134,7 +136,7 @@ export default function ProfileSettingsPage() {
                 {profile?.photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={profile.photo_url}
+                    src={profile.photo_url.replace(/\\/g, "")}
                     alt={me.name}
                     className="w-full h-full object-cover"
                   />
@@ -201,9 +203,7 @@ export default function ProfileSettingsPage() {
                   <TextField
                     label="Designation"
                     value={form.designation}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, designation: v }))
-                    }
+                    onChange={(v) => setForm((f) => ({ ...f, designation: v }))}
                   />
                   <TextField
                     label="Place of Work"
@@ -241,7 +241,9 @@ export default function ProfileSettingsPage() {
               </button>
               <button
                 type="submit"
-                disabled={updateProfile.isPending || form.name.trim().length === 0}
+                disabled={
+                  updateProfile.isPending || form.name.trim().length === 0
+                }
                 className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
                 {updateProfile.isPending ? "Saving…" : "Save Changes"}
@@ -298,7 +300,8 @@ export default function ProfileSettingsPage() {
             value={passwordConfirmation}
             onChange={setPasswordConfirmation}
             error={
-              passwordConfirmation.length > 0 && password !== passwordConfirmation
+              passwordConfirmation.length > 0 &&
+              password !== passwordConfirmation
                 ? "Passwords do not match"
                 : undefined
             }
@@ -354,7 +357,9 @@ const Field = ({
   error?: string;
 }) => (
   <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+    <label className="block text-xs font-medium text-slate-600 mb-1">
+      {label}
+    </label>
     <input
       type="password"
       value={value}
