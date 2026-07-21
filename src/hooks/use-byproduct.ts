@@ -31,10 +31,15 @@ export const useUploadByProduct = () => {
 const apiErrMsg = (e: unknown, fb: string) =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message || fb;
 
-export const useByProductApiList = (params?: { page?: number; per_page?: number }) =>
+export const useByProductApiList = (params?: {
+  page?: number;
+  per_page?: number;
+}) =>
   useQuery({
-    queryKey: nqk.byProduct.list(),
+    // Key on the params so changing page actually refetches.
+    queryKey: [...nqk.byProduct.list(), params ?? {}],
     queryFn: () => byProductService.apiList(params),
+    placeholderData: (prev) => prev,
   });
 
 export const useByProductUploadStatus = (id: string | undefined) =>
