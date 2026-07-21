@@ -253,7 +253,7 @@ export default function MembersPage() {
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>
                     <th className="px-4 py-2">Subscription</th>
-                    <th className="px-4 py-2 w-32">Actions</th>
+                    <th className="px-4 py-2 w-48">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -298,20 +298,28 @@ export default function MembersPage() {
                         })()}
                       </td>
                       <td className="px-4 py-2">
-                        {canManageStatus && m.profile?.is_approved && (
-                          <button
-                            onClick={() =>
-                              setConfirmAction({
-                                type: "suspend",
-                                memberId: m.id,
-                                memberName: m.name,
-                              })
-                            }
-                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/nnak/members/${m.profile?.id || m.id}`}
+                            className="text-xs text-primary hover:underline font-medium whitespace-nowrap"
                           >
-                            Suspend
-                          </button>
-                        )}
+                            View details
+                          </Link>
+                          {canManageStatus && m.profile?.is_approved && (
+                            <button
+                              onClick={() =>
+                                setConfirmAction({
+                                  type: "suspend",
+                                  memberId: m.id,
+                                  memberName: m.name,
+                                })
+                              }
+                              className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
+                            >
+                              Suspend
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
