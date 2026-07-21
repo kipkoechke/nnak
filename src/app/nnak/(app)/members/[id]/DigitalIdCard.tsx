@@ -38,23 +38,42 @@ const cleanUrl = (u?: string | null): string => (u ? u.replace(/\\/g, "") : "");
  * which is why the photo went missing from the downloaded PDF. Resolving it to
  * a data URL up front embeds the bytes in the document instead.
  */
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve) => {
+    const fr = new FileReader();
+    fr.onloadend = () => resolve(typeof fr.result === "string" ? fr.result : "");
+    fr.onerror = () => resolve("");
+    fr.readAsDataURL(blob);
+  });
+
+const fetchAsDataUrl = async (url: string): Promise<string> => {
+  const res = await fetch(url, { credentials: "omit" });
+  if (!res.ok) return "";
+  return blobToDataUrl(await res.blob());
+};
+
 const toDataUrl = async (raw?: string | null): Promise<string> => {
   const url = cleanUrl(raw);
   if (!url) return "";
   if (url.startsWith("data:")) return url;
+
+  // Try the origin directly first — free if it's same-origin or the host
+  // starts sending CORS headers.
   try {
-    const res = await fetch(url, { mode: "cors", credentials: "omit" });
-    if (!res.ok) return "";
-    const blob = await res.blob();
-    return await new Promise<string>((resolve) => {
-      const fr = new FileReader();
-      fr.onloadend = () =>
-        resolve(typeof fr.result === "string" ? fr.result : "");
-      fr.onerror = () => resolve("");
-      fr.readAsDataURL(blob);
-    });
+    const direct = await fetchAsDataUrl(url);
+    if (direct) return direct;
   } catch {
-    // Blocked by CORS or offline — fall back to the initials placeholder.
+    // Blocked by CORS; fall through to the proxy.
+  }
+
+  // The storage host serves images without Access-Control-Allow-Origin, so
+  // read them back through our own origin instead.
+  try {
+    return await fetchAsDataUrl(
+      `/api/image-proxy?url=${encodeURIComponent(url)}`,
+    );
+  } catch {
+    // Still unavailable — the card falls back to the initials placeholder.
     return "";
   }
 };
