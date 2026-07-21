@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { MdBookmarks, MdCalendarToday, MdSearch } from "react-icons/md";
+import { MdBookmarks, MdCalendarToday } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useStudentBookings } from "@/hooks/use-student-events";
+import { useBookingScope, useMyBookings } from "@/hooks/use-bookings";
 import type { StudentBooking } from "@/types/nnak";
 
 const STATUS_TONE: Record<string, string> = {
@@ -29,11 +29,13 @@ const fmtDate = (iso: string) =>
     year: "numeric",
   });
 
-export default function StudentBookingsPage() {
+export default function MyBookingsPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
 
-  const { data, isLoading } = useStudentBookings({
+  // Members and students have separate booking endpoints — pick by role.
+  const scope = useBookingScope();
+  const { data, isLoading } = useMyBookings(scope, {
     page,
     per_page: 15,
     status: status || undefined,
