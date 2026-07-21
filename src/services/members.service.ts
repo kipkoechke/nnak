@@ -35,13 +35,19 @@ interface PendingResponse {
   pagination?: NnakPagination;
 }
 
+/** Mirrors the `meta.supported_params` advertised by GET /admin/members —
+ *  anything outside this set is ignored by the backend. */
 export interface MemberListQuery {
   page?: number;
   per_page?: number;
   search?: string;
   status?: string;
-  category_id?: string;
+  member_category_id?: string;
   branch_id?: string;
+  /** Aging bucket in months (e.g. "0", "1-3", "3+") as supported upstream. */
+  aging?: string;
+  /** Filter by approval state. */
+  approved?: boolean;
 }
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
