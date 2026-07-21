@@ -609,10 +609,12 @@ export interface Workstation {
   created_at: string;
   updated_at: string;
 }
+/** Note the asymmetry: reads return `county`, but writes expect `city`. */
 export interface WorkstationInput {
   name: string;
   country: string;
-  county: string;
+  /** The county — the write endpoint names this field `city`. */
+  city: string;
   start_date: string;
   end_date?: string | null;
   employer_type?: string;
