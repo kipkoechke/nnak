@@ -31,20 +31,23 @@ export default function VerifyOtpPage() {
   // code once; unlock on failure so the user can retry a corrected code.
   const submittedCode = useRef<string>("");
 
-  const runVerify = async (code: string) => {
+  /** `force` bypasses the latch so an explicit click can retry the same code. */
+  const runVerify = async (code: string, force = false) => {
     if (!pendingToken || code.length < 6 || verify.isPending) return;
-    if (submittedCode.current === code) return;
+    if (!force && submittedCode.current === code) return;
     submittedCode.current = code;
     const r = await verify
       .mutateAsync({ pending_token: pendingToken, otp: code })
       .catch(() => null);
     if (r) router.push(redirect);
-    else submittedCode.current = ""; // allow retry after a failed attempt
+    // On failure the code stays latched. Re-arming here would let the
+    // auto-submit fire again immediately and loop on an invalid code — the
+    // user must edit a digit (or resend) to try again.
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    runVerify(otp);
+    runVerify(otp, true);
   };
 
   const onResend = async () => {
