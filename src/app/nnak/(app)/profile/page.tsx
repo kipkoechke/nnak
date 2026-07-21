@@ -424,16 +424,24 @@ export default function ProfileSettingsPage() {
               >
                 {!staff && step === 2 ? "Back" : "Cancel"}
               </button>
+              {/* Distinct keys keep these as separate DOM nodes. Sharing one
+                  node would let React patch `type` from button -> submit while
+                  the click is still resolving, firing a save on "Continue". */}
               {!staff && step === 1 ? (
                 <button
+                  key="continue"
                   type="button"
-                  onClick={() => handleNext(2, step1Fields)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNext(2, step1Fields);
+                  }}
                   className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90"
                 >
                   Continue
                 </button>
               ) : (
                 <button
+                  key="save"
                   type="submit"
                   disabled={updateProfile.isPending}
                   className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
