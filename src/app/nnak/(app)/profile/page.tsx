@@ -1,12 +1,20 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import PageHeader from "@/components/common/PageHeader";
+import { InputField } from "@/components/common/InputField";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
 import {
   useNnakMe,
   useNnakChangePassword,
   useNnakUpdateProfile,
   useNnakUpdateProfilePicture,
 } from "@/hooks/use-auth";
+import { useChapters, useEmployerTypes } from "@/hooks/use-enums";
+import { COUNTY_OPTIONS } from "@/lib/counties";
+import { profileSchema, type ProfileFormValues } from "@/schemas/auth.schema";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
 import {
   MdModeEditOutline,
@@ -24,12 +32,25 @@ const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    {children}
+  </h4>
+);
+
 export default function ProfileSettingsPage() {
   const { data: me, isLoading } = useNnakMe();
   const changePassword = useNnakChangePassword();
   const updateProfile = useNnakUpdateProfile();
   const updatePicture = useNnakUpdateProfilePicture();
   const photoRef = useRef<HTMLInputElement | null>(null);
+
+  const { data: employerTypes = [] } = useEmployerTypes();
+  const { data: chapters = [] } = useChapters();
+  const chapterOptions = useMemo(
+    () => chapters.map((c) => ({ value: c.value, label: c.label })),
+    [chapters],
+  );
 
   const onPhotoPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,36 +59,52 @@ export default function ProfileSettingsPage() {
   };
 
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    county: "",
-    designation: "",
-    place_of_work: "",
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset: resetForm,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      designation: "",
+      place_of_work: "",
+      county: "",
+      employer_type: "",
+      chapter: "",
+    },
   });
 
   // Seed the form from the loaded profile, and re-seed whenever the
   // canonical data changes (e.g. after a successful save).
   useEffect(() => {
     if (!me) return;
-    setForm({
+    resetForm({
       name: me.name ?? "",
       phone: me.profile?.phone ?? "",
-      county: me.profile?.county ?? "",
       designation: me.profile?.designation ?? "",
       place_of_work: me.profile?.employer_name ?? "",
+      county: me.profile?.county ?? "",
+      employer_type: me.profile?.employer_type ?? "",
+      chapter: me.profile?.chapter ?? "",
     });
-  }, [me]);
+  }, [me, resetForm]);
 
-  const saveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveProfile = (values: ProfileFormValues) => {
     updateProfile.mutate(
       {
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        county: form.county.trim(),
-        designation: form.designation.trim(),
-        place_of_work: form.place_of_work.trim(),
+        name: values.name.trim(),
+        // The API rejects a leading "+" — match what registration sends.
+        phone: values.phone.replace(/^\+/, ""),
+        county: values.county || undefined,
+        designation: values.designation || undefined,
+        place_of_work: values.place_of_work || undefined,
+        employer_type: values.employer_type || undefined,
+        chapter: values.chapter || undefined,
       },
       { onSuccess: () => setIsEditing(false) },
     );
@@ -181,55 +218,123 @@ export default function ProfileSettingsPage() {
         </div>
 
         {isEditing ? (
-          <form onSubmit={saveProfile} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TextField
+          /* Fields mirror the registration form — same components, grouping
+             and validation so the two screens read identically. */
+          <form onSubmit={handleSubmit(saveProfile)} className="space-y-5">
+            <div className="space-y-4">
+              <SectionTitle>Personal Details</SectionTitle>
+              <InputField
                 label="Full Name"
-                value={form.name}
-                onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+                type="text"
+                placeholder="e.g. Jane Achieng Omondi"
+                register={register("name")}
+                error={errors.name?.message}
+                required
               />
-              <TextField
-                label="Phone"
-                value={form.phone}
-                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                  <PhoneInputField
+                    label="Phone"
+                    required
+                    value={field.value}
+                    onChange={field.onChange}
+                    defaultCountry="KE"
+                    error={errors.phone?.message}
+                  />
+                )}
               />
-              {!staff && (
-                <>
-                  <TextField
-                    label="County"
-                    value={form.county}
-                    onChange={(v) => setForm((f) => ({ ...f, county: v }))}
-                  />
-                  <TextField
-                    label="Designation"
-                    value={form.designation}
-                    onChange={(v) => setForm((f) => ({ ...f, designation: v }))}
-                  />
-                  <TextField
-                    label="Place of Work"
-                    value={form.place_of_work}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, place_of_work: v }))
-                    }
-                  />
-                </>
-              )}
             </div>
+
+            {!staff && (
+              <div className="space-y-4">
+                <SectionTitle>Professional</SectionTitle>
+                <InputField
+                  label="Designation"
+                  type="text"
+                  placeholder="e.g. Registered Nurse"
+                  register={register("designation")}
+                  error={errors.designation?.message}
+                />
+                <InputField
+                  label="Place of Work"
+                  type="text"
+                  placeholder="e.g. Kenyatta National Hospital"
+                  register={register("place_of_work")}
+                  error={errors.place_of_work?.message}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Controller
+                    control={control}
+                    name="county"
+                    render={({ field }) => (
+                      <SearchableSelect
+                        label="County"
+                        options={COUNTY_OPTIONS}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Select county"
+                        searchPlaceholder="Search counties…"
+                        error={errors.county?.message}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="employer_type"
+                    render={({ field }) => (
+                      <SearchableSelect
+                        label="Employer Type"
+                        options={employerTypes}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Select employer type"
+                        error={errors.employer_type?.message}
+                      />
+                    )}
+                  />
+                </div>
+                <Controller
+                  control={control}
+                  name="chapter"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Chapter of Interest"
+                      options={chapterOptions}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select chapter"
+                      searchPlaceholder="Search chapters…"
+                      error={errors.chapter?.message}
+                    />
+                  )}
+                />
+              </div>
+            )}
+
             {/* Read-only identity fields cannot be self-edited (members only). */}
             {!staff && (
-              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-                <Item
-                  label="Membership Number"
-                  value={profile?.membership_number}
-                />
-                <Item label="Account Number" value={profile?.account_number} />
-                <Item label="NCK Number" value={profile?.nck_number} />
-                <Item
-                  label="ID Number"
-                  value={profile?.identification_number}
-                />
-              </dl>
+              <div className="space-y-3">
+                <SectionTitle>Membership Identity</SectionTitle>
+                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <Item
+                    label="Membership Number"
+                    value={profile?.membership_number}
+                  />
+                  <Item
+                    label="Account Number"
+                    value={profile?.account_number}
+                  />
+                  <Item label="NCK Number" value={profile?.nck_number} />
+                  <Item
+                    label="ID Number"
+                    value={profile?.identification_number}
+                  />
+                </dl>
+              </div>
             )}
+
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
@@ -241,9 +346,7 @@ export default function ProfileSettingsPage() {
               </button>
               <button
                 type="submit"
-                disabled={
-                  updateProfile.isPending || form.name.trim().length === 0
-                }
+                disabled={updateProfile.isPending}
                 className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
                 {updateProfile.isPending ? "Saving…" : "Save Changes"}
@@ -272,6 +375,11 @@ export default function ProfileSettingsPage() {
                   value={profile?.designation?.toUpperCase()}
                 />
                 <Item label="Place of Work" value={profile?.employer_name} />
+                <Item label="Employer Type" value={profile?.employer_type} />
+                <Item
+                  label="Chapter of Interest"
+                  value={profile?.chapter_label ?? profile?.chapter}
+                />
               </>
             )}
           </dl>
@@ -320,28 +428,6 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
-
-const TextField = ({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) => (
-  <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">
-      {label}
-    </label>
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-    />
-  </div>
-);
 
 const Field = ({
   label,
