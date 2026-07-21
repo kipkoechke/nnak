@@ -5,10 +5,8 @@ import { MdAdd, MdSearch, MdUploadFile, MdDownload } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import {
-  useApproveMember,
   useImportMembers,
   useMembers,
-  useRejectMember,
   useSetMemberStatus,
 } from "@/hooks/use-members";
 import { membersService } from "@/services/members.service";
@@ -87,10 +85,8 @@ export default function MembersPage() {
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
-  const approve = useApproveMember();
-  const reject = useRejectMember();
   const importMembers = useImportMembers();
-  const canApprove = !isBranchManager && nnakCan.approveMembers(me);
+  const canManageStatus = !isBranchManager && nnakCan.approveMembers(me);
   const canImport = !isBranchManager && nnakCan.manageMembers(me);
 
   const categoryOptions = useMemo(
@@ -144,7 +140,7 @@ export default function MembersPage() {
   };
 
   const [confirmAction, setConfirmAction] = useState<{
-    type: "suspend" | "reject";
+    type: "suspend";
     memberId: string;
     memberName: string;
   } | null>(null);
@@ -326,33 +322,7 @@ export default function MembersPage() {
                         })()}
                       </td>
                       <td className="px-4 py-2">
-                        {canApprove &&
-                          m.profile &&
-                          !(m.profile.is_approved ?? false) && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                disabled={approve.isPending || reject.isPending}
-                                onClick={() => approve.mutate(m.profile!.id)}
-                                className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md hover:bg-emerald-100 disabled:opacity-50 font-medium"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                disabled={approve.isPending || reject.isPending}
-                                onClick={() =>
-                                  setConfirmAction({
-                                    type: "reject",
-                                    memberId: m.profile!.id,
-                                    memberName: m.name,
-                                  })
-                                }
-                                className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-md hover:bg-red-100 disabled:opacity-50 font-medium"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                        {canApprove && m.profile?.is_approved && (
+                        {canManageStatus && m.profile?.is_approved && (
                           <button
                             onClick={() =>
                               setConfirmAction({
@@ -389,28 +359,16 @@ export default function MembersPage() {
         <DeleteConfirmationModal
           itemName={confirmAction?.memberName ?? ""}
           itemType="member"
-          title={
-            confirmAction?.type === "suspend"
-              ? "Suspend Member"
-              : "Reject Member"
-          }
-          message={
-            confirmAction?.type === "suspend"
-              ? `Are you sure you want to suspend "${confirmAction?.memberName}"?`
-              : `Are you sure you want to reject "${confirmAction?.memberName}"? This action cannot be undone.`
-          }
-          confirmLabel={
-            confirmAction?.type === "suspend" ? "Suspend" : "Reject"
-          }
-          isDeleting={setStatusM.isPending || reject.isPending}
+          title="Suspend Member"
+          message={`Are you sure you want to suspend "${confirmAction?.memberName}"?`}
+          confirmLabel="Suspend"
+          isDeleting={setStatusM.isPending}
           onConfirm={() => {
             if (!confirmAction) return;
-            if (confirmAction.type === "suspend")
-              setStatusM.mutate({
-                id: confirmAction.memberId,
-                status: "suspended",
-              });
-            else reject.mutate(confirmAction.memberId);
+            setStatusM.mutate({
+              id: confirmAction.memberId,
+              status: "suspended",
+            });
             setConfirmAction(null);
           }}
         />
