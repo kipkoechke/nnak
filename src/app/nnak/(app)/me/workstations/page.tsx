@@ -7,6 +7,8 @@ import {
   useUpdateWorkstation,
   useDeleteWorkstation,
 } from "@/hooks/use-workstations";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { COUNTY_OPTIONS } from "@/lib/counties";
 import type { Workstation, WorkstationInput } from "@/types/nnak";
 import { MdEdit, MdDelete, MdAdd, MdClose } from "react-icons/md";
 
@@ -143,7 +145,15 @@ export default function MyWorkstationsPage() {
 
             <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
             <div className="grid grid-cols-2 gap-2">
-              <Field label="County" value={form.city} onChange={(v) => setForm({ ...form, city: v })} required />
+              <SearchableSelect
+                label="County"
+                required
+                options={COUNTY_OPTIONS}
+                value={form.city}
+                onChange={(v) => setForm({ ...form, city: v })}
+                placeholder="Select county"
+                searchPlaceholder="Search counties…"
+              />
               <Field label="Country" value={form.country} onChange={(v) => setForm({ ...form, country: v })} required />
             </div>
             <Field
@@ -187,7 +197,10 @@ const Field = ({
   type?: string;
 }) => (
   <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+    {/* Matches SearchableSelect's label so fields line up side by side. */}
+    <label className="block text-sm font-bold text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
     <input
       type={type}
       value={value}
