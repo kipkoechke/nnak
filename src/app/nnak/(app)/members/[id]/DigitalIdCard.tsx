@@ -27,6 +27,38 @@ const initialsOf = (name: string): string => {
   return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "M";
 };
 
+/** The API sometimes returns escaped URLs ("https:\/\/…"). */
+const cleanUrl = (u?: string | null): string => (u ? u.replace(/\\/g, "") : "");
+
+/**
+ * Inline a remote image as a data URL.
+ *
+ * A DOM <img> renders a cross-origin photo fine, but @react-pdf fetches the
+ * bytes itself and silently drops the image when the host omits CORS headers —
+ * which is why the photo went missing from the downloaded PDF. Resolving it to
+ * a data URL up front embeds the bytes in the document instead.
+ */
+const toDataUrl = async (raw?: string | null): Promise<string> => {
+  const url = cleanUrl(raw);
+  if (!url) return "";
+  if (url.startsWith("data:")) return url;
+  try {
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!res.ok) return "";
+    const blob = await res.blob();
+    return await new Promise<string>((resolve) => {
+      const fr = new FileReader();
+      fr.onloadend = () =>
+        resolve(typeof fr.result === "string" ? fr.result : "");
+      fr.onerror = () => resolve("");
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    // Blocked by CORS or offline — fall back to the initials placeholder.
+    return "";
+  }
+};
+
 const BRAND_GREEN = "#80cc28";
 const BRAND_GREEN_DARK = "#5fa01d";
 const ACCENT_GOLD = "#d8913f";
@@ -169,13 +201,18 @@ const pdfStyles = StyleSheet.create({
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-function DigitalIdPdf({ member, qrDataUrl, validUntil }: Props & { qrDataUrl: string }) {
+function DigitalIdPdf({
+  member,
+  qrDataUrl,
+  validUntil,
+  photoDataUrl,
+}: Props & { qrDataUrl: string; photoDataUrl: string }) {
   const valid = fmtDate(validUntil ?? member.profile.subscription_expires_at);
   const logoUrl =
     typeof window !== "undefined" && logoSrc.startsWith("/")
       ? new URL(logoSrc, window.location.origin).toString()
       : logoSrc;
-  const photoUrl = member.profile.photo_url;
+  const photoUrl = photoDataUrl;
 
   return (
     <Document title={`NNAK Digital ID — ${member.name}`} author="NNAK">
@@ -222,7 +259,7 @@ function DigitalIdPdf({ member, qrDataUrl, validUntil }: Props & { qrDataUrl: st
 export default function DigitalIdCard({ member, showDownload = true, validUntil }: Props) {
   const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const photo = member.profile.photo_url;
+  const photo = cleanUrl(member.profile.photo_url);
   const validUntilLabel = fmtDate(validUntil ?? member.profile.subscription_expires_at);
 
   useEffect(() => {
@@ -235,7 +272,16 @@ export default function DigitalIdCard({ member, showDownload = true, validUntil 
   const downloadPdf = async () => {
     try {
       setDownloading(true);
-      const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} validUntil={validUntil} />).toBlob();
+      // Inline the photo before rendering — react-pdf can't fetch it itself.
+      const photoDataUrl = await toDataUrl(member.profile.photo_url);
+      const blob = await pdf(
+        <DigitalIdPdf
+          member={member}
+          qrDataUrl={qrDataUrl}
+          validUntil={validUntil}
+          photoDataUrl={photoDataUrl}
+        />,
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -326,7 +372,15 @@ export async function downloadDigitalIdPdf(
 ) {
   const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
   const qrDataUrl = await QRCodeLib.toDataURL(verifyUrl, { width: 120, margin: 1 }).catch(() => "");
-  const blob = await pdf(<DigitalIdPdf member={member} qrDataUrl={qrDataUrl} validUntil={validUntil} />).toBlob();
+  const photoDataUrl = await toDataUrl(member.profile.photo_url);
+  const blob = await pdf(
+    <DigitalIdPdf
+      member={member}
+      qrDataUrl={qrDataUrl}
+      validUntil={validUntil}
+      photoDataUrl={photoDataUrl}
+    />,
+  ).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
