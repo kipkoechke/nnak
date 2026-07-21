@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
@@ -38,6 +39,12 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   </h4>
 );
 
+/** Same two-stage split registration uses for the equivalent fields. */
+const STEPS = [
+  { id: 1, label: "Personal Details" },
+  { id: 2, label: "Professional" },
+] as const;
+
 export default function ProfileSettingsPage() {
   const { data: me, isLoading } = useNnakMe();
   const changePassword = useNnakChangePassword();
@@ -59,11 +66,13 @@ export default function ProfileSettingsPage() {
   };
 
   const [isEditing, setIsEditing] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
 
   const {
     register,
     handleSubmit,
     control,
+    trigger,
     reset: resetForm,
     formState: { errors },
   } = useForm<ProfileFormValues>({
@@ -93,6 +102,29 @@ export default function ProfileSettingsPage() {
       chapter: me.profile?.chapter ?? "",
     });
   }, [me, resetForm]);
+
+  const step1Fields: (keyof ProfileFormValues)[] = ["name", "phone"];
+
+  const handleNext = async (
+    target: 2,
+    fields: (keyof ProfileFormValues)[],
+  ) => {
+    const valid = await trigger(fields);
+    if (valid) setStep(target);
+    else {
+      const first = fields.find((f) => errors[f]);
+      if (first)
+        toast.error(
+          (errors[first]?.message as string) ||
+            "Please fix the highlighted field",
+        );
+    }
+  };
+
+  const beginEdit = () => {
+    setStep(1);
+    setIsEditing(true);
+  };
 
   const saveProfile = (values: ProfileFormValues) => {
     updateProfile.mutate(
@@ -209,7 +241,7 @@ export default function ProfileSettingsPage() {
           {!isEditing && (
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
+              onClick={beginEdit}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary-muted rounded-md px-3 py-1.5 hover:bg-primary-subtle shrink-0"
             >
               <MdModeEditOutline className="w-4 h-4" /> Edit Profile
@@ -220,34 +252,80 @@ export default function ProfileSettingsPage() {
         {isEditing ? (
           /* Fields mirror the registration form — same components, grouping
              and validation so the two screens read identically. */
-          <form onSubmit={handleSubmit(saveProfile)} className="space-y-5">
-            <div className="space-y-4">
-              <SectionTitle>Personal Details</SectionTitle>
-              <InputField
-                label="Full Name"
-                type="text"
-                placeholder="e.g. Jane Achieng Omondi"
-                register={register("name")}
-                error={errors.name?.message}
-                required
-              />
-              <Controller
-                control={control}
-                name="phone"
-                render={({ field }) => (
-                  <PhoneInputField
-                    label="Phone"
-                    required
-                    value={field.value}
-                    onChange={field.onChange}
-                    defaultCountry="KE"
-                    error={errors.phone?.message}
-                  />
-                )}
-              />
-            </div>
-
+          <form
+            onSubmit={handleSubmit(saveProfile, (errs) => {
+              const first = Object.values(errs)[0];
+              toast.error(
+                (first?.message as string) ||
+                  "Please fix the highlighted fields",
+              );
+            })}
+            className="space-y-5"
+          >
+            {/* Step indicator — mirrors the registration form. Staff have
+                only the personal fields, so they get a single-step form. */}
             {!staff && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  {STEPS.map((s) => (
+                    <div
+                      key={s.id}
+                      className={`flex-1 h-1 rounded-full ${
+                        step >= s.id ? "bg-primary" : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs">
+                  {STEPS.map((s) => (
+                    <span
+                      key={s.id}
+                      className={
+                        step === s.id
+                          ? "text-primary font-semibold"
+                          : step > s.id
+                            ? "text-slate-700"
+                            : "text-slate-400"
+                      }
+                    >
+                      {s.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 1 — Personal Details */}
+            {(staff || step === 1) && (
+              <div className="space-y-4">
+                <SectionTitle>Personal Details</SectionTitle>
+                <InputField
+                  label="Full Name"
+                  type="text"
+                  placeholder="e.g. Jane Achieng Omondi"
+                  register={register("name")}
+                  error={errors.name?.message}
+                  required
+                />
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field }) => (
+                    <PhoneInputField
+                      label="Phone"
+                      required
+                      value={field.value}
+                      onChange={field.onChange}
+                      defaultCountry="KE"
+                      error={errors.phone?.message}
+                    />
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Step 2 — Professional */}
+            {!staff && step === 2 && (
               <div className="space-y-4">
                 <SectionTitle>Professional</SectionTitle>
                 <InputField
@@ -314,7 +392,7 @@ export default function ProfileSettingsPage() {
             )}
 
             {/* Read-only identity fields cannot be self-edited (members only). */}
-            {!staff && (
+            {!staff && step === 2 && (
               <div className="space-y-3">
                 <SectionTitle>Membership Identity</SectionTitle>
                 <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -338,19 +416,31 @@ export default function ProfileSettingsPage() {
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setIsEditing(false)}
+                onClick={() =>
+                  !staff && step === 2 ? setStep(1) : setIsEditing(false)
+                }
                 disabled={updateProfile.isPending}
                 className="px-4 py-2 text-sm font-semibold text-slate-600 rounded-md hover:bg-slate-100 disabled:opacity-50"
               >
-                Cancel
+                {!staff && step === 2 ? "Back" : "Cancel"}
               </button>
-              <button
-                type="submit"
-                disabled={updateProfile.isPending}
-                className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
-              >
-                {updateProfile.isPending ? "Saving…" : "Save Changes"}
-              </button>
+              {!staff && step === 1 ? (
+                <button
+                  type="button"
+                  onClick={() => handleNext(2, step1Fields)}
+                  className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={updateProfile.isPending}
+                  className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {updateProfile.isPending ? "Saving…" : "Save Changes"}
+                </button>
+              )}
             </div>
           </form>
         ) : (
