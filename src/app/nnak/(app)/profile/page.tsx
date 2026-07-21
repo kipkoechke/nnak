@@ -13,7 +13,11 @@ import {
   useNnakUpdateProfile,
   useNnakUpdateProfilePicture,
 } from "@/hooks/use-auth";
-import { useChapters, useEmployerTypes } from "@/hooks/use-enums";
+import {
+  useChapters,
+  useEmployerTypes,
+  useProfessionalCadres,
+} from "@/hooks/use-enums";
 import { COUNTY_OPTIONS } from "@/lib/counties";
 import { profileSchema, type ProfileFormValues } from "@/schemas/auth.schema";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
@@ -54,6 +58,7 @@ export default function ProfileSettingsPage() {
 
   const { data: employerTypes = [] } = useEmployerTypes();
   const { data: chapters = [] } = useChapters();
+  const { data: cadres = [] } = useProfessionalCadres();
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
@@ -80,7 +85,7 @@ export default function ProfileSettingsPage() {
     defaultValues: {
       name: "",
       phone: "",
-      designation: "",
+      professional_cadre: "",
       place_of_work: "",
       county: "",
       employer_type: "",
@@ -95,7 +100,8 @@ export default function ProfileSettingsPage() {
     resetForm({
       name: me.name ?? "",
       phone: me.profile?.phone ?? "",
-      designation: me.profile?.designation ?? "",
+      professional_cadre:
+        me.profile?.professional_cadre ?? me.profile?.designation ?? "",
       place_of_work: me.profile?.employer_name ?? "",
       county: me.profile?.county ?? "",
       employer_type: me.profile?.employer_type ?? "",
@@ -133,7 +139,8 @@ export default function ProfileSettingsPage() {
         // The API rejects a leading "+" — match what registration sends.
         phone: values.phone.replace(/^\+/, ""),
         county: values.county || undefined,
-        designation: values.designation || undefined,
+        // The backend stores the cadre in `designation`, as registration does.
+        designation: values.professional_cadre || undefined,
         place_of_work: values.place_of_work || undefined,
         employer_type: values.employer_type || undefined,
         chapter: values.chapter || undefined,
@@ -328,12 +335,19 @@ export default function ProfileSettingsPage() {
             {!staff && step === 2 && (
               <div className="space-y-4">
                 <SectionTitle>Professional</SectionTitle>
-                <InputField
-                  label="Designation"
-                  type="text"
-                  placeholder="e.g. Registered Nurse"
-                  register={register("designation")}
-                  error={errors.designation?.message}
+                <Controller
+                  control={control}
+                  name="professional_cadre"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Professional Cadre"
+                      options={cadres}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select cadre"
+                      error={errors.professional_cadre?.message}
+                    />
+                  )}
                 />
                 <InputField
                   label="Place of Work"
@@ -469,8 +483,10 @@ export default function ProfileSettingsPage() {
                   value={profile?.identification_number}
                 />
                 <Item
-                  label="Designation"
-                  value={profile?.designation?.toUpperCase()}
+                  label="Professional Cadre"
+                  value={(
+                    profile?.professional_cadre ?? profile?.designation
+                  )?.toUpperCase()}
                 />
                 <Item label="Place of Work" value={profile?.employer_name} />
                 <Item label="Employer Type" value={profile?.employer_type} />
