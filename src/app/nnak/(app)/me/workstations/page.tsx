@@ -18,7 +18,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const empty: WorkstationInput = {
   name: "",
   country: "KE",
-  county: "",
+  city: "",
   employer_type: "",
   start_date: todayIso(),
   end_date: "",
@@ -52,7 +52,8 @@ export default function MyWorkstationsPage() {
     setForm({
       name: w.name,
       country: w.country,
-      county: w.county,
+      // Read model exposes `county`; the write payload calls it `city`.
+      city: w.county,
       employer_type: w.employer_type ?? "",
       start_date: w.start_date.slice(0, 10),
       end_date: w.end_date ? w.end_date.slice(0, 10) : "",
@@ -166,14 +167,14 @@ export default function MyWorkstationsPage() {
               </button>
             </div>
 
-            <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
+            <Field label="Workstation Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
             <div className="grid grid-cols-2 gap-2">
               <SearchableSelect
                 label="County"
                 required
                 options={COUNTY_OPTIONS}
-                value={form.county}
-                onChange={(v) => setForm({ ...form, county: v })}
+                value={form.city}
+                onChange={(v) => setForm({ ...form, city: v })}
                 placeholder="Select county"
                 searchPlaceholder="Search counties…"
               />
