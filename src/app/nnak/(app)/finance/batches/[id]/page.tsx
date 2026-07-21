@@ -3,6 +3,11 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
 import { useFinanceBatch, useRecordFinanceBatchPayment } from "@/hooks/use-finance";
+import {
+  useAdminBranchBatch,
+  useRecordBatchPayment,
+} from "@/hooks/use-branch-batches";
+import { useNnakMe } from "@/hooks/use-auth";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose } from "react-icons/md";
 import { useState } from "react";
@@ -42,9 +47,18 @@ export default function AdminBatchDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: batch, isLoading } = useFinanceBatch(id);
+  // Finance staff read /finance/batches/{id}; admins /admin/branch-batches/{id}.
+  const { data: me } = useNnakMe();
+  const isFinance = me?.role === "finance";
+  const financeQ = useFinanceBatch(id, { enabled: !!me && isFinance });
+  const adminQ = useAdminBranchBatch(!!me && !isFinance ? id : undefined);
+  const batch = isFinance ? financeQ.data : adminQ.data;
+  const isLoading = isFinance ? financeQ.isLoading : adminQ.isLoading;
+
   const { data: paymentMethods = [] } = usePaymentMethods();
-  const record = useRecordFinanceBatchPayment();
+  const financeRecord = useRecordFinanceBatchPayment();
+  const adminRecord = useRecordBatchPayment();
+  const record = isFinance ? financeRecord : adminRecord;
 
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState("");

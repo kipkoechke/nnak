@@ -8,9 +8,30 @@ import {
   useRecordFinanceBatchPayment,
   useFinanceBranches,
 } from "@/hooks/use-finance";
+import {
+  useAdminBranchBatches,
+  useRecordBatchPayment,
+} from "@/hooks/use-branch-batches";
+import { useNnakMe } from "@/hooks/use-auth";
+import { useNnakBranches } from "@/hooks/use-branches";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose, MdReceipt } from "react-icons/md";
-import type { FinanceBatch } from "@/types/nnak";
+
+/**
+ * The finance and admin batch endpoints return the same fields under
+ * different types, so the table works against the subset it actually reads.
+ */
+type BatchRow = {
+  id: string;
+  reference_code: string;
+  period: string;
+  branch?: { name?: string | null } | null;
+  total_collected: string | number;
+  commission_amount: string | number;
+  branch_share: string | number;
+  outstanding: number;
+  status: string;
+};
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-slate-100 text-slate-700",
@@ -27,18 +48,43 @@ export default function FinanceBranchBatchesPage() {
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
-  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
-  const branches = branchesData?.data ?? [];
   const { data: paymentMethods = [] } = usePaymentMethods();
-  const { data: batchesData, isLoading } = useFinanceBatches({
+
+  // Finance staff use /finance/batches; admins have their own
+  // /admin/branch-batches endpoints. Only the matching one is enabled.
+  const { data: me } = useNnakMe();
+  const isFinance = me?.role === "finance";
+
+  // Same split for the branch filter's options.
+  const { data: financeBranches } = useFinanceBranches(
+    { per_page: 100 },
+    { enabled: !!me && isFinance },
+  );
+  const { data: adminBranches = [] } = useNnakBranches({
+    enabled: !!me && !isFinance,
+  });
+  const branches = isFinance ? (financeBranches?.data ?? []) : adminBranches;
+  const filters = {
     period: period || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
-  });
-  const batches = batchesData?.data ?? [];
-  const record = useRecordFinanceBatchPayment();
+  };
 
-  const [openFor, setOpenFor] = useState<FinanceBatch | null>(null);
+  const financeQ = useFinanceBatches(filters, { enabled: !!me && isFinance });
+  const adminQ = useAdminBranchBatches(filters, {
+    enabled: !!me && !isFinance,
+  });
+
+  const batches: BatchRow[] = isFinance
+    ? (financeQ.data?.data ?? [])
+    : (adminQ.data ?? []);
+  const isLoading = isFinance ? financeQ.isLoading : adminQ.isLoading;
+
+  const financeRecord = useRecordFinanceBatchPayment();
+  const adminRecord = useRecordBatchPayment();
+  const record = isFinance ? financeRecord : adminRecord;
+
+  const [openFor, setOpenFor] = useState<BatchRow | null>(null);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [method, setMethod] = useState("bank_transfer");
@@ -83,7 +129,7 @@ export default function FinanceBranchBatchesPage() {
     if (r) closeModal();
   };
 
-  const paidAmount = (b: FinanceBatch) =>
+  const paidAmount = (b: BatchRow) =>
     Math.max(0, Number(b.branch_share) - Number(b.outstanding));
 
   return (
@@ -165,7 +211,7 @@ export default function FinanceBranchBatchesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {batches.map((b: FinanceBatch) => {
+              {batches.map((b: BatchRow) => {
                 const outstanding = Number(b.outstanding);
                 const paid = paidAmount(b);
                 return (

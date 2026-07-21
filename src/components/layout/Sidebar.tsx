@@ -17,7 +17,7 @@ import {
   MdHowToReg,
   MdBadge,
   MdWorkOutline,
-  MdAnalytics,
+  // MdAnalytics, // restore with the Analytics menu item
   MdSwapHoriz,
   MdMailOutline,
   MdAttachMoney,
@@ -88,12 +88,13 @@ const STAFF_ITEMS: MenuItem[] = [
     href: "/nnak/payments",
     show: nnakCan.viewFinancials,
   },
-  {
-    name: "Reports",
-    icon: MdReceipt,
-    href: "/nnak/reports",
-    show: nnakCan.viewReports,
-  },
+  // Temporarily hidden.
+  // {
+  //   name: "Reports",
+  //   icon: MdReceipt,
+  //   href: "/nnak/reports",
+  //   show: nnakCan.viewReports,
+  // },
   {
     name: "Branches",
     icon: MdBusiness,
@@ -154,12 +155,13 @@ const STAFF_ITEMS: MenuItem[] = [
     href: "/nnak/finance/batches",
     show: nnakCan.viewFinancials,
   },
-  {
-    name: "Analytics",
-    icon: MdAnalytics,
-    href: "/nnak/analytics",
-    show: nnakCan.viewReports,
-  },
+  // Temporarily hidden.
+  // {
+  //   name: "Analytics",
+  //   icon: MdAnalytics,
+  //   href: "/nnak/analytics",
+  //   show: nnakCan.viewReports,
+  // },
   {
     name: "Check-In",
     icon: MdQrCodeScanner,
