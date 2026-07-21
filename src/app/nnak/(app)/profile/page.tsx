@@ -15,10 +15,9 @@ import {
 } from "@/hooks/use-auth";
 import {
   useChapters,
-  useEmployerTypes,
   useProfessionalCadres,
+  useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import { COUNTY_OPTIONS } from "@/lib/counties";
 import { profileSchema, type ProfileFormValues } from "@/schemas/auth.schema";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
 import {
@@ -56,9 +55,9 @@ export default function ProfileSettingsPage() {
   const updatePicture = useNnakUpdateProfilePicture();
   const photoRef = useRef<HTMLInputElement | null>(null);
 
-  const { data: employerTypes = [] } = useEmployerTypes();
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
+  const { data: qualifications = [] } = useProfessionalQualifications();
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
@@ -86,9 +85,7 @@ export default function ProfileSettingsPage() {
       name: "",
       phone: "",
       professional_cadre: "",
-      place_of_work: "",
-      county: "",
-      employer_type: "",
+      professional_qualification: "",
       chapter: "",
     },
   });
@@ -102,9 +99,7 @@ export default function ProfileSettingsPage() {
       phone: me.profile?.phone ?? "",
       professional_cadre:
         me.profile?.professional_cadre ?? me.profile?.designation ?? "",
-      place_of_work: me.profile?.employer_name ?? "",
-      county: me.profile?.county ?? "",
-      employer_type: me.profile?.employer_type ?? "",
+      professional_qualification: me.profile?.professional_qualification ?? "",
       chapter: me.profile?.chapter ?? "",
     });
   }, [me, resetForm]);
@@ -138,11 +133,10 @@ export default function ProfileSettingsPage() {
         name: values.name.trim(),
         // The API rejects a leading "+" — match what registration sends.
         phone: values.phone.replace(/^\+/, ""),
-        county: values.county || undefined,
         // The backend stores the cadre in `designation`, as registration does.
         designation: values.professional_cadre || undefined,
-        place_of_work: values.place_of_work || undefined,
-        employer_type: values.employer_type || undefined,
+        professional_qualification:
+          values.professional_qualification || undefined,
         chapter: values.chapter || undefined,
       },
       { onSuccess: () => setIsEditing(false) },
@@ -349,44 +343,20 @@ export default function ProfileSettingsPage() {
                     />
                   )}
                 />
-                <InputField
-                  label="Place of Work"
-                  type="text"
-                  placeholder="e.g. Kenyatta National Hospital"
-                  register={register("place_of_work")}
-                  error={errors.place_of_work?.message}
+                <Controller
+                  control={control}
+                  name="professional_qualification"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Highest Professional Qualification"
+                      options={qualifications}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select qualification"
+                      error={errors.professional_qualification?.message}
+                    />
+                  )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Controller
-                    control={control}
-                    name="county"
-                    render={({ field }) => (
-                      <SearchableSelect
-                        label="County"
-                        options={COUNTY_OPTIONS}
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Select county"
-                        searchPlaceholder="Search counties…"
-                        error={errors.county?.message}
-                      />
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="employer_type"
-                    render={({ field }) => (
-                      <SearchableSelect
-                        label="Employer Type"
-                        options={employerTypes}
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Select employer type"
-                        error={errors.employer_type?.message}
-                      />
-                    )}
-                  />
-                </div>
                 <Controller
                   control={control}
                   name="chapter"
@@ -487,6 +457,10 @@ export default function ProfileSettingsPage() {
                   value={(
                     profile?.professional_cadre ?? profile?.designation
                   )?.toUpperCase()}
+                />
+                <Item
+                  label="Professional Qualification"
+                  value={profile?.professional_qualification}
                 />
                 <Item label="Place of Work" value={profile?.employer_name} />
                 <Item label="Employer Type" value={profile?.employer_type} />
