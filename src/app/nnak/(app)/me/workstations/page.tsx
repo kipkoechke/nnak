@@ -8,6 +8,7 @@ import {
   useDeleteWorkstation,
 } from "@/hooks/use-workstations";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
+import { useEmployerTypes } from "@/hooks/use-enums";
 import { COUNTY_OPTIONS } from "@/lib/counties";
 import type { Workstation, WorkstationInput } from "@/types/nnak";
 import { MdEdit, MdDelete, MdAdd, MdClose } from "react-icons/md";
@@ -16,9 +17,11 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const empty: WorkstationInput = {
   name: "",
-  country: "Kenya",
-  city: "",
+  country: "KE",
+  county: "",
+  employer_type: "",
   start_date: todayIso(),
+  end_date: "",
 };
 
 const fmt = (iso: string) =>
@@ -30,6 +33,7 @@ const fmt = (iso: string) =>
 
 export default function MyWorkstationsPage() {
   const { data: items = [], isLoading } = useMyWorkstations();
+  const { data: employerTypes = [] } = useEmployerTypes();
   const create = useCreateWorkstation();
   const update = useUpdateWorkstation();
   const remove = useDeleteWorkstation();
@@ -48,8 +52,10 @@ export default function MyWorkstationsPage() {
     setForm({
       name: w.name,
       country: w.country,
-      city: w.city,
+      county: w.county,
+      employer_type: w.employer_type ?? "",
       start_date: w.start_date.slice(0, 10),
+      end_date: w.end_date ? w.end_date.slice(0, 10) : "",
     });
     setOpen(true);
   };
@@ -61,10 +67,16 @@ export default function MyWorkstationsPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // An empty end date means "current posting" — send null, not "".
+    const payload: WorkstationInput = {
+      ...form,
+      end_date: form.end_date || null,
+      employer_type: form.employer_type || undefined,
+    };
     if (editing) {
-      await update.mutateAsync({ id: editing.id, patch: form });
+      await update.mutateAsync({ id: editing.id, patch: payload });
     } else {
-      await create.mutateAsync(form);
+      await create.mutateAsync(payload);
     }
     close();
   };
@@ -91,8 +103,8 @@ export default function MyWorkstationsPage() {
             <tr>
               <th className="px-4 py-2">Workstation</th>
               <th className="px-4 py-2 hidden md:table-cell">County</th>
-              <th className="px-4 py-2 hidden md:table-cell">Country</th>
-              <th className="px-4 py-2">Start</th>
+              <th className="px-4 py-2 hidden lg:table-cell">Employer Type</th>
+              <th className="px-4 py-2">Period</th>
               <th className="px-4 py-2 w-24"></th>
             </tr>
           </thead>
@@ -105,9 +117,20 @@ export default function MyWorkstationsPage() {
               items.map((w) => (
                 <tr key={w.id} className="hover:bg-slate-50">
                   <td className="px-4 py-2 font-medium text-slate-900">{w.name}</td>
-                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.city}</td>
-                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.country}</td>
-                  <td className="px-4 py-2 text-slate-600">{fmt(w.start_date)}</td>
+                  <td className="px-4 py-2 text-slate-600 hidden md:table-cell">{w.county}</td>
+                  <td className="px-4 py-2 text-slate-600 hidden lg:table-cell">
+                    {w.employer_type_label || "—"}
+                  </td>
+                  <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                    {fmt(w.start_date)}
+                    {w.end_date ? (
+                      <> → {fmt(w.end_date)}</>
+                    ) : (
+                      <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Current
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button onClick={() => openEdit(w)} className="text-slate-500 hover:text-primary p-1" title="Edit">
                       <MdEdit className="w-4 h-4" />
@@ -149,20 +172,38 @@ export default function MyWorkstationsPage() {
                 label="County"
                 required
                 options={COUNTY_OPTIONS}
-                value={form.city}
-                onChange={(v) => setForm({ ...form, city: v })}
+                value={form.county}
+                onChange={(v) => setForm({ ...form, county: v })}
                 placeholder="Select county"
                 searchPlaceholder="Search counties…"
               />
               <Field label="Country" value={form.country} onChange={(v) => setForm({ ...form, country: v })} required />
             </div>
-            <Field
-              label="Start date"
-              type="date"
-              value={form.start_date}
-              onChange={(v) => setForm({ ...form, start_date: v })}
-              required
+            <SearchableSelect
+              label="Employer Type"
+              options={employerTypes}
+              value={form.employer_type ?? ""}
+              onChange={(v) => setForm({ ...form, employer_type: v })}
+              placeholder="Select employer type"
             />
+            <div className="grid grid-cols-2 gap-2">
+              <Field
+                label="Start date"
+                type="date"
+                value={form.start_date}
+                onChange={(v) => setForm({ ...form, start_date: v })}
+                required
+              />
+              <Field
+                label="End date"
+                type="date"
+                value={form.end_date ?? ""}
+                onChange={(v) => setForm({ ...form, end_date: v })}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              Leave the end date empty if this is your current workstation.
+            </p>
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={close} className="px-3 py-2 border border-slate-300 rounded text-sm">
