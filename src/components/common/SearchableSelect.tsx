@@ -23,7 +23,8 @@ interface PaginationInfo {
 }
 
 interface SearchableSelectProps {
-  label: string;
+  /** Omit for an unlabelled control (e.g. inside a filter bar). */
+  label?: string;
   options: Option[];
   value?: string;
   onChange: (value: string) => void;
@@ -138,9 +139,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="block text-sm font-bold text-gray-700 mb-2">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      {/* Omit the label entirely when unset so the control can sit inline
+          (e.g. in a filter bar) without a phantom gap above it. */}
+      {label ? (
+        <label className="block text-sm font-bold text-gray-700 mb-2">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      ) : null}
       {showSearchHint && (
         <p className="mb-1 text-xs text-gray-500">
           Start typing to search all customers. The list below shows only a few.
