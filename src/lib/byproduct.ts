@@ -1,10 +1,14 @@
 /**
- * The by-product API returns `errors` as a JSON-encoded array of strings
- * (occasionally a bare string). Decode it into lines so the UI can list them
- * instead of dumping escaped JSON.
+ * Normalise the `errors` payload into lines.
+ *
+ * The list endpoint returns a JSON-encoded string, while the detail endpoint
+ * returns a real array — handle both so the UI never dumps escaped JSON.
  */
-export const parseByProductErrors = (raw?: string | null): string[] => {
+export const parseByProductErrors = (
+  raw?: string | string[] | null,
+): string[] => {
   if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((e) => String(e));
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed.map((e) => String(e));

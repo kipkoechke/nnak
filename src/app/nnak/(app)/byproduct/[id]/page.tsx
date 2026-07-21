@@ -56,19 +56,25 @@ export default function ByProductUploadDetailPage({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Stat label="Total rows" value={total} />
-          <Stat label="Processed" value={processed} accent="emerald" />
+          <Stat label="Renewed" value={processed} accent="emerald" />
           <Stat
             label="Skipped"
             value={upload.skipped_count ?? 0}
             accent="amber"
           />
-          <Stat label="Failed" value={upload.failed_rows ?? 0} accent="red" />
+          {/* The detail endpoint reports unmatched rows as `not_found`; the
+              list only has `failed_rows`. Show whichever is present. */}
+          {upload.not_found != null ? (
+            <Stat label="Not found" value={upload.not_found} accent="red" />
+          ) : (
+            <Stat label="Failed" value={upload.failed_rows ?? 0} accent="red" />
+          )}
         </div>
 
         {total > 0 && (
           <div className="space-y-1">
             <div className="flex justify-between text-[11px] text-slate-500">
-              <span>Processed</span>
+              <span>Renewed</span>
               <span>{pctProcessed}%</span>
             </div>
             <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -80,10 +86,9 @@ export default function ByProductUploadDetailPage({
           </div>
         )}
 
-        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
+        <dl className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100">
           <Item label="Last updated" value={fmtDateTime(upload.updated_at)} />
           <Item label="Notified at" value={fmtDateTime(upload.notified_at)} />
-          <Item label="Upload ID" value={upload.id} mono />
         </dl>
       </div>
 

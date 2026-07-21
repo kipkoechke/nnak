@@ -1085,8 +1085,17 @@ export interface ByProductUploadRecord {
   processed_rows?: number;
   failed_rows?: number;
   skipped_count?: number;
-  /** JSON-encoded array of per-row messages — decode with parseByProductErrors. */
-  errors?: string | null;
+  // The detail endpoint names these differently to the list endpoint; the
+  // service normalises them onto the fields above.
+  /** Detail endpoint's name for `processed_rows`. */
+  renewed?: number;
+  /** Detail endpoint's name for `skipped_count`. */
+  skipped?: number;
+  /** Rows whose member could not be matched. Detail endpoint only. */
+  not_found?: number;
+  /** Per-row messages. The list returns a JSON-encoded string, the detail
+   *  endpoint a real array — decode with parseByProductErrors either way. */
+  errors?: string | string[] | null;
   /** Set once the uploader has been notified that processing finished. */
   notified_at?: string | null;
   created_at: string;
