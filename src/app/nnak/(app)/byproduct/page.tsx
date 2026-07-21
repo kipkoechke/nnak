@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import { ModalShell } from "@/components/common/Modal";
 import {
   useByProductApiList,
@@ -10,6 +11,22 @@ import {
 } from "@/hooks/use-byproduct";
 import { MdUpload, MdClose } from "react-icons/md";
 
+/**
+ * The API returns `errors` as a JSON-encoded array of strings (occasionally a
+ * bare string). Decode it into lines so the UI can list them instead of
+ * dumping escaped JSON.
+ */
+const parseErrors = (raw?: string | null): string[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map((e) => String(e));
+    return [String(parsed)];
+  } catch {
+    return [raw];
+  }
+};
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthsAgoIso = (n: number) => {
   const d = new Date();
@@ -18,8 +35,10 @@ const monthsAgoIso = (n: number) => {
 };
 
 export default function ByProductPage() {
-  const { data: uploadsData } = useByProductApiList();
+  const [page, setPage] = useState(1);
+  const { data: uploadsData } = useByProductApiList({ page, per_page: 15 });
   const uploads = uploadsData?.data ?? [];
+  const pagination = uploadsData?.pagination;
   const uploadMutation = useUploadByProductFile();
   const downloadTemplate = useDownloadByProductTemplate();
 
@@ -132,6 +151,7 @@ export default function ByProductPage() {
               <th className="px-3 py-2">Period</th>
               <th className="px-3 py-2">Total</th>
               <th className="px-3 py-2">Processed</th>
+              <th className="px-3 py-2">Skipped</th>
               <th className="px-3 py-2">Failed</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2" />
@@ -139,14 +159,15 @@ export default function ByProductPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {uploads.length === 0 && (
-              <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
+              <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
             )}
             {uploads.map((u) => (
               <tr key={u.id}>
-                <td className="px-3 py-2 text-xs font-medium max-w-[200px] truncate" title={u.file_name}>{u.file_name || "—"}</td>
+                <td className="px-3 py-2 text-xs font-medium max-w-50 truncate" title={u.file_name}>{u.file_name || "—"}</td>
                 <td className="px-3 py-2 text-xs whitespace-nowrap">{new Date(u.start_date).toLocaleDateString()} — {new Date(u.end_date).toLocaleDateString()}</td>
                 <td className="px-3 py-2">{u.total_rows || 0}</td>
                 <td className="px-3 py-2 text-emerald-700">{u.processed_rows || 0}</td>
+                <td className="px-3 py-2 text-amber-600">{u.skipped_count || 0}</td>
                 <td className="px-3 py-2 text-red-600">{u.failed_rows || 0}</td>
                 <td className="px-3 py-2">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${
@@ -167,6 +188,14 @@ export default function ByProductPage() {
             ))}
           </tbody>
         </table>
+        {pagination && pagination.last_page > 1 && (
+          <Pagination
+            currentPage={pagination.current_page}
+            totalPages={pagination.last_page}
+            totalItems={pagination.total}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       <ModalShell isOpen={!!detailId} onClose={() => setDetailId(null)}>
@@ -213,16 +242,24 @@ export default function ByProductPage() {
                   value={new Date(detail.created_at).toLocaleString()}
                 />
               </div>
-              {detail.errors && (
-                <div>
-                  <div className="text-[11px] uppercase text-slate-500 mb-1">
-                    Errors
+              {(() => {
+                const lines = parseErrors(detail.errors);
+                if (lines.length === 0) return null;
+                return (
+                  <div>
+                    <div className="text-[11px] uppercase text-slate-500 mb-1">
+                      Skipped / Errors ({lines.length})
+                    </div>
+                    <ul className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-md divide-y divide-amber-200/70 max-h-56 overflow-auto">
+                      {lines.map((line, i) => (
+                        <li key={i} className="px-2 py-1.5">
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <pre className="text-xs bg-red-50 text-red-700 border border-red-200 rounded-md p-2 whitespace-pre-wrap max-h-40 overflow-auto">
-                    {detail.errors}
-                  </pre>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
         </div>
