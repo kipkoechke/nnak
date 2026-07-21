@@ -225,6 +225,15 @@ export const nqk = {
     list: (p?: Record<string, unknown>) => ["nnak", "student", "bookings", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "student", "bookings", "detail", id] as const,
   },
+  /** Role-scoped event bookings (member | student | public). */
+  bookings: {
+    all: ["nnak", "bookings"] as const,
+    scope: (scope: string) => ["nnak", "bookings", scope] as const,
+    list: (scope: string, p?: Record<string, unknown>) =>
+      ["nnak", "bookings", scope, "list", p ?? {}] as const,
+    detail: (scope: string, id: string) =>
+      ["nnak", "bookings", scope, "detail", id] as const,
+  },
   invites: {
     memberAll: ["nnak", "member", "invites"] as const,
     memberList: (p?: Record<string, unknown>) =>

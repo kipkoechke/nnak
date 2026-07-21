@@ -1596,7 +1596,32 @@ export interface StudentBooking {
   created_at: string;
 }
 
+/** Which role-scoped booking endpoints to talk to. `public` maps to the
+ *  unprefixed /bookings routes used by unauthenticated bookers. */
+export type BookingScope = "member" | "student" | "public";
+
+export interface BookingAttendeeInput {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface CreateBookingInput {
+  event_package_id: string;
+  attendees: BookingAttendeeInput[];
+}
+
+/** Response of POST /{scope}/bookings/{id}/pay — an M-Pesa STK push init. */
+export interface BookingPaymentInit {
+  invoice_id?: string | null;
+  checkout_request_id?: string | null;
+  merchant_request_id?: string | null;
+  message?: string | null;
+  [key: string]: unknown;
+}
+
 export interface StudentBookingDetail extends StudentBooking {
+  attendees?: EventAttendee[] | null;
   payment?: {
     id: string;
     amount: number;
