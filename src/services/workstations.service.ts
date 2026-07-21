@@ -1,6 +1,6 @@
 // Member workstations (employer history): /member/workstations
 //   GET    /member/workstations           -> { data: Workstation[], pagination }
-//   POST   /member/workstations           { name, country, city, start_date }
+//   POST   /member/workstations           { name, country, county, start_date, employer_type? }
 //   PATCH  /member/workstations/{id}      partial
 //   DELETE /member/workstations/{id}
 import { nnakApi } from "@/lib/api";
@@ -19,8 +19,11 @@ const demoSeed = (userId: string): Workstation[] => {
       {
         id: "demo-ws-" + Math.random().toString(36).slice(2, 8),
         name: "Kenyatta National Hospital",
-        country: "Kenya",
-        city: "Nairobi",
+        country: "KE",
+        county: "Nairobi",
+        employer_type: "county_governments",
+        employer_type_label: "County Governments",
+        end_date: null,
         start_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365 * 3).toISOString(),
         user_id: userId,
         created_at: new Date().toISOString(),

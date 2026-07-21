@@ -596,10 +596,15 @@ export interface NnakPagination {
 export interface Workstation {
   id: string;
   name: string;
+  /** ISO country code, e.g. "KE". */
   country: string;
-  /** Backend field is `city` (labelled "County" in the UI). */
-  city: string;
+  county: string;
   start_date: string;
+  /** Null while this is the member's current posting. */
+  end_date?: string | null;
+  employer_type?: string | null;
+  /** Human-readable form of `employer_type`, e.g. "County Governments". */
+  employer_type_label?: string | null;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -607,9 +612,10 @@ export interface Workstation {
 export interface WorkstationInput {
   name: string;
   country: string;
-  /** Backend field is `city` (labelled "County" in the UI). */
-  city: string;
+  county: string;
   start_date: string;
+  end_date?: string | null;
+  employer_type?: string;
 }
 
 // ── Subscriptions & Invoices (GET/POST /member/subscriptions) ──────
