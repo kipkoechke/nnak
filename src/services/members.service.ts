@@ -119,10 +119,17 @@ const normalizeMember = (raw: unknown): MemberRecord => {
   const approved = val<boolean>("is_approved");
   const subActive =
     val<boolean>("subscription_active") ?? val<boolean>("is_active") ?? false;
+  // The API escapes slashes ("https:\/\/…"); normalise so consumers — the
+  // detail page and the digital ID PDF — get a usable URL.
+  const photoUrl = (val("photo_url") as string | undefined)?.replace(
+    /\\/g,
+    "",
+  );
 
   const profile = {
     id: (val("profile_id") ?? val("id")) as string,
     user_id: val("id") as string,
+    photo_url: photoUrl ?? null,
     account_number: (val("account_number") ?? "") as string,
     membership_number: val("membership_number") ?? null,
     nck_number: val("nck_number") ?? null,
