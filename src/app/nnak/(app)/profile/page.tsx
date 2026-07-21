@@ -447,7 +447,6 @@ export default function ProfileSettingsPage() {
                 />
                 <Item label="Account Number" value={profile?.account_number} />
                 <Item label="NCK Number" value={profile?.nck_number} />
-                <Item label="County" value={profile?.county} />
                 <Item
                   label="ID Number"
                   value={profile?.identification_number}
@@ -462,8 +461,6 @@ export default function ProfileSettingsPage() {
                   label="Professional Qualification"
                   value={profile?.professional_qualification}
                 />
-                <Item label="Place of Work" value={profile?.employer_name} />
-                <Item label="Employer Type" value={profile?.employer_type} />
                 <Item
                   label="Chapter of Interest"
                   value={profile?.chapter_label ?? profile?.chapter}
