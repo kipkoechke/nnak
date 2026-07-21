@@ -19,14 +19,6 @@ import { ModalShell } from "@/components/common/Modal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 
-const STATUS_COLOR: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
-  suspended: "bg-red-50 text-red-700 border-red-200",
-  inactive: "bg-slate-50 text-slate-700 border-slate-200",
-  archived: "bg-slate-100 text-slate-500 border-slate-300",
-};
-
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   ...["pending", "active", "suspended", "inactive", "archived"].map((s) => ({
@@ -260,7 +252,6 @@ export default function MembersPage() {
                     </th>
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>
-                    <th className="px-4 py-2">Approval</th>
                     <th className="px-4 py-2">Subscription</th>
                     <th className="px-4 py-2 w-32">Actions</th>
                   </tr>
@@ -292,21 +283,6 @@ export default function MembersPage() {
                           branches.find((b) => b.id === m.profile?.branch_id)
                             ?.name ||
                           "—"}
-                      </td>
-                      <td className="px-4 py-2">
-                        {(() => {
-                          const isApproved =
-                            m.profile?.is_approved ??
-                            m.profile?.status === "active";
-                          const s = isApproved ? "active" : "pending";
-                          return (
-                            <span
-                              className={`px-2 py-0.5 text-[11px] rounded-full border ${STATUS_COLOR[s]}`}
-                            >
-                              {s}
-                            </span>
-                          );
-                        })()}
                       </td>
                       <td className="px-4 py-2">
                         {(() => {
