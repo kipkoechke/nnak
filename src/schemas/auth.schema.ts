@@ -130,6 +130,20 @@ export const claimSchema = z
 
 export type ClaimFormValues = z.infer<typeof claimSchema>;
 
+/** Self-service profile edit. Mirrors the registration fields the backend
+ *  lets a user change on themselves (see UpdateProfilePayload). */
+export const profileSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  designation: z.string().optional(),
+  place_of_work: z.string().optional(),
+  county: z.string().optional(),
+  employer_type: z.string().optional(),
+  chapter: z.string().optional(),
+});
+
+export type ProfileFormValues = z.infer<typeof profileSchema>;
+
 export const otpSchema = z.object({
   otp: z.string().min(1, "Verification code is required"),
 });
