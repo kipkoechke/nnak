@@ -344,7 +344,7 @@ export const mockStore = {
       per_page?: number;
       search?: string;
       status?: string;
-      category_id?: string;
+      member_category_id?: string;
       branch_id?: string;
     } = {},
   ) => {
@@ -362,9 +362,9 @@ export const mockStore = {
     }
     if (params.status)
       items = items.filter((m) => m.profile.status === params.status);
-    if (params.category_id)
+    if (params.member_category_id)
       items = items.filter(
-        (m) => m.profile.member_category_id === params.category_id,
+        (m) => m.profile.member_category_id === params.member_category_id,
       );
     if (params.branch_id)
       items = items.filter((m) => m.profile.branch_id === params.branch_id);

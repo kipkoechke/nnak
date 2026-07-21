@@ -1,18 +1,14 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { membersService } from "@/services/members.service";
+import {
+  membersService,
+  type MemberListQuery,
+} from "@/services/members.service";
 import { nqk } from "@/lib/query-keys";
 import type { MemberStatus, NnakProfile } from "@/types/nnak";
 
-export interface MemberListParams {
-  page?: number;
-  per_page?: number;
-  search?: string;
-  status?: string;
-  category_id?: string;
-  branch_id?: string;
-}
+export type MemberListParams = MemberListQuery;
 
 export const useMembers = (p: MemberListParams = {}, opts?: { enabled?: boolean }) =>
   useQuery({

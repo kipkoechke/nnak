@@ -54,7 +54,7 @@ export default function MembersPage() {
       per_page: 15,
       search: search || undefined,
       status: status || undefined,
-      category_id: categoryId || undefined,
+      member_category_id: categoryId || undefined,
       branch_id: branchId || undefined,
     },
     { enabled: !isBranchManager },
