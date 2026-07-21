@@ -167,15 +167,18 @@ export default function OnboardingPage() {
 
   // Step 4 — verify the OTP automatically once 6 digits are entered; on
   // success the session is set by the hook.
-  const runVerify = async (code: string) => {
+  /** `force` bypasses the latch so an explicit click can retry the same code. */
+  const runVerify = async (code: string, force = false) => {
     if (!pendingToken || code.length < 6 || verify.isPending) return;
-    if (submittedCode.current === code) return;
+    if (!force && submittedCode.current === code) return;
     submittedCode.current = code;
     const r = await verify
       .mutateAsync({ pending_token: pendingToken, otp: code.trim() })
       .catch(() => null);
     if (r) router.push(redirect);
-    else submittedCode.current = ""; // allow retry after a failed attempt
+    // On failure the code stays latched. Re-arming here would let the
+    // auto-submit fire again immediately and loop on an invalid code — the
+    // user must edit a digit (or resend) to try again.
   };
 
   const onResendOtp = async () => {
@@ -504,7 +507,7 @@ export default function OnboardingPage() {
 
           <button
             type="button"
-            onClick={() => runVerify(otp)}
+            onClick={() => runVerify(otp, true)}
             disabled={verify.isPending || otp.length < 6}
             className="w-full bg-primary text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
