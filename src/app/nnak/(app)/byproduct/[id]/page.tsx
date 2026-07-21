@@ -1,42 +1,168 @@
 "use client";
-import { use } from "react";
+import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useByProductLines } from "@/hooks/use-byproduct";
+import { useByProductUploadStatus } from "@/hooks/use-byproduct";
+import { parseByProductErrors, byProductStatusClass } from "@/lib/byproduct";
 
-export default function ByProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+const fmtDate = (s?: string | null) =>
+  s ? new Date(s).toLocaleDateString() : "—";
+const fmtDateTime = (s?: string | null) =>
+  s ? new Date(s).toLocaleString() : "—";
+
+export default function ByProductUploadDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const router = useRouter();
-  const { data = [], isLoading } = useByProductLines(id);
+  const { data: upload, isLoading } = useByProductUploadStatus(id);
+
+  const errorLines = useMemo(
+    () => parseByProductErrors(upload?.errors),
+    [upload?.errors],
+  );
+
+  if (isLoading && !upload)
+    return <div className="p-4 text-sm text-slate-500">Loading upload…</div>;
+  if (!upload)
+    return <div className="p-4 text-sm text-slate-500">Upload not found.</div>;
+
+  const processed = upload.processed_rows ?? 0;
+  const total = upload.total_rows ?? 0;
+  const pctProcessed = total > 0 ? Math.round((processed / total) * 100) : 0;
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
-      <PageHeader title="By-Product Detail" back={() => router.back()} />
+      <PageHeader
+        title={upload.file_name || "By-Product Upload"}
+        description={`Uploaded ${fmtDateTime(upload.created_at)}`}
+        back={() => router.back()}
+      />
+
+      {/* Summary */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`text-[11px] px-2 py-0.5 rounded-full ${byProductStatusClass(upload.status)}`}
+          >
+            {upload.status}
+          </span>
+          <span className="text-xs text-slate-500">
+            Period {fmtDate(upload.start_date)} — {fmtDate(upload.end_date)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Stat label="Total rows" value={total} />
+          <Stat label="Processed" value={processed} accent="emerald" />
+          <Stat
+            label="Skipped"
+            value={upload.skipped_count ?? 0}
+            accent="amber"
+          />
+          <Stat label="Failed" value={upload.failed_rows ?? 0} accent="red" />
+        </div>
+
+        {total > 0 && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px] text-slate-500">
+              <span>Processed</span>
+              <span>{pctProcessed}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{ width: `${pctProcessed}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
+          <Item label="Last updated" value={fmtDateTime(upload.updated_at)} />
+          <Item label="Notified at" value={fmtDateTime(upload.notified_at)} />
+          <Item label="Upload ID" value={upload.id} mono />
+        </dl>
+      </div>
+
+      {/* Skipped / error rows */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        {isLoading ? (
-          <div className="p-6 text-sm text-slate-500">Loading…</div>
+        <div className="p-3 text-sm font-semibold border-b border-slate-200 flex items-center justify-between">
+          <span>Skipped / Errors</span>
+          <span className="text-xs font-normal text-slate-500">
+            {errorLines.length} row{errorLines.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        {errorLines.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-slate-500">
+            No skipped or failed rows — every row processed cleanly.
+          </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr><th className="px-3 py-2">National ID</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Amount</th><th className="px-3 py-2">Match</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.map((l) => (
-                <tr key={l.id}>
-                  <td className="px-3 py-2">{l.national_id}</td>
-                  <td className="px-3 py-2">{l.name}</td>
-                  <td className="px-3 py-2">KES {l.amount.toLocaleString()}</td>
-                  <td className="px-3 py-2">
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${l.matched ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                      {l.matched ? "Matched" : "Unmatched"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="divide-y divide-slate-100 max-h-125 overflow-auto">
+            {errorLines.map((line, i) => (
+              <li
+                key={i}
+                className="px-3 py-2 text-xs text-slate-700 flex gap-2"
+              >
+                <span className="text-slate-400 shrink-0 tabular-nums">
+                  {i + 1}.
+                </span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
   );
 }
+
+const Stat = ({
+  label,
+  value,
+  accent = "slate",
+}: {
+  label: string;
+  value: number;
+  accent?: "slate" | "emerald" | "amber" | "red";
+}) => {
+  const cls = {
+    slate: "text-slate-900",
+    emerald: "text-emerald-700",
+    amber: "text-amber-600",
+    red: "text-red-600",
+  }[accent];
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+        {label}
+      </div>
+      <div className={`text-xl font-bold mt-1 ${cls}`}>
+        {value.toLocaleString()}
+      </div>
+    </div>
+  );
+};
+
+const Item = ({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+}) => (
+  <div>
+    <dt className="text-[11px] uppercase tracking-wide text-slate-500">
+      {label}
+    </dt>
+    <dd
+      className={`text-sm text-slate-800 mt-0.5 break-all ${mono ? "font-mono text-xs" : ""}`}
+    >
+      {value || "—"}
+    </dd>
+  </div>
+);

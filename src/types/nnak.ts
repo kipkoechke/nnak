@@ -1077,7 +1077,10 @@ export interface ByProductUploadRecord {
   processed_rows?: number;
   failed_rows?: number;
   skipped_count?: number;
+  /** JSON-encoded array of per-row messages — decode with parseByProductErrors. */
   errors?: string | null;
+  /** Set once the uploader has been notified that processing finished. */
+  notified_at?: string | null;
   created_at: string;
   updated_at: string;
 }
