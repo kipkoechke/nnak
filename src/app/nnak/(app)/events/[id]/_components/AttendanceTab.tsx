@@ -44,9 +44,14 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
   const agendas = agendasData?.data ?? [];
 
   const records = report?.data ?? [];
-  // The report lists scans, so a head count means unique ticket numbers.
-  const totalScans = report?.pagination?.total ?? records.length;
-  const uniqueAttendees = new Set(records.map((r) => r.ticket_number)).size;
+  // `meta.stats` counts every page; falling back to the current page would
+  // understate turnout as soon as there is more than one.
+  const stats = report?.stats;
+  const totalScans = stats?.total_scans ?? report?.pagination?.total ?? records.length;
+  const uniqueAttendees =
+    stats?.unique_attendees ??
+    new Set(records.map((r) => r.ticket_number)).size;
+  const byType = Object.entries(stats?.by_type ?? {}).filter(([, n]) => !!n);
 
   const columns: Column<AttendanceRecord>[] = [
     {
@@ -54,7 +59,9 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
       header: "Name",
       render: (a) => (
         <div className="min-w-0">
-          <div className="font-medium text-slate-900 truncate">{a.name}</div>
+          <div className="font-medium text-slate-900 truncate">
+            {a.attendee_name}
+          </div>
           {a.email && (
             <div className="text-xs text-slate-500 truncate">{a.email}</div>
           )}
@@ -107,12 +114,22 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
 
         <div className="lg:col-span-2 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <StatTile label="Scans recorded" value={totalScans} />
+            <StatTile
+              label="Scans recorded"
+              value={totalScans}
+              hint={
+                byType.length
+                  ? byType
+                      .map(([type, n]) => `${n} ${type}`)
+                      .join(" · ")
+                  : undefined
+              }
+            />
             <StatTile
               label="Unique attendees"
               value={uniqueAttendees}
               tone="ok"
-              hint="On this page of results"
+              hint="Across the whole event"
             />
           </div>
 

@@ -11,6 +11,7 @@ import type {
   AttendanceLookupResult,
   AttendanceRecord,
   AttendanceScanResult,
+  AttendanceStats,
   AttendanceType,
   EventBooking,
   EventBookingDetail,
@@ -23,6 +24,32 @@ interface Paginated<T> {
   data: T[];
   pagination?: NnakPagination;
 }
+
+/**
+ * The report serialises a scan differently from the scan/lookup endpoints:
+ * the attendee is `attendee_name`, and `scanned_at` is "YYYY-MM-DD HH:mm:ss"
+ * with no zone marker rather than an ISO instant. Normalising here keeps the
+ * quirk in one place instead of in every screen that renders a scan.
+ */
+type RawAttendanceRecord = Omit<AttendanceRecord, "attendee_name"> & {
+  attendee_name?: string;
+  name?: string;
+};
+
+/** Every other timestamp in this API is UTC, so the bare form is read as UTC. */
+const toIso = (value: string) => {
+  if (!value) return value;
+  const bare = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/.exec(value);
+  return bare ? `${bare[1]}T${bare[2]}Z` : value;
+};
+
+const normaliseAttendanceRecord = (
+  r: RawAttendanceRecord,
+): AttendanceRecord => ({
+  ...r,
+  attendee_name: r.attendee_name ?? r.name ?? "—",
+  scanned_at: toIso(r.scanned_at),
+});
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
@@ -60,11 +87,18 @@ export const eventBookingService = {
       agenda_id?: string;
     },
   ) => {
-    const r = await nnakApi.get<Paginated<AttendanceRecord>>(
-      `/${scope}/events/${eventId}/attendance`,
-      { params },
-    );
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    const r = await nnakApi.get<
+      Paginated<RawAttendanceRecord> & {
+        meta?: { stats?: AttendanceStats };
+      }
+    >(`/${scope}/events/${eventId}/attendance`, { params });
+    return {
+      data: (r.data?.data ?? []).map(normaliseAttendanceRecord),
+      pagination: r.data?.pagination,
+      // Totals across every page — a client-side count of the current page
+      // would understate both figures.
+      stats: r.data?.meta?.stats,
+    };
   },
 
   scan: async (

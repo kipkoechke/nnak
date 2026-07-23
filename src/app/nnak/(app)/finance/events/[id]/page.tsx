@@ -394,13 +394,15 @@ function AttendanceView({ eventId }: { eventId: string }) {
             {records.map((a) => (
               <tr key={a.id} className="hover:bg-slate-50">
                 <td className="px-4 py-2 font-medium text-slate-900">
-                  {a.name}
+                  {a.attendee_name}
                 </td>
                 <td className="px-4 py-2 font-mono text-xs text-slate-600">
                   {a.ticket_number}
                 </td>
                 <td className="px-4 py-2 text-slate-600 capitalize">{a.type}</td>
-                <td className="px-4 py-2 text-slate-600">{a.agenda || "—"}</td>
+                <td className="px-4 py-2 text-slate-600">
+                  {a.agenda || "Whole event"}
+                </td>
                 <td className="px-4 py-2">
                   <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
                     <MdCheckCircle className="w-4 h-4" />

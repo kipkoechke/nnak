@@ -1636,13 +1636,22 @@ export interface AttendanceLookupResult {
 /** Row of GET /admin|finance/events/{event}/attendance. */
 export interface AttendanceRecord {
   id: string;
-  name: string;
+  /** The report names this `attendee_name`, unlike the scan/lookup responses. */
+  attendee_name: string;
   email?: string | null;
   ticket_number: string;
   type: AttendanceType | string;
+  /** Null for whole-event scans (arrival/departure). */
   agenda?: string | null;
   scanned_by?: string | null;
   scanned_at: string;
+}
+
+/** `meta.stats` on the attendance report — totals across every page. */
+export interface AttendanceStats {
+  total_scans: number;
+  unique_attendees: number;
+  by_type: Partial<Record<AttendanceType | string, number>>;
 }
 
 // ── Institution ───────────────────────────────────────────
