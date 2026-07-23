@@ -17,6 +17,14 @@ export interface BatchFilters {
   status?: string;
 }
 
+/**
+ * Batch detail arrives as `data: { batch, meta }` while the list and the
+ * record-payment response return the batch directly. Accept either.
+ */
+const pickBatch = (
+  payload: (BranchBatchDetail & { batch?: BranchBatchDetail }) | null,
+): BranchBatchDetail | null => payload?.batch ?? payload ?? null;
+
 export interface AdminBatchFilters extends BatchFilters {
   branch_id?: string;
 }
@@ -30,10 +38,10 @@ export const branchBatchesService = {
   },
 
   detail: async (id: string): Promise<BranchBatchDetail | null> => {
-    const r = await nnakApi.get<ApiEnvelope<BranchBatchDetail>>(
-      `/branch/batches/${id}`,
-    );
-    return r.data?.data ?? null;
+    const r = await nnakApi.get<
+      ApiEnvelope<BranchBatchDetail & { batch?: BranchBatchDetail }>
+    >(`/branch/batches/${id}`);
+    return pickBatch(r.data?.data ?? null);
   },
 
   adminList: async (params: AdminBatchFilters = {}) => {
@@ -45,10 +53,10 @@ export const branchBatchesService = {
   },
 
   adminDetail: async (id: string): Promise<BranchBatchDetail | null> => {
-    const r = await nnakApi.get<ApiEnvelope<BranchBatchDetail>>(
-      `/admin/branch-batches/${id}`,
-    );
-    return r.data?.data ?? null;
+    const r = await nnakApi.get<
+      ApiEnvelope<BranchBatchDetail & { batch?: BranchBatchDetail }>
+    >(`/admin/branch-batches/${id}`);
+    return pickBatch(r.data?.data ?? null);
   },
 
   /** Record a payment against a batch. Multipart for the optional file
@@ -61,11 +69,11 @@ export const branchBatchesService = {
     fd.append("paid_at", body.paid_at);
     if (body.notes) fd.append("notes", body.notes);
     (body.attachments ?? []).forEach((f) => fd.append("attachments[]", f));
-    const r = await nnakApi.post<ApiEnvelope<BranchBatchDetail>>(
-      `/admin/branch-batches/${batchId}/payments`,
-      fd,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
-    return r.data?.data ?? null;
+    const r = await nnakApi.post<
+      ApiEnvelope<BranchBatchDetail & { batch?: BranchBatchDetail }>
+    >(`/admin/branch-batches/${batchId}/payments`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return pickBatch(r.data?.data ?? null);
   },
 };
