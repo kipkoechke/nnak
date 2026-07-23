@@ -5,6 +5,8 @@ import { byProductStatusClass } from "@/lib/byproduct";
 import type { ByProductUploadRecord, NnakPagination } from "@/types/nnak";
 
 interface UploadsTableProps {
+  /** Route prefix for detail links, e.g. "/nnak/byproduct". */
+  basePath: string;
   uploads: ByProductUploadRecord[];
   pagination?: NnakPagination;
   isLoading?: boolean;
@@ -13,6 +15,7 @@ interface UploadsTableProps {
 
 /** Recent by-product uploads. Each row links to its own detail page. */
 export default function UploadsTable({
+  basePath,
   uploads,
   pagination,
   isLoading,
@@ -65,7 +68,7 @@ export default function UploadsTable({
                   title={u.file_name}
                 >
                   <Link
-                    href={`/nnak/byproduct/${u.id}`}
+                    href={`${basePath}/${u.id}`}
                     className="text-primary hover:underline"
                   >
                     {u.file_name || "—"}
@@ -92,7 +95,7 @@ export default function UploadsTable({
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
                   <Link
-                    href={`/nnak/byproduct/${u.id}`}
+                    href={`${basePath}/${u.id}`}
                     className="text-xs text-primary hover:underline"
                   >
                     View details

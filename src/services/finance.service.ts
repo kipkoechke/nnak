@@ -154,8 +154,18 @@ export const financeService = {
     return r.data as Blob;
   },
 
+  /** Detail reports counts as `renewed` / `skipped`; normalise onto the list's
+   *  `processed_rows` / `skipped_count` so the shared UI reads one shape. */
   byproductDetail: async (id: string): Promise<ByProductUploadRecord | null> => {
-    return unwrap<ByProductUploadRecord>(nnakApi.get(`/finance/byproduct/${id}`));
+    const raw = await unwrap<ByProductUploadRecord>(
+      nnakApi.get(`/finance/byproduct/${id}`),
+    );
+    if (!raw) return null;
+    return {
+      ...raw,
+      processed_rows: raw.processed_rows ?? raw.renewed,
+      skipped_count: raw.skipped_count ?? raw.skipped,
+    };
   },
 
   uploadByproduct: async (
