@@ -5,6 +5,7 @@ import { MdSearch, MdCorporateFare } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import { useFinanceBranches } from "@/hooks/use-finance";
+import { fmtCommissionValue } from "@/lib/commission";
 
 export default function FinanceBranchesPage() {
   const [page, setPage] = useState(1);
@@ -63,11 +64,17 @@ export default function FinanceBranchesPage() {
               {branches.map((b) => (
                 <tr key={b.id} className="hover:bg-slate-50">
                   <td className="px-3 py-2 font-medium text-slate-900">{b.name}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600">{b.employer_type}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 capitalize">
+                    {b.employer_type?.replace(/_/g, " ") || "—"}
+                  </td>
                   <td className="px-3 py-2 text-xs">
-                    <span className="capitalize">{b.commission_type.replace(/_/g, " ")}</span>
+                    <span className="capitalize">
+                      {b.commission_type?.replace(/_/g, " ")}
+                    </span>
                     {" · "}
-                    <span className="font-mono">{b.commission_value}</span>
+                    <span className="font-medium">
+                      {fmtCommissionValue(b.commission_value, b.commission_type)}
+                    </span>
                   </td>
                   <td className="px-3 py-2 text-right">{b.member_count}</td>
                   <td className="px-3 py-2 text-right text-emerald-700">

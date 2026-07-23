@@ -1216,6 +1216,13 @@ export interface FinanceBranchMember {
   updated_at: string;
 }
 
+export interface FinanceBranchManager {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+}
+
 export interface FinanceBranchDetail {
   id: string;
   name: string;
@@ -1224,8 +1231,10 @@ export interface FinanceBranchDetail {
   commission_type: string;
   commission_type_label: string;
   commission_value: string;
-  manager: unknown | null;
-  members: FinanceBranchMember[];
+  /** Authoritative total; `members` may be a page of it, or empty. */
+  members_count?: number;
+  manager: FinanceBranchManager | null;
+  members?: FinanceBranchMember[];
   created_at: string;
   updated_at: string;
 }
@@ -1417,7 +1426,8 @@ export interface FinanceBatch {
   pending_remittance: number;
   status: string;
   paid_at: string | null;
-  members_count: number;
+  /** Present on the list; the detail sends the `members` array instead. */
+  members_count?: number;
   payments: FinanceBatchPayment[];
   created_at: string;
   updated_at: string;

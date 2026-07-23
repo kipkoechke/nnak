@@ -10,6 +10,7 @@ import {
 import { useNnakMe } from "@/hooks/use-auth";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose } from "react-icons/md";
+import { fmtCommissionValue, fmtKes } from "@/lib/commission";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -110,8 +111,14 @@ export default function AdminBatchDetailPage({
   if (!batch)
     return <div className="p-4 text-sm text-slate-500">Batch not found.</div>;
 
-  const outstanding = Number(batch.pending_remittance);
-  const paid = Number(batch.total_remitted);
+  // Money arrives as decimal strings; Number("") and Number(undefined) would
+  // both surface as NaN in the UI.
+  const num = (v: unknown) => {
+    const n = Number(v ?? 0);
+    return Number.isNaN(n) ? 0 : n;
+  };
+  const outstanding = num(batch.pending_remittance);
+  const paid = num(batch.total_remitted);
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -146,9 +153,9 @@ export default function AdminBatchDetailPage({
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Members" value={(batch.members_count ?? batch.members?.length ?? 0).toLocaleString()} />
-        <Stat label="Collected" value={`KES ${Number(batch.total_collected).toLocaleString()}`} />
-        <Stat label="Branch Share" value={`KES ${Number(batch.branch_share).toLocaleString()}`} />
-        <Stat label="Outstanding" value={`KES ${outstanding.toLocaleString()}`} />
+        <Stat label="Collected" value={fmtKes(batch.total_collected)} />
+        <Stat label="Branch Share" value={fmtKes(batch.branch_share)} />
+        <Stat label="Outstanding" value={fmtKes(outstanding)} />
       </div>
 
       {/* Meta row */}
@@ -159,11 +166,11 @@ export default function AdminBatchDetailPage({
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Commission</div>
-          <div>KES {Number(batch.commission).toLocaleString()}</div>
+          <div>{fmtKes(batch.commission)}</div>
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Paid</div>
-          <div className="text-emerald-700">KES {paid.toLocaleString()}</div>
+          <div className="text-emerald-700">{fmtKes(paid)}</div>
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Paid On</div>
@@ -187,7 +194,13 @@ export default function AdminBatchDetailPage({
             {batch.branch.commission_type_label && (
               <div>
                 <div className="text-[11px] uppercase text-slate-500">Commission Type</div>
-                <div>{batch.branch.commission_type_label} · {batch.branch.commission_value}</div>
+                <div>
+                  {batch.branch.commission_type_label} ·{" "}
+                  {fmtCommissionValue(
+                    batch.branch.commission_value,
+                    batch.branch.commission_type,
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -217,10 +230,11 @@ export default function AdminBatchDetailPage({
                 <tr key={m.id}>
                   <td className="px-3 py-2 font-medium">{m.user?.name || "—"}</td>
                   <td className="px-3 py-2 text-slate-500">{m.user?.email || "—"}</td>
-                  <td className="px-3 py-2 text-right">KES {Number(m.amount_paid).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right text-slate-500">KES {Number(m.commission_amount).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right text-xs text-slate-500">
-                    {m.commission_type?.replace(/_/g, " ")} · {m.commission_value}
+                  <td className="px-3 py-2 text-right">{fmtKes(m.amount_paid)}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">{fmtKes(m.commission_amount)}</td>
+                  <td className="px-3 py-2 text-right text-xs text-slate-500 capitalize">
+                    {m.commission_type?.replace(/_/g, " ")} ·{" "}
+                    {fmtCommissionValue(m.commission_value, m.commission_type)}
                   </td>
                 </tr>
               ))}
@@ -255,7 +269,7 @@ export default function AdminBatchDetailPage({
                     {p.payment_method?.replace(/_/g, " ")}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{p.payment_reference || "—"}</td>
-                  <td className="px-3 py-2 text-right">KES {Number(p.amount_paid).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{fmtKes(p.amount_paid)}</td>
                   <td className="px-3 py-2 text-xs text-slate-600">{p.notes || "—"}</td>
                 </tr>
               ))}
@@ -290,15 +304,15 @@ export default function AdminBatchDetailPage({
             <div className="bg-slate-50 rounded-lg p-3 text-xs grid grid-cols-3 gap-2">
               <div>
                 <div className="text-slate-500">Branch Share</div>
-                <div className="font-semibold">KES {Number(batch.branch_share).toLocaleString()}</div>
+                <div className="font-semibold">{fmtKes(batch.branch_share)}</div>
               </div>
               <div>
                 <div className="text-slate-500">Paid</div>
-                <div className="font-semibold text-emerald-700">KES {paid.toLocaleString()}</div>
+                <div className="font-semibold text-emerald-700">{fmtKes(paid)}</div>
               </div>
               <div>
                 <div className="text-slate-500">Outstanding</div>
-                <div className="font-semibold">KES {outstanding.toLocaleString()}</div>
+                <div className="font-semibold">{fmtKes(outstanding)}</div>
               </div>
             </div>
 
