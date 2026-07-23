@@ -98,13 +98,13 @@ export default function BranchBatchesPage() {
                     KES {Number(b.total_collected).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right text-slate-500">
-                    KES {Number(b.commission_amount).toLocaleString()}
+                    KES {Number(b.commission).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right text-emerald-700">
                     KES {Number(b.branch_share).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    KES {Number(b.outstanding).toLocaleString()}
+                    KES {Number(b.pending_remittance).toLocaleString()}
                   </td>
                   <td className="px-3 py-2">
                     <span

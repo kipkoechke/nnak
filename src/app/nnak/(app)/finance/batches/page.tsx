@@ -29,8 +29,8 @@ type BatchRow = {
   total_collected: string | number;
   commission: string | number;
   branch_share: string | number;
-  total_remitted: number;
-  pending_remittance: number;
+  total_remitted?: number;
+  pending_remittance?: number;
   status: string;
 };
 
@@ -130,7 +130,7 @@ export default function FinanceBranchBatchesPage() {
     if (r) closeModal();
   };
 
-  const paidAmount = (b: BatchRow) => Number(b.total_remitted);
+  const paidAmount = (b: BatchRow) => Number(b.total_remitted || 0);
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
@@ -212,7 +212,7 @@ export default function FinanceBranchBatchesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {batches.map((b: BatchRow) => {
-                const outstanding = Number(b.pending_remittance);
+                const outstanding = Number(b.pending_remittance || 0);
                 const paid = paidAmount(b);
                 return (
                   <tr key={b.id} className="hover:bg-slate-50">
