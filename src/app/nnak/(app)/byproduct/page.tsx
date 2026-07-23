@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
-import UploadsTable from "./UploadsTable";
+import UploadsTable from "@/components/byproduct/UploadsTable";
 import { useByProductApiList } from "@/hooks/use-byproduct";
 import { MdUpload } from "react-icons/md";
 
@@ -31,6 +31,7 @@ export default function ByProductPage() {
       />
 
       <UploadsTable
+        basePath="/nnak/byproduct"
         uploads={uploads}
         pagination={pagination}
         isLoading={isLoading}
