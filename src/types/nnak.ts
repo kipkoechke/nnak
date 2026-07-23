@@ -249,6 +249,7 @@ export interface Agenda {
 }
 
 export interface CreateAgendaInput {
+  event_id: string;
   title: string;
   description?: string | null;
   start_time: string;
