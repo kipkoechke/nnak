@@ -242,6 +242,9 @@ export interface Agenda {
   start_time: string;
   end_time: string;
   location?: string | null;
+  type?: string | null;
+  metadata?: Record<string, unknown> | null;
+  event?: NnakEvent;
   speakers?: Speaker[];
   breakout_rooms?: BreakoutRoom[];
   created_at: string;

@@ -1847,7 +1847,8 @@ function ScannersTab({ eventId }: { eventId: string }) {
  * ────────────────────────────────────────────────────────────────────── */
 
 function AgendasTab({ eventId }: { eventId: string }) {
-  const { data: agendasData, isLoading } = useAgendas(eventId);
+  const [page, setPage] = useState(1);
+  const { data: agendasData, isLoading } = useAgendas(eventId, { page, per_page: 10 });
   const createAgenda = useCreateAgenda();
   const updateAgenda = useUpdateAgenda();
   const deleteAgenda = useDeleteAgenda();
@@ -1875,6 +1876,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
   };
 
   const agendas = agendasData?.data ?? [];
+  const pagination = agendasData?.pagination;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1898,7 +1900,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
       <SectionHeader
         title="Agendas"
         description="Schedule sessions, panels and workshops"
-        count={agendas.length}
+        count={pagination?.total ?? agendas.length}
         action={
           <AddBtn
             onClick={() => {
@@ -2007,6 +2009,30 @@ function AgendasTab({ eventId }: { eventId: string }) {
                 </div>
               </div>
             ))}
+        </div>
+      )}
+
+      {pagination && pagination.last_page > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-500">
+            {pagination.from}–{pagination.to} of {pagination.total}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-1 border border-slate-200 rounded text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Prev
+            </button>
+            <button
+              disabled={page >= pagination.last_page}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1 border border-slate-200 rounded text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 
