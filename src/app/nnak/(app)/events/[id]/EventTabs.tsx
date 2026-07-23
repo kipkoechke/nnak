@@ -1885,6 +1885,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
+      event_id: eventId,
       title: form.title,
       description: form.description || null,
       start_time: new Date(form.start_time).toISOString(),

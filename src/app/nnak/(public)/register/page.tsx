@@ -12,7 +12,6 @@ import {
   useProfessionalCadres,
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
-import { useRegistrationBranches } from "@/hooks/use-branches";
 import { InputField } from "@/components/common/InputField";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
@@ -64,21 +63,12 @@ export default function NnakRegisterPage() {
   const { data: chapters = [] } = useChapters();
   const { data: cadres = [] } = useProfessionalCadres();
   const { data: qualifications = [] } = useProfessionalQualifications();
-  const { data: branches = [] } = useRegistrationBranches();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  // Branch membership is optional on the backend. Only when the user says
-  // they belong to a branch do we reveal the branch picker.
-  const [isBranchMember, setIsBranchMember] = useState<boolean | null>(null);
-  const [branchAnswerError, setBranchAnswerError] = useState<string>();
 
   const employerTypeOptions = useMemo(() => employerTypes, [employerTypes]);
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
-  );
-  const branchOptions = useMemo(
-    () => branches.map((b) => ({ value: b.id, label: b.name })),
-    [branches],
   );
 
   const {
@@ -86,8 +76,6 @@ export default function NnakRegisterPage() {
     handleSubmit,
     control,
     trigger,
-    setValue,
-    getValues,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -106,7 +94,6 @@ export default function NnakRegisterPage() {
       county: "",
       employer_type: "",
       chapter: "",
-      branch_id: "",
       password: "",
       password_confirmation: "",
     },
@@ -135,21 +122,6 @@ export default function NnakRegisterPage() {
     target: number,
     fields: (keyof RegisterFormValues)[],
   ) => {
-    // Leaving step 2 requires an answer to the branch-membership question,
-    // and a selected branch when the answer is "Yes".
-    if (target === 3) {
-      if (isBranchMember === null) {
-        setBranchAnswerError("Please tell us if you belong to a branch");
-        toast.error("Please tell us if you belong to a branch");
-        return;
-      }
-      if (isBranchMember && !getValues("branch_id")) {
-        setBranchAnswerError("Please select your branch");
-        toast.error("Please select your branch");
-        return;
-      }
-      setBranchAnswerError(undefined);
-    }
     const valid = await trigger(fields);
     if (valid) setStep(target as 1 | 2 | 3);
     else {
@@ -182,7 +154,6 @@ export default function NnakRegisterPage() {
         county: data.county,
         employer_type: data.employer_type,
         chapter: data.chapter || undefined,
-        branch_id: data.branch_id || undefined,
       })
       .catch(() => null);
     if (!r) return;
@@ -446,59 +417,6 @@ export default function NnakRegisterPage() {
               />
             )}
           />
-
-          {/* Branch membership is optional. Only reveal the branch picker
-              when the applicant says they belong to a branch. */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Are you a branch member?
-            </label>
-            <div className="flex gap-2">
-              {[
-                { label: "Yes", value: true },
-                { label: "No", value: false },
-              ].map((opt) => (
-                <button
-                  key={opt.label}
-                  type="button"
-                  onClick={() => {
-                    setIsBranchMember(opt.value);
-                    setBranchAnswerError(undefined);
-                    if (!opt.value) setValue("branch_id", "");
-                  }}
-                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
-                    isBranchMember === opt.value
-                      ? "border-primary bg-primary-subtle text-primary"
-                      : "border-slate-300 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {branchAnswerError && !isBranchMember && (
-              <p className="mt-1 text-sm text-red-600">{branchAnswerError}</p>
-            )}
-          </div>
-
-          {isBranchMember && (
-            <Controller
-              control={control}
-              name="branch_id"
-              render={({ field }) => (
-                <SearchableSelect
-                  label="Branch"
-                  required
-                  options={branchOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Select branch"
-                  searchPlaceholder="Search branches…"
-                  error={branchAnswerError || errors.branch_id?.message}
-                />
-              )}
-            />
-          )}
 
           <div className="flex gap-2">
             <button
