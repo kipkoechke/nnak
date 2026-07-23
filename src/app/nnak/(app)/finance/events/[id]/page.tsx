@@ -182,7 +182,7 @@ function BookingsView({ eventId }: { eventId: string }) {
               <>
                 <th className="px-4 py-2">Reference</th>
                 <th className="px-4 py-2">Booker</th>
-                <th className="px-4 py-2">Ticket</th>
+                <th className="px-4 py-2">Package</th>
                 <th className="px-4 py-2 text-right">Attendees</th>
                 <th className="px-4 py-2 text-right">Amount</th>
                 <th className="px-4 py-2">Status</th>
