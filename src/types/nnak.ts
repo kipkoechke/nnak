@@ -1353,9 +1353,12 @@ export interface FinanceBatch {
     updated_at: string;
   };
   total_collected: string;
-  commission_amount: string;
+  commission: string;
   branch_share: string;
-  outstanding: number;
+  hq_share: number;
+  net_value: number;
+  total_remitted: number;
+  pending_remittance: number;
   status: string;
   paid_at: string | null;
   members_count: number;
@@ -1366,7 +1369,7 @@ export interface FinanceBatch {
 
 export interface FinanceBatchMember {
   id: string;
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string | null };
   amount_paid: string;
   commission_amount: string;
   commission_type: string;
@@ -1375,11 +1378,14 @@ export interface FinanceBatchMember {
 
 export interface FinanceBatchPayment {
   id: string;
-  amount_paid: number;
+  amount_paid: string;
   payment_method: string;
   payment_reference: string;
   notes?: string | null;
   paid_at: string;
+  received_by?: string | null;
+  attachments?: unknown[];
+  created_at?: string;
 }
 
 export interface FinanceBatchDetail extends FinanceBatch {
