@@ -110,8 +110,8 @@ export default function AdminBatchDetailPage({
   if (!batch)
     return <div className="p-4 text-sm text-slate-500">Batch not found.</div>;
 
-  const outstanding = Number(batch.outstanding);
-  const paid = Math.max(0, Number(batch.branch_share) - outstanding);
+  const outstanding = Number(batch.pending_remittance);
+  const paid = Number(batch.total_remitted);
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -159,7 +159,7 @@ export default function AdminBatchDetailPage({
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Commission</div>
-          <div>KES {Number(batch.commission_amount).toLocaleString()}</div>
+          <div>KES {Number(batch.commission).toLocaleString()}</div>
         </div>
         <div>
           <div className="text-[11px] uppercase tracking-wide text-slate-500">Paid</div>
@@ -239,6 +239,7 @@ export default function AdminBatchDetailPage({
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-3 py-2">Date</th>
+                <th className="px-3 py-2">Received By</th>
                 <th className="px-3 py-2">Method</th>
                 <th className="px-3 py-2">Reference</th>
                 <th className="px-3 py-2 text-right">Amount</th>
@@ -248,7 +249,8 @@ export default function AdminBatchDetailPage({
             <tbody className="divide-y divide-slate-100">
               {batch.payments.map((p) => (
                 <tr key={p.id}>
-                  <td className="px-3 py-2 text-xs">{fmt(p.paid_at)}</td>
+                  <td className="px-3 py-2">{fmt(p.paid_at)}</td>
+                  <td className="px-3 py-2 text-slate-500">{p.received_by || "—"}</td>
                   <td className="px-3 py-2 text-xs capitalize">
                     {p.payment_method?.replace(/_/g, " ")}
                   </td>

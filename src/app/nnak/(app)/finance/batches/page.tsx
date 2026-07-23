@@ -27,9 +27,10 @@ type BatchRow = {
   period: string;
   branch?: { name?: string | null } | null;
   total_collected: string | number;
-  commission_amount: string | number;
+  commission: string | number;
   branch_share: string | number;
-  outstanding: number;
+  total_remitted: number;
+  pending_remittance: number;
   status: string;
 };
 
@@ -129,8 +130,7 @@ export default function FinanceBranchBatchesPage() {
     if (r) closeModal();
   };
 
-  const paidAmount = (b: BatchRow) =>
-    Math.max(0, Number(b.branch_share) - Number(b.outstanding));
+  const paidAmount = (b: BatchRow) => Number(b.total_remitted);
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
@@ -212,7 +212,7 @@ export default function FinanceBranchBatchesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {batches.map((b: BatchRow) => {
-                const outstanding = Number(b.outstanding);
+                const outstanding = Number(b.pending_remittance);
                 const paid = paidAmount(b);
                 return (
                   <tr key={b.id} className="hover:bg-slate-50">
@@ -224,7 +224,7 @@ export default function FinanceBranchBatchesPage() {
                     </td>
                     <td className="px-3 py-2">{b.period}</td>
                     <td className="px-3 py-2 text-right">
-                      KES {Number(b.commission_amount).toLocaleString()}
+                      KES {Number(b.commission).toLocaleString()}
                     </td>
                     <td className="px-3 py-2 text-right">
                       KES {Number(b.total_collected).toLocaleString()}
@@ -319,7 +319,7 @@ export default function FinanceBranchBatchesPage() {
               <div>
                 <div className="text-slate-500">Outstanding</div>
                 <div className="font-semibold">
-                  KES {Number(openFor.outstanding).toLocaleString()}
+                  KES {Number(openFor.pending_remittance).toLocaleString()}
                 </div>
               </div>
             </div>
