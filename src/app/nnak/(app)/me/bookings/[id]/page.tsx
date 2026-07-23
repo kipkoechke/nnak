@@ -1,21 +1,20 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MdCalendarToday, MdBookmarks, MdLocationOn, MdConfirmationNumber } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import {
   useBooking,
-  useBookingScope,
   useCancelBooking,
   usePayBooking,
 } from "@/hooks/use-bookings";
 
 const STATUS_TONE: Record<string, string> = {
-  confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  pending_payment: "bg-amber-50 text-amber-700 border-amber-200",
   cancelled: "bg-red-50 text-red-700 border-red-200",
-  attended: "bg-blue-50 text-blue-700 border-blue-200",
+  expired: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
 const fmtDate = (iso: string) =>
@@ -41,11 +40,11 @@ export default function MyBookingDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const scope = useBookingScope();
-  const payBooking = usePayBooking(scope);
-  const cancelBooking = useCancelBooking(scope);
+  const payBooking = usePayBooking();
+  const cancelBooking = useCancelBooking();
+  const [payPhone, setPayPhone] = useState("");
   // Poll while an STK push is in flight so the status flips without a refresh.
-  const { data: booking, isLoading } = useBooking(scope, id, {
+  const { data: booking, isLoading } = useBooking(id, {
     poll: payBooking.isSuccess,
   });
 
@@ -59,10 +58,9 @@ export default function MyBookingDetailPage({
     "bg-slate-50 text-slate-700 border-slate-200";
 
   // Only an unsettled booking can be paid or cancelled.
-  const isPending = ["pending", "pending_payment", "unpaid"].includes(
-    String(booking.status ?? "").toLowerCase(),
-  );
-  const owes = Number(booking.amount ?? 0) > 0;
+  const isPending =
+    String(booking.status ?? "").toLowerCase() === "pending_payment";
+  const owes = Number(booking.total_amount ?? 0) > 0;
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -74,7 +72,7 @@ export default function MyBookingDetailPage({
           <span
             className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border capitalize ${statusTone}`}
           >
-            {booking.status}
+            {String(booking.status).replace(/_/g, " ")}
           </span>
         }
       />
@@ -85,24 +83,35 @@ export default function MyBookingDetailPage({
           Booking Info
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          {booking.ticket_number && (
-            <div className="flex items-center gap-2 text-slate-700">
-              <MdConfirmationNumber className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>
-                Ticket: <span className="font-mono font-medium">{booking.ticket_number}</span>
+          <div className="flex items-center gap-2 text-slate-700">
+            <MdConfirmationNumber className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>
+              Reference:{" "}
+              <span className="font-mono font-medium">
+                {booking.reference_code}
               </span>
+            </span>
+          </div>
+          <div className="text-slate-700">
+            <span className="text-slate-500">Amount: </span>
+            <span className="font-semibold">
+              KES {Number(booking.total_amount ?? 0).toLocaleString()}
+            </span>
+          </div>
+          {booking.contact_name && (
+            <div className="text-slate-700">
+              <span className="text-slate-500">Contact: </span>
+              <span className="font-medium">{booking.contact_name}</span>
             </div>
           )}
-          {booking.amount != null && (
-            <div className="text-slate-700">
-              <span className="text-slate-500">Amount: </span>
-              <span className="font-semibold">KES {Number(booking.amount).toLocaleString()}</span>
-            </div>
-          )}
-          {booking.paid_at && (
-            <div className="text-slate-700">
-              <span className="text-slate-500">Paid at: </span>
-              <span className="font-medium">{fmtDateTime(booking.paid_at)}</span>
+          {(booking.contact_email || booking.contact_phone) && (
+            <div className="text-slate-700 truncate">
+              <span className="text-slate-500">Reachable on: </span>
+              <span className="font-medium">
+                {[booking.contact_email, booking.contact_phone]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
             </div>
           )}
           <div className="text-slate-700">
@@ -125,9 +134,6 @@ export default function MyBookingDetailPage({
             <div className="flex items-center gap-2">
               <MdCalendarToday className="w-4 h-4 text-slate-400 shrink-0" />
               {fmtDate(booking.event.start_date)}
-              {booking.event.end_date !== booking.event.start_date && (
-                <> → {fmtDate(booking.event.end_date)}</>
-              )}
             </div>
             {booking.event.location && (
               <div className="flex items-center gap-2">
@@ -145,52 +151,49 @@ export default function MyBookingDetailPage({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Package
           </h3>
-          <div className="font-medium text-slate-900">{booking.package.name}</div>
-          {booking.package.description && (
-            <p className="text-xs text-slate-500">{booking.package.description}</p>
-          )}
-          {booking.package.features && booking.package.features.length > 0 && (
-            <ul className="text-xs text-slate-600 space-y-1 mt-2">
-              {booking.package.features.map((f, i) => (
-                <li key={i} className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="font-medium text-slate-900">
+            {booking.package.name}
+          </div>
         </div>
       )}
 
-      {/* Payment details */}
-      {booking.payment && (
+      {/* Invoice */}
+      {booking.invoice && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Payment
+            Invoice
           </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="text-slate-500">Number</div>
+            <div className="font-mono text-slate-700 text-xs">
+              {booking.invoice.invoice_number}
+            </div>
             <div className="text-slate-500">Amount</div>
             <div className="font-semibold text-slate-900">
-              KES {Number(booking.payment.amount).toLocaleString()}
+              KES {Number(booking.invoice.amount).toLocaleString()}
             </div>
-            <div className="text-slate-500">Status</div>
-            <div className="capitalize font-medium text-slate-700">{booking.payment.status}</div>
-            {booking.payment.method && (
+            {booking.invoice.status && (
               <>
-                <div className="text-slate-500">Method</div>
-                <div className="text-slate-700 capitalize">{booking.payment.method}</div>
+                <div className="text-slate-500">Status</div>
+                <div className="capitalize font-medium text-slate-700">
+                  {booking.invoice.status}
+                </div>
               </>
             )}
-            {booking.payment.reference && (
+            {booking.invoice.due_date && (
               <>
-                <div className="text-slate-500">Reference</div>
-                <div className="font-mono text-slate-700 text-xs">{booking.payment.reference}</div>
+                <div className="text-slate-500">Due</div>
+                <div className="text-slate-700">
+                  {fmtDate(booking.invoice.due_date)}
+                </div>
               </>
             )}
-            {booking.payment.paid_at && (
+            {booking.invoice.paid_at && (
               <>
                 <div className="text-slate-500">Paid at</div>
-                <div className="text-slate-700">{fmtDateTime(booking.payment.paid_at)}</div>
+                <div className="text-slate-700">
+                  {fmtDateTime(booking.invoice.paid_at)}
+                </div>
               </>
             )}
           </div>
@@ -218,10 +221,32 @@ export default function MyBookingDetailPage({
             </div>
           )}
 
+          {owes && (
+            <div className="space-y-1">
+              <label className="text-[11px] uppercase text-slate-500">
+                M-Pesa number
+              </label>
+              <input
+                value={payPhone}
+                onChange={(e) => setPayPhone(e.target.value)}
+                placeholder={booking.contact_phone || "254712345678"}
+                className="w-full sm:max-w-xs px-3 py-2 border border-slate-300 rounded-md text-sm"
+              />
+              <p className="text-[11px] text-slate-400">
+                Leave blank to bill the contact phone on the booking.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {owes && (
               <button
-                onClick={() => payBooking.mutate(booking.id)}
+                onClick={() =>
+                  payBooking.mutate({
+                    bookingId: booking.id,
+                    phone_number: payPhone.trim() || undefined,
+                  })
+                }
                 disabled={payBooking.isPending}
                 className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50"
               >

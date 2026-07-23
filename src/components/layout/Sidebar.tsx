@@ -200,6 +200,7 @@ const FINANCE_ITEMS: MenuItem[] = [
   { name: "Branches", icon: MdBusiness, href: "/nnak/finance/branches" },
   { name: "Batches", icon: MdAttachMoney, href: "/nnak/finance/batches" },
   { name: "Payments", icon: MdPayments, href: "/nnak/finance/payments" },
+  { name: "Events", icon: MdEvent, href: "/nnak/finance/events" },
   { name: "Remittances", icon: MdSwapHoriz, href: "/nnak/finance/remittances" },
   { name: "By-Product", icon: MdReceipt, href: "/nnak/finance/byproducts" },
 ];

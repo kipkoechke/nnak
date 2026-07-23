@@ -161,42 +161,32 @@ export interface Branch {
 }
 
 // Events --------------------------------------------------
+/** `type` is a free-form string (max 50) on the API; these are the values in use. */
 export type EventType = "conference" | "workshop" | "cpd" | "agm" | "training";
-export type EventStatus =
-  | "draft"
-  | "published"
-  | "closed"
-  | "completed"
-  | "cancelled";
 
 export interface EventLocationCoordinates {
   lat: number;
   lng: number;
 }
 
+/** Admin event resource — GET/POST/PUT /admin/events. */
 export interface NnakEvent {
   id: string;
   code: string;
   title: string;
   theme?: string | null;
-  description: string;
-  type: EventType;
-  status: EventStatus;
+  description?: string | null;
   start_date: string;
   end_date: string;
-  location: string;
+  location?: string | null;
   location_coordinates?: EventLocationCoordinates | null;
-  metadata?: Record<string, unknown> | null;
+  is_approved: boolean;
+  type?: string | null;
   cover_image_url?: string | null;
   banner_image_url?: string | null;
-  pricing?: EventPricingTier[];
-  speakers?: EventSpeaker[];
-  agendas?: Agenda[];
-  sponsors?: Sponsor[];
-  exhibitors?: Exhibitor[];
-  registrants_count?: number;
-  attended_count?: number;
-  revenue_total?: number;
+  metadata?: Record<string, unknown> | null;
+  created_by?: string | null;
+  updated_by?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -204,44 +194,43 @@ export interface NnakEvent {
 export interface CreateEventInput {
   code: string;
   title: string;
-  theme?: string;
-  description: string;
+  theme?: string | null;
+  description?: string | null;
   start_date: string;
   end_date: string;
-  location: string;
-  location_coordinates?: EventLocationCoordinates;
-  type: EventType;
-  metadata?: Record<string, unknown>;
-  cover_image_url?: string;
-  banner_image_url?: string;
+  location?: string | null;
+  location_coordinates?: EventLocationCoordinates | null;
+  type?: string | null;
+  cover_image_url?: string | null;
+  banner_image_url?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
-export interface EventPricingTier {
-  category_code: NnakMembershipCategory | "non_member";
-  fee: number;
-}
+/** PUT /admin/events/{event} — every field is `sometimes`, plus approval. */
+export type UpdateEventInput = Partial<CreateEventInput> & {
+  is_approved?: boolean;
+};
 
-export interface EventSpeaker {
-  name: string;
-  title?: string;
-  bio?: string;
-  photo_url?: string | null;
-}
-
-export interface EventRegistration {
+/** Row of the public GET /events listing. */
+export interface PublicEvent {
   id: string;
-  event_id: string;
-  user_id: string;
-  user?: NnakUser;
-  fee: number;
-  payment_status: PaymentStatus;
-  payment_id?: string;
-  qr_token: string;
-  attended: boolean;
-  attended_at?: string | null;
-  certificate_issued: boolean;
-  certificate_url?: string | null;
-  created_at: string;
+  title: string;
+  theme?: string | null;
+  description?: string | null;
+  start_date: string;
+  end_date: string;
+  location?: string | null;
+  cover_image_url?: string | null;
+  packages_count?: number;
+}
+
+/** GET /events/{event} — the listing row plus presentation detail. */
+export interface PublicEventDetail extends PublicEvent {
+  location_coordinates?: EventLocationCoordinates | null;
+  banner_image_url?: string | null;
+  type?: string | null;
+  metadata?: Record<string, unknown> | null;
+  packages?: EventPackage[];
 }
 
 // ── Agendas ──────────────────────────────────────────────
@@ -249,85 +238,71 @@ export interface Agenda {
   id: string;
   event_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   start_time: string;
   end_time: string;
-  type: "keynote" | "panel" | "workshop" | "breakout" | "general";
-  metadata?: Record<string, unknown> | null;
-  event?: NnakEvent;
-  speakers?: AgendaSpeaker[];
+  location?: string | null;
+  speakers?: Speaker[];
   breakout_rooms?: BreakoutRoom[];
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateAgendaInput {
-  event_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   start_time: string;
   end_time: string;
-  type: string;
-  metadata?: Record<string, unknown>;
+  location?: string | null;
 }
 
 // ── Speakers ─────────────────────────────────────────────
 export interface Speaker {
   id: string;
   name: string;
-  title: string;
-  organization: string;
-  bio: string;
+  title?: string | null;
+  bio?: string | null;
+  organization?: string | null;
   photo_url?: string | null;
-  links?: Record<string, string> | null;
+  social_links?: Record<string, string> | null;
   event_id: string;
-  metadata?: Record<string, unknown> | null;
-  event?: NnakEvent;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateSpeakerInput {
   name: string;
-  title: string;
-  organization: string;
-  bio: string;
-  photo_url?: string;
-  links?: Record<string, string>;
-  event_id: string;
-  metadata?: Record<string, unknown>;
+  title?: string | null;
+  bio?: string | null;
+  organization?: string | null;
+  photo_url?: string | null;
+  social_links?: Record<string, string> | null;
 }
 
 // ── Agenda Speakers ──────────────────────────────────────
+/** Join of a speaker onto an agenda item. */
 export interface AgendaSpeaker {
   id: string;
   agenda_id: string;
   speaker_id: string;
-  role: string;
-  metadata?: Record<string, unknown> | null;
-  agenda?: Agenda;
+  role?: string | null;
   speaker?: Speaker;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateAgendaSpeakerInput {
-  agenda_id: string;
   speaker_id: string;
-  role: string;
-  metadata?: Record<string, unknown>;
+  role?: string | null;
 }
 
 // ── Breakout Rooms ───────────────────────────────────────
 export interface BreakoutRoom {
   id: string;
-  name: string;
-  description: string;
-  tag: string;
-  location: string;
-  metadata?: Record<string, unknown> | null;
   agenda_id: string;
-  agenda?: Agenda;
+  name: string;
+  description?: string | null;
+  location?: string | null;
   speakers?: BreakoutSpeaker[];
   created_at: string;
   updated_at: string;
@@ -335,11 +310,8 @@ export interface BreakoutRoom {
 
 export interface CreateBreakoutRoomInput {
   name: string;
-  description: string;
-  tag: string;
-  location: string;
-  metadata?: Record<string, unknown>;
-  agenda_id: string;
+  description?: string | null;
+  location?: string | null;
 }
 
 // ── Breakout Room Speakers ───────────────────────────────
@@ -347,67 +319,53 @@ export interface BreakoutSpeaker {
   id: string;
   breakout_room_id: string;
   speaker_id: string;
-  role: string;
-  metadata?: Record<string, unknown> | null;
-  breakout_room?: BreakoutRoom;
+  role?: string | null;
   speaker?: Speaker;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateBreakoutSpeakerInput {
-  breakout_room_id: string;
   speaker_id: string;
-  role: string;
-  metadata?: Record<string, unknown>;
+  role?: string | null;
 }
 
 // ── Sponsors ─────────────────────────────────────────────
 export interface Sponsor {
   id: string;
   name: string;
-  website_url?: string | null;
-  category: string;
-  is_partner: boolean;
-  description: string;
   logo_url?: string | null;
-  metadata?: Record<string, unknown> | null;
+  website?: string | null;
+  tier?: string | null;
   event_id: string;
-  event?: NnakEvent;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateSponsorInput {
   name: string;
-  website_url?: string;
-  category: string;
-  is_partner: boolean;
-  description: string;
-  logo_url?: string;
-  metadata?: Record<string, unknown>;
-  event_id: string;
+  logo_url?: string | null;
+  website?: string | null;
+  tier?: string | null;
 }
 
 // ── Exhibitors ───────────────────────────────────────────
 export interface Exhibitor {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
   logo_url?: string | null;
-  metadata?: Record<string, unknown> | null;
+  booth_number?: string | null;
   event_id: string;
-  event?: NnakEvent;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateExhibitorInput {
   name: string;
-  description: string;
-  logo_url?: string;
-  metadata?: Record<string, unknown>;
-  event_id: string;
+  description?: string | null;
+  logo_url?: string | null;
+  booth_number?: string | null;
 }
 
 // Payments ------------------------------------------------
@@ -1427,154 +1385,191 @@ export interface FinanceBatchDetail extends FinanceBatch {
   members: FinanceBatchMember[];
 }
 
-// ── Member Portal: Events (/member/events) ────────────────────────
-export interface MemberEvent {
-  id: string;
-  title: string;
-  code?: string | null;
-  type: string;
-  status: string;
-  theme?: string | null;
-  description?: string | null;
-  location?: string | null;
-  start_date: string;
-  end_date: string;
-  cover_image_url?: string | null;
-  is_registered?: boolean;
-  registration?: MemberEventRegistration | null;
-  created_at: string;
-}
-
-export interface MemberEventRegistration {
-  id: string;
-  status: string;
-  paid_at?: string | null;
-  amount?: number;
-  ticket_number?: string | null;
-}
-
-export interface MemberEventPackage {
+// ── Event packages (ticket tiers) ──────────────────────────────────
+export interface EventPackage {
   id: string;
   event_id?: string;
   name: string;
   description?: string | null;
-  /** API returns cost as string e.g. "5000.00" */
-  cost?: number | string | null;
-  /** Legacy field — prefer cost */
-  price?: number | null;
-  currency?: string;
-  capacity?: number | null;
-  available?: number | null;
-  features?: string[];
-  benefits?: Record<string, string> | null;
-  is_available?: boolean;
   is_member_only?: boolean;
+  benefits?: string[] | null;
   has_limit?: boolean;
   max_entries?: number | null;
+  /** API may serialise cost as a decimal string e.g. "5000.00". */
+  cost?: number | string | null;
 }
-
-// Admin-managed event package (ticket tier). Reuses the read shape; the
-// entity fields match MemberEventPackage returned by the public/member APIs.
-export type EventPackage = MemberEventPackage;
 
 export interface CreateEventPackageInput {
   name: string;
   description?: string | null;
-  /** Ticket price. API accepts numeric or decimal-string. */
-  cost: number | string;
-  capacity?: number | null;
   is_member_only?: boolean;
-  is_available?: boolean;
+  benefits?: string[] | null;
   has_limit?: boolean;
+  /** Required when `has_limit` is true (min 1). */
   max_entries?: number | null;
+  cost: number | string;
 }
 
 // ── Event operations: attendees, scanners, bookings, attendance ────
+/**
+ * Back-office prefix for event reads. `/finance` exposes the same attendee,
+ * booking and attendance responses as `/admin`, but read-only.
+ */
+export type EventReadScope = "admin" | "finance";
+
+/** Where an attendee came from: a paid booking, or added by an admin. */
+export type AttendeeSource = "booking" | "manual";
+
+export type AttendeeType = "vip" | "sponsor" | "staff" | "speaker" | "other";
+
+/** Row of GET /admin|finance/events/{event}/attendees. */
 export interface EventAttendee {
   id: string;
-  event_id?: string;
-  booking_id?: string | null;
+  source?: AttendeeSource | string | null;
   name: string;
   email?: string | null;
   phone?: string | null;
-  /** booked | vip | staff | sponsor | exhibitor | speaker | guest */
-  type?: string | null;
   ticket_number?: string | null;
-  package_id?: string | null;
-  package?: MemberEventPackage | null;
-  checked_in?: boolean;
-  checked_in_at?: string | null;
-  created_at?: string;
+  ticket_sent_at?: string | null;
+  booking_reference?: string | null;
+  package_name?: string | null;
+  type?: AttendeeType | string | null;
+  reason?: string | null;
+  added_by?: string | null;
+}
+
+/** The attendees endpoint paginates inside `data`, with its own meta block. */
+export interface EventAttendeeMeta {
+  total: number;
+  /** How many of the listed attendees have been scanned at least once. */
+  scanned_in: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+}
+
+export interface EventAttendeeList {
+  data: EventAttendee[];
+  meta?: EventAttendeeMeta;
 }
 
 export interface CreateAttendeeInput {
   name: string;
   email?: string | null;
   phone?: string | null;
-  /** vip | staff | sponsor | exhibitor | guest */
-  type: string;
-  package_id?: string | null;
+  type: AttendeeType;
+  reason?: string | null;
+  event_package_id?: string | null;
+  /** Queues the ticket email immediately. */
+  send_ticket?: boolean;
+}
+
+/** POST /admin/events/{event}/attendees response. */
+export interface CreatedAttendee {
+  id: string;
+  name: string;
+  email?: string | null;
+  type?: AttendeeType | string | null;
+  ticket_number?: string | null;
+  ticket_sent?: boolean;
 }
 
 export interface EventScanner {
   id: string;
-  event_id?: string;
-  user_id: string;
-  name?: string | null;
-  email?: string | null;
-  created_at?: string;
+  user: { id: string; name: string; email: string };
+  nominated_by?: string | null;
+  nominated_at?: string | null;
 }
 
 export interface CreateScannerInput {
-  /** Provide the user id (or email) of the person to nominate. */
-  user_id?: string;
-  email?: string;
+  user_id: string;
 }
 
+// ── Bookings ───────────────────────────────────────────────────────
+export type BookingStatus =
+  | "pending_payment"
+  | "paid"
+  | "cancelled"
+  | "expired";
+
+export interface BookingInvoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  status?: string | null;
+  due_date?: string | null;
+  paid_at?: string | null;
+}
+
+export interface BookingUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+/** Row of GET /admin|finance/events/{event}/bookings. */
 export interface EventBooking {
   id: string;
-  event_id?: string;
-  reference?: string | null;
-  booking_number?: string | null;
-  name?: string | null;
+  reference_code: string;
+  user?: BookingUser | null;
+  package_name?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  status: BookingStatus | string;
+  total_amount: number;
+  attendees_count?: number;
+  invoice_status?: string | null;
+  created_at: string;
+}
+
+/** GET /admin|finance/bookings/{booking}. */
+export interface EventBookingDetail extends EventBooking {
+  event?: { id: string; title: string; start_date: string } | null;
+  invoice?: BookingInvoice | null;
+  attendees?: EventAttendee[];
+}
+
+// ── Attendance ─────────────────────────────────────────────────────
+export type AttendanceType = "arrival" | "session" | "departure";
+
+/** POST /admin/events/{event}/attendance/scan. */
+export interface AttendanceScanResult {
+  id: string;
+  name: string;
+  ticket_number: string;
+  type: AttendanceType | string;
+  scanned_at: string;
+  agenda_id?: string | null;
+}
+
+/** GET /admin/events/{event}/attendance/lookup. */
+export interface AttendanceLookupResult {
+  name: string;
   email?: string | null;
   phone?: string | null;
-  status?: string | null;
-  payment_status?: string | null;
-  amount?: number | string | null;
-  attendees_count?: number | null;
-  package?: MemberEventPackage | null;
-  attendees?: EventAttendee[];
-  created_at?: string;
+  ticket_number: string;
+  source?: AttendeeSource | string | null;
+  type?: AttendeeType | string | null;
+  package?: string | null;
+  already_scanned: boolean;
+  attendances: Array<{
+    type: AttendanceType | string;
+    agenda?: string | null;
+    scanned_at: string;
+  }>;
 }
 
-export interface AttendanceReport {
-  total?: number;
-  checked_in?: number;
-  not_checked_in?: number;
-  attendees?: EventAttendee[];
-  [key: string]: unknown;
-}
-
-export interface AttendanceScanResult {
-  attendee?: EventAttendee | null;
-  status?: string;
-  message?: string;
-  already_checked_in?: boolean;
-  [key: string]: unknown;
-}
-
-export interface MemberEventDetail extends MemberEvent {
-  location_coordinates?: { lat: number; lng: number } | null;
-  metadata?: {
-    expected_attendees?: number;
-    tracks?: string[];
-    cpd_points?: number;
-    [key: string]: unknown;
-  } | null;
-  speakers?: Array<{ id: string; name: string; bio?: string | null; photo_url?: string | null; role?: string | null }>;
-  agenda?: Array<{ id: string; title: string; start_time: string; end_time: string; description?: string | null }>;
-  packages?: MemberEventPackage[];
+/** Row of GET /admin|finance/events/{event}/attendance. */
+export interface AttendanceRecord {
+  id: string;
+  name: string;
+  email?: string | null;
+  ticket_number: string;
+  type: AttendanceType | string;
+  agenda?: string | null;
+  scanned_by?: string | null;
+  scanned_at: string;
 }
 
 // ── Institution ───────────────────────────────────────────
@@ -1599,18 +1594,33 @@ export interface StudentRegisterPayload {
   institution_id: string;
 }
 
-// ── Student: Bookings (/student/bookings) ──────────────────
-export interface StudentBooking {
+// ── My bookings (/member|/student|/public bookings) ────────────────
+/** Row of GET /{scope}/bookings. */
+export interface MyBooking {
   id: string;
-  event_id: string;
+  reference_code: string;
   event_title?: string | null;
-  status: string;
-  ticket_number?: string | null;
-  amount?: number | null;
-  paid_at?: string | null;
-  event?: { id: string; title: string; start_date: string; end_date: string; location?: string | null } | null;
-  package?: MemberEventPackage | null;
+  package_name?: string | null;
+  status: BookingStatus | string;
+  total_amount: number;
+  attendees_count?: number;
   created_at: string;
+}
+
+/** GET /bookings/{booking} — and the payload echoed back on create. */
+export interface MyBookingDetail extends MyBooking {
+  event?: {
+    id: string;
+    title: string;
+    start_date: string;
+    location?: string | null;
+  } | null;
+  package?: { id: string; name: string } | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  invoice?: BookingInvoice | null;
+  attendees?: EventAttendee[];
 }
 
 /** Which role-scoped booking endpoints to talk to. `public` maps to the
@@ -1628,23 +1638,14 @@ export interface CreateBookingInput {
   attendees: BookingAttendeeInput[];
 }
 
-/** Response of POST /{scope}/bookings/{id}/pay — an M-Pesa STK push init. */
-export interface BookingPaymentInit {
-  invoice_id?: string | null;
-  checkout_request_id?: string | null;
-  merchant_request_id?: string | null;
-  message?: string | null;
-  [key: string]: unknown;
+/** POST /bookings/{booking}/pay — omit the phone to bill the contact phone. */
+export interface PayBookingInput {
+  phone_number?: string;
 }
 
-export interface StudentBookingDetail extends StudentBooking {
-  attendees?: EventAttendee[] | null;
-  payment?: {
-    id: string;
-    amount: number;
-    status: string;
-    method?: string | null;
-    reference?: string | null;
-    paid_at?: string | null;
-  } | null;
+/** Response of POST /bookings/{id}/pay — an M-Pesa STK push init. */
+export interface BookingPaymentInit {
+  invoice_id: string;
+  amount: number;
+  phone: string;
 }

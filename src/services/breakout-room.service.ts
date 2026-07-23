@@ -2,7 +2,7 @@
 //   GET  /events/{event}/agendas/{agenda}/breakout-rooms         list
 //   POST /events/{event}/agendas/{agenda}/breakout-rooms         create
 //   GET  /events/{event}/agendas/{agenda}/breakout-rooms/{id}    detail
-//   PATCH /events/{event}/agendas/{agenda}/breakout-rooms/{id}   update
+//   PUT   /events/{event}/agendas/{agenda}/breakout-rooms/{id}   update
 //   DELETE /events/{event}/agendas/{agenda}/breakout-rooms/{id}  delete
 import { nnakApi } from "@/lib/api";
 import type {
@@ -54,7 +54,7 @@ export const breakoutRoomService = {
     input: Partial<CreateBreakoutRoomInput>,
   ): Promise<BreakoutRoom> =>
     unwrap<BreakoutRoom>(
-      nnakApi.patch(`${base(eventId, agendaId)}/${id}`, input),
+      nnakApi.put(`${base(eventId, agendaId)}/${id}`, input),
     ),
 
   remove: async (eventId: string, agendaId: string, id: string) => {

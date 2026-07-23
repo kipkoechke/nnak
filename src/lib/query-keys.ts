@@ -57,7 +57,15 @@ export const nqk = {
     list: (p?: Record<string, unknown>) =>
       ["nnak", "events", "list", p ?? {}] as const,
     detail: (id: string) => ["nnak", "events", "detail", id] as const,
-    registrants: (id: string) => ["nnak", "events", id, "registrants"] as const,
+  },
+  /** Public event browsing — GET /events. */
+  publicEvents: {
+    all: ["nnak", "public", "events"] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "public", "events", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "public", "events", "detail", id] as const,
+    packages: (id: string) =>
+      ["nnak", "public", "events", "packages", id] as const,
   },
   agendas: {
     all: ["nnak", "agendas"] as const,
@@ -112,8 +120,8 @@ export const nqk = {
   },
   eventAttendees: {
     all: ["nnak", "event-attendees"] as const,
-    list: (eventId: string, p?: Record<string, unknown>) =>
-      ["nnak", "event-attendees", "list", eventId, p ?? {}] as const,
+    list: (scope: string, eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "event-attendees", "list", scope, eventId, p ?? {}] as const,
   },
   eventScanners: {
     all: ["nnak", "event-scanners"] as const,
@@ -122,14 +130,17 @@ export const nqk = {
   },
   eventBookings: {
     all: ["nnak", "event-bookings"] as const,
-    list: (eventId: string, p?: Record<string, unknown>) =>
-      ["nnak", "event-bookings", "list", eventId, p ?? {}] as const,
-    detail: (id: string) => ["nnak", "event-bookings", "detail", id] as const,
+    list: (scope: string, eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "event-bookings", "list", scope, eventId, p ?? {}] as const,
+    detail: (scope: string, id: string) =>
+      ["nnak", "event-bookings", "detail", scope, id] as const,
   },
   eventAttendance: {
     all: ["nnak", "event-attendance"] as const,
-    report: (eventId: string) =>
-      ["nnak", "event-attendance", "report", eventId] as const,
+    report: (scope: string, eventId: string, p?: Record<string, unknown>) =>
+      ["nnak", "event-attendance", "report", scope, eventId, p ?? {}] as const,
+    lookup: (eventId: string, ticket: string) =>
+      ["nnak", "event-attendance", "lookup", eventId, ticket] as const,
   },
   sponsors: {
     all: ["nnak", "sponsors"] as const,
@@ -204,35 +215,20 @@ export const nqk = {
       list: (p?: Record<string, unknown>) => ["nnak", "finance", "remittances", "list", p ?? {}] as const,
     },
   },
-  memberEvents: {
-    all: ["nnak", "member", "events"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "member", "events", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "member", "events", "detail", id] as const,
-    packages: (id: string) => ["nnak", "member", "events", "packages", id] as const,
-  },
   institutions: {
     all: ["nnak", "institutions"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "institutions", "list", p ?? {}] as const,
   },
-  studentEvents: {
-    all: ["nnak", "student", "events"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "student", "events", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "student", "events", "detail", id] as const,
-    packages: (id: string) => ["nnak", "student", "events", "packages", id] as const,
-  },
-  studentBookings: {
-    all: ["nnak", "student", "bookings"] as const,
-    list: (p?: Record<string, unknown>) => ["nnak", "student", "bookings", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "student", "bookings", "detail", id] as const,
-  },
-  /** Role-scoped event bookings (member | student | public). */
+  /**
+   * Bookings. Listing is role-scoped (member | student | public); a single
+   * booking is read from the unprefixed route, so its key carries no scope.
+   */
   bookings: {
     all: ["nnak", "bookings"] as const,
     scope: (scope: string) => ["nnak", "bookings", scope] as const,
     list: (scope: string, p?: Record<string, unknown>) =>
       ["nnak", "bookings", scope, "list", p ?? {}] as const,
-    detail: (scope: string, id: string) =>
-      ["nnak", "bookings", scope, "detail", id] as const,
+    detail: (id: string) => ["nnak", "bookings", "detail", id] as const,
   },
   invites: {
     memberAll: ["nnak", "member", "invites"] as const,
