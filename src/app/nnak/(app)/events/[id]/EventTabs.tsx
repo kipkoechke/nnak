@@ -342,10 +342,7 @@ const TAB_GROUPS: TabGroup[] = [
     key: "programme",
     label: "Programme",
     icon: MdSchedule,
-    tabs: [
-      { key: "agendas", label: "Agendas", icon: MdSchedule },
-      { key: "breakoutRooms", label: "Breakout Rooms", icon: MdMeetingRoom },
-    ],
+    tabs: [{ key: "programme", label: "Programme", icon: MdSchedule }],
   },
   {
     key: "people",
@@ -410,7 +407,7 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
   const counts: Record<string, number> = useMemo(
     () => ({
       packages: packagesData?.data?.length ?? 0,
-      agendas: agendasData?.data?.length ?? 0,
+      programme: agendasData?.data?.length ?? 0,
       speakers: speakersData?.data?.length ?? 0,
       sponsors: sponsorsData?.data?.length ?? 0,
       exhibitors: exhibitorsData?.data?.length ?? 0,
@@ -537,10 +534,9 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
       <div className="px-4 py-6">
         {tab === "overview" && <OverviewTab event={event} />}
         {tab === "packages" && <PackagesTab eventId={eventId} />}
-        {tab === "agendas" && <AgendasTab eventId={eventId} />}
+        {tab === "programme" && <ProgrammeTab eventId={eventId} />}
         {tab === "speakers" && <SpeakersTab eventId={eventId} />}
         {tab === "agendaSpeakers" && <AgendaSpeakersTab eventId={eventId} />}
-        {tab === "breakoutRooms" && <BreakoutRoomsTab eventId={eventId} />}
         {tab === "breakoutSpeakers" && (
           <BreakoutSpeakersTab eventId={eventId} />
         )}
@@ -1843,23 +1839,38 @@ function ScannersTab({ eventId }: { eventId: string }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- *  Agendas Tab
+ *  Programme Tab  (agendas + breakout rooms)
  * ────────────────────────────────────────────────────────────────────── */
 
-function AgendasTab({ eventId }: { eventId: string }) {
+function ProgrammeTab({ eventId }: { eventId: string }) {
   const [page, setPage] = useState(1);
-  const { data: agendasData, isLoading } = useAgendas(eventId, { page, per_page: 10 });
+  const { data: agendasData, isLoading } = useAgendas(eventId, {
+    page,
+    per_page: 10,
+  });
   const createAgenda = useCreateAgenda();
   const updateAgenda = useUpdateAgenda();
   const deleteAgenda = useDeleteAgenda();
 
+  const createRoom = useCreateBreakoutRoom();
+  const updateRoom = useUpdateBreakoutRoom();
+  const deleteRoom = useDeleteBreakoutRoom();
+
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [roomEditId, setRoomEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
     start_time: "",
     end_time: "",
+    location: "",
+  });
+  const [roomForm, setRoomForm] = useState({
+    name: "",
+    description: "",
     location: "",
   });
 
@@ -1873,6 +1884,12 @@ function AgendasTab({ eventId }: { eventId: string }) {
     });
     setEditId(null);
     setModalOpen(false);
+  };
+
+  const resetRoom = () => {
+    setRoomForm({ name: "", description: "", location: "" });
+    setRoomEditId(null);
+    setRoomModalOpen(false);
   };
 
   const agendas = agendasData?.data ?? [];
@@ -1895,11 +1912,38 @@ function AgendasTab({ eventId }: { eventId: string }) {
     else createAgenda.mutate({ eventId, input: payload }, { onSuccess: reset });
   };
 
+  const submitRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expanded) return;
+    const payload = {
+      name: roomForm.name,
+      description: roomForm.description || null,
+      location: roomForm.location || null,
+    };
+    if (roomEditId)
+      updateRoom.mutate(
+        { eventId, agendaId: expanded, id: roomEditId, input: payload },
+        { onSuccess: resetRoom },
+      );
+    else
+      createRoom.mutate(
+        { eventId, agendaId: expanded, input: payload },
+        { onSuccess: resetRoom },
+      );
+  };
+
+  // Fetch breakout rooms for expanded agenda
+  const { data: roomsData, isLoading: roomsLoading } = useBreakoutRooms(
+    eventId,
+    expanded ?? "",
+  );
+  const rooms = roomsData?.data ?? [];
+
   return (
     <div className="space-y-4">
       <SectionHeader
-        title="Agendas"
-        description="Schedule sessions, panels and workshops"
+        title="Programme"
+        description="Schedule sessions, panels and workshops with breakout rooms"
         count={pagination?.total ?? agendas.length}
         action={
           <AddBtn
@@ -1924,7 +1968,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
       ) : agendas.length === 0 ? (
         <EmptyState
           icon={MdSchedule}
-          title="No agendas yet"
+          title="No programme items yet"
           description="Build your event timeline by adding sessions, panels and workshops."
           action={
             <AddBtn
@@ -1938,77 +1982,206 @@ function AgendasTab({ eventId }: { eventId: string }) {
           {agendas
             .slice()
             .sort((a, b) => a.start_time.localeCompare(b.start_time))
-            .map((a) => (
-              <div
-                key={a.id}
-                className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-primary hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="shrink-0 w-14 text-center">
-                    <div className="text-[10px] uppercase font-semibold text-slate-500">
-                      {new Date(a.start_time).toLocaleString("en-GB", {
-                        month: "short",
-                      })}
+            .map((a) => {
+              const isExpanded = expanded === a.id;
+              const agendaBreakouts = a.breakout_rooms ?? [];
+              const totalBreakouts = isExpanded
+                ? rooms.length
+                : agendaBreakouts.length;
+
+              return (
+                <div
+                  key={a.id}
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-all"
+                >
+                  {/* ── Agenda card header ── */}
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : a.id)}
+                    className="w-full text-left group p-4 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 w-14 text-center">
+                        <div className="text-[10px] uppercase font-semibold text-slate-500">
+                          {new Date(a.start_time).toLocaleString("en-GB", {
+                            month: "short",
+                          })}
+                        </div>
+                        <div className="text-xl font-bold text-slate-900 leading-none">
+                          {new Date(a.start_time).getDate()}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1">
+                          {fmtTime(a.start_time)}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-slate-900">
+                            {a.title}
+                          </h4>
+                          {a.location && (
+                            <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                              {a.location}
+                            </span>
+                          )}
+                          {totalBreakouts > 0 && (
+                            <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              {totalBreakouts} breakout
+                              {totalBreakouts !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {isExpanded && (
+                            <MdClose className="w-4 h-4 text-slate-400 ml-auto shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {fmtTime(a.start_time)} – {fmtTime(a.end_time)}
+                        </div>
+                        {a.description && (
+                          <p
+                            className={`text-sm text-slate-600 mt-2 ${isExpanded ? "" : "line-clamp-2"}`}
+                          >
+                            {a.description}
+                          </p>
+                        )}
+                      </div>
+                      {/* Edit/Delete (stop propagation so it doesn't toggle expand) */}
+                      <div
+                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => {
+                            setEditId(a.id);
+                            setForm({
+                              title: a.title,
+                              description: a.description || "",
+                              start_time: a.start_time?.slice(0, 16) ?? "",
+                              end_time: a.end_time?.slice(0, 16) ?? "",
+                              location: a.location || "",
+                            });
+                            setModalOpen(true);
+                          }}
+                          className="p-2 rounded-md hover:bg-slate-100 text-slate-500 hover:text-primary"
+                          title="Edit"
+                        >
+                          <MdEdit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete agenda "${a.title}"?`))
+                              deleteAgenda.mutate({
+                                eventId,
+                                id: a.id,
+                              });
+                          }}
+                          className="p-2 rounded-md hover:bg-red-50 text-slate-500 hover:text-red-600"
+                          title="Delete"
+                        >
+                          <MdDelete className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-xl font-bold text-slate-900 leading-none">
-                      {new Date(a.start_time).getDate()}
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-1">
-                      {fmtTime(a.start_time)}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-slate-900 truncate">
-                        {a.title}
-                      </h4>
-                      {a.location && (
-                        <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                          {a.location}
-                        </span>
+                  </button>
+
+                  {/* ── Expanded: breakout rooms ── */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/30 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                          Breakout Rooms
+                        </h5>
+                        <button
+                          onClick={() => {
+                            setRoomEditId(null);
+                            setRoomForm({
+                              name: "",
+                              description: "",
+                              location: "",
+                            });
+                            setRoomModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+                        >
+                          <MdAdd className="w-3.5 h-3.5" /> Add room
+                        </button>
+                      </div>
+
+                      {roomsLoading ? (
+                        <div className="h-16 bg-slate-100 rounded-md animate-pulse" />
+                      ) : rooms.length === 0 ? (
+                        <p className="text-xs text-slate-500 py-2">
+                          No breakout rooms yet. Add one for parallel sessions.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                          {rooms.map((r) => (
+                            <div
+                              key={r.id}
+                              className="group/room bg-white border border-slate-200 rounded-lg p-3 hover:border-primary/50 transition-all"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <MdMeetingRoom className="w-4 h-4 text-primary shrink-0" />
+                                    <h6 className="text-sm font-semibold text-slate-900 truncate">
+                                      {r.name}
+                                    </h6>
+                                  </div>
+                                  {r.location && (
+                                    <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-1">
+                                      <MdLocationOn className="w-3 h-3 shrink-0" />
+                                      <span className="truncate">
+                                        {r.location}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {r.description && (
+                                    <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">
+                                      {r.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover/room:opacity-100 transition-opacity shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      setRoomEditId(r.id);
+                                      setRoomForm({
+                                        name: r.name,
+                                        description: r.description ?? "",
+                                        location: r.location ?? "",
+                                      });
+                                      setRoomModalOpen(true);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-primary rounded"
+                                    title="Edit"
+                                  >
+                                    <MdEdit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`Delete room "${r.name}"?`))
+                                        deleteRoom.mutate({
+                                          eventId,
+                                          agendaId: a.id,
+                                          id: r.id,
+                                        });
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded"
+                                    title="Delete"
+                                  >
+                                    <MdDelete className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      {fmtTime(a.start_time)} – {fmtTime(a.end_time)}
-                    </div>
-                    {a.description && (
-                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
-                        {a.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => {
-                        setEditId(a.id);
-                        setForm({
-                          title: a.title,
-                          description: a.description || "",
-                          start_time: a.start_time?.slice(0, 16) ?? "",
-                          end_time: a.end_time?.slice(0, 16) ?? "",
-                          location: a.location || "",
-                        });
-                        setModalOpen(true);
-                      }}
-                      className="p-2 rounded-md hover:bg-slate-100 text-slate-500 hover:text-primary"
-                      title="Edit"
-                    >
-                      <MdEdit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Delete agenda "${a.title}"?`))
-                          deleteAgenda.mutate({ eventId, id: a.id });
-                      }}
-                      className="p-2 rounded-md hover:bg-red-50 text-slate-500 hover:text-red-600"
-                      title="Delete"
-                    >
-                      <MdDelete className="w-4 h-4" />
-                    </button>
-                  </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
         </div>
       )}
 
@@ -2036,6 +2209,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {/* ── Agenda modal ── */}
       <Modal
         open={modalOpen}
         onClose={reset}
@@ -2096,6 +2270,53 @@ function AgendasTab({ eventId }: { eventId: string }) {
                 : editId
                   ? "Save changes"
                   : "Create agenda"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Breakout room modal ── */}
+      <Modal
+        open={roomModalOpen}
+        onClose={resetRoom}
+        title={roomEditId ? "Edit breakout room" : "New breakout room"}
+      >
+        <form onSubmit={submitRoom} className="space-y-3">
+          <Field
+            label="Name"
+            value={roomForm.name}
+            onChange={(v) => setRoomForm({ ...roomForm, name: v })}
+            required
+          />
+          <Field
+            label="Location"
+            value={roomForm.location}
+            onChange={(v) => setRoomForm({ ...roomForm, location: v })}
+            placeholder="Room 3, Wing B"
+          />
+          <TextArea
+            label="Description"
+            value={roomForm.description}
+            onChange={(v) => setRoomForm({ ...roomForm, description: v })}
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={resetRoom}
+              className="px-3 py-2 border border-slate-300 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createRoom.isPending || updateRoom.isPending}
+              className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {createRoom.isPending || updateRoom.isPending
+                ? "Saving…"
+                : roomEditId
+                  ? "Save changes"
+                  : "Add room"}
             </button>
           </div>
         </form>
@@ -2430,229 +2651,6 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
- *  Breakout Rooms Tab
- * ────────────────────────────────────────────────────────────────────── */
-
-function BreakoutRoomsTab({ eventId }: { eventId: string }) {
-  const { data: agendasData } = useAgendas(eventId);
-  const agendas = agendasData?.data ?? [];
-
-  const [agendaId, setAgendaId] = useState<string>("");
-  const { data: roomsData, isLoading } = useBreakoutRooms(eventId, agendaId);
-  const createRoom = useCreateBreakoutRoom();
-  const updateRoom = useUpdateBreakoutRoom();
-  const deleteRoom = useDeleteBreakoutRoom();
-
-  const empty = { name: "", description: "", location: "" };
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(empty);
-
-  const reset = () => {
-    setEditId(null);
-    setForm(empty);
-    setModalOpen(false);
-  };
-
-  const rooms = roomsData?.data ?? [];
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader
-        title="Breakout Rooms"
-        description="Organise smaller, parallel sessions for each agenda"
-        count={rooms.length}
-        action={
-          agendaId ? (
-            <AddBtn
-              onClick={() => {
-                setEditId(null);
-                setForm(empty);
-                setModalOpen(true);
-              }}
-              label="New room"
-            />
-          ) : null
-        }
-      />
-
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
-        <label className="block text-xs font-medium text-slate-600 mb-2">
-          Step 1 — pick an agenda
-        </label>
-        {agendas.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            Add agendas first; rooms hang off them.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {agendas.map((a) => {
-              const active = a.id === agendaId;
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => {
-                    setAgendaId(a.id);
-                    reset();
-                  }}
-                  className={`text-left p-3 rounded-lg border transition-all ${
-                    active
-                      ? "border-primary bg-primary/5 ring-1 ring-primary"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-slate-900 line-clamp-1">
-                    {a.title}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    {fmtDate(a.start_time)} · {fmtTime(a.start_time)}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {agendaId &&
-        (isLoading ? (
-          <SkeletonList />
-        ) : rooms.length === 0 ? (
-          <EmptyState
-            icon={MdMeetingRoom}
-            title="No breakout rooms yet"
-            description="Add a room for this agenda — then assign speakers in the next tab."
-            action={
-              <AddBtn onClick={() => setModalOpen(true)} label="Add a room" />
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {rooms.map((r) => (
-              <div
-                key={r.id}
-                className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-primary hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <MdMeetingRoom className="w-5 h-5 text-primary" />
-                      <h4 className="font-semibold text-slate-900 truncate">
-                        {r.name}
-                      </h4>
-                    </div>
-                    {r.location && (
-                      <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-                        <MdLocationOn className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{r.location}</span>
-                      </div>
-                    )}
-                    {r.description && (
-                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">
-                        {r.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => {
-                        setEditId(r.id);
-                        setForm({
-                          name: r.name,
-                          description: r.description ?? "",
-                          location: r.location ?? "",
-                        });
-                        setModalOpen(true);
-                      }}
-                      className="p-1.5 text-slate-500 hover:text-primary rounded hover:bg-slate-100"
-                      title="Edit"
-                    >
-                      <MdEdit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Delete room "${r.name}"?`))
-                          deleteRoom.mutate({ eventId, agendaId, id: r.id });
-                      }}
-                      className="p-1.5 text-slate-500 hover:text-red-600 rounded hover:bg-red-50"
-                      title="Delete"
-                    >
-                      <MdDelete className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-
-      <Modal
-        open={modalOpen}
-        onClose={reset}
-        title={editId ? "Edit breakout room" : "New breakout room"}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (editId)
-              updateRoom.mutate(
-                { eventId, agendaId, id: editId, input: form },
-                { onSuccess: reset },
-              );
-            else
-              createRoom.mutate(
-                { eventId, agendaId, input: form },
-                { onSuccess: reset },
-              );
-          }}
-          className="space-y-3"
-        >
-          <Field
-            label="Name"
-            value={form.name}
-            onChange={(v) => setForm({ ...form, name: v })}
-            required
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="Location"
-              value={form.location}
-              onChange={(v) => setForm({ ...form, location: v })}
-              placeholder="Room 3, Wing B"
-            />
-          </div>
-          <TextArea
-            label="Description"
-            value={form.description}
-            onChange={(v) => setForm({ ...form, description: v })}
-          />
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={reset}
-              className="px-3 py-2 border border-slate-300 rounded text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={createRoom.isPending || updateRoom.isPending}
-              className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-            >
-              {createRoom.isPending || updateRoom.isPending
-                ? "Saving…"
-                : editId
-                  ? "Save changes"
-                  : "Add room"}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
