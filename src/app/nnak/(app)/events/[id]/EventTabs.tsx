@@ -2582,12 +2582,12 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
             e.preventDefault();
             if (editId)
               updateRoom.mutate(
-                { eventId, agendaId, id: editId, input: form },
+                { eventId, agendaId, id: editId, input: { agenda_id: agendaId, ...form } },
                 { onSuccess: reset },
               );
             else
               createRoom.mutate(
-                { eventId, agendaId, input: form },
+                { eventId, agendaId, input: { agenda_id: agendaId, ...form } },
                 { onSuccess: reset },
               );
           }}
