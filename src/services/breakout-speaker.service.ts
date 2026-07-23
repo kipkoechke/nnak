@@ -1,7 +1,9 @@
 // Breakout Speaker endpoints (nested under event/agenda/breakout-room):
-//   GET  /events/{event}/agendas/{agenda}/breakout-rooms/{breakout_room}/breakout-speakers      list
-//   POST /events/{event}/agendas/{agenda}/breakout-rooms/{breakout_room}/breakout-speakers      create (link speaker to breakout room)
-//   DELETE /events/{event}/agendas/{agenda}/breakout-rooms/{breakout_room}/breakout-speakers/{id}  unlink
+//   GET    .../breakout-rooms/{room}/breakout-speakers        list
+//   POST   .../breakout-rooms/{room}/breakout-speakers        link a speaker
+//   GET    .../breakout-rooms/{room}/breakout-speakers/{id}   detail
+//   PUT    .../breakout-rooms/{room}/breakout-speakers/{id}   update
+//   DELETE .../breakout-rooms/{room}/breakout-speakers/{id}   unlink
 import { nnakApi } from "@/lib/api";
 import type {
   ApiEnvelope,
@@ -36,6 +38,16 @@ export const breakoutSpeakerService = {
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
 
+  getById: async (
+    eventId: string,
+    agendaId: string,
+    breakoutRoomId: string,
+    id: string,
+  ) =>
+    unwrap<BreakoutSpeaker>(
+      nnakApi.get(`${base(eventId, agendaId, breakoutRoomId)}/${id}`),
+    ),
+
   create: async (
     eventId: string,
     agendaId: string,
@@ -44,6 +56,17 @@ export const breakoutSpeakerService = {
   ): Promise<BreakoutSpeaker> =>
     unwrap<BreakoutSpeaker>(
       nnakApi.post(base(eventId, agendaId, breakoutRoomId), input),
+    ),
+
+  update: async (
+    eventId: string,
+    agendaId: string,
+    breakoutRoomId: string,
+    id: string,
+    input: Partial<CreateBreakoutSpeakerInput>,
+  ): Promise<BreakoutSpeaker> =>
+    unwrap<BreakoutSpeaker>(
+      nnakApi.put(`${base(eventId, agendaId, breakoutRoomId)}/${id}`, input),
     ),
 
   remove: async (

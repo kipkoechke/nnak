@@ -2,7 +2,7 @@
 //   GET  /events/{event}/agendas           list (paginated)
 //   POST /events/{event}/agendas           create
 //   GET  /events/{event}/agendas/{id}      detail
-//   PATCH /events/{event}/agendas/{id}     update
+//   PUT   /events/{event}/agendas/{id}     update
 //   DELETE /events/{event}/agendas/{id}    delete
 import { nnakApi } from "@/lib/api";
 import type {
@@ -43,7 +43,7 @@ export const agendaService = {
     id: string,
     input: Partial<CreateAgendaInput>,
   ): Promise<Agenda> =>
-    unwrap<Agenda>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
+    unwrap<Agenda>(nnakApi.put(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

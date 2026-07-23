@@ -12,9 +12,7 @@ import type {
   DashboardKpis,
   DataExportRequest,
   ErasureRequest,
-  EventRegistration,
   MemberCategory,
-  NnakEvent,
   NnakPaginated,
   NnakProfile,
   NnakUser,
@@ -29,8 +27,6 @@ interface Store {
   categories: MemberCategory[];
   branches: Branch[];
   members: (NnakUser & { profile: NnakProfile })[];
-  events: NnakEvent[];
-  registrations: EventRegistration[];
   payments: Payment[];
   byproduct_uploads: ByProductUpload[];
   byproduct_lines: ByProductLine[];
@@ -244,8 +240,6 @@ const seed = (): Store => {
     categories,
     branches,
     members: [],
-    events: [],
-    registrations: [],
     payments: [],
     byproduct_uploads: [],
     byproduct_lines: [],
@@ -463,116 +457,6 @@ export const mockStore = {
     return m;
   },
 
-  // ---- events ----
-  listEvents: (
-    params: { page?: number; per_page?: number; status?: string } = {},
-  ) => {
-    const s = read();
-    let items = [...s.events].sort((a, b) =>
-      b.start_date.localeCompare(a.start_date),
-    );
-    if (params.status) items = items.filter((e) => e.status === params.status);
-    return paginate(items, params.page, params.per_page);
-  },
-  getEvent: (id: string) => read().events.find((e) => e.id === id) || null,
-  upsertEvent: (input: Partial<NnakEvent> & { id?: string }) => {
-    const s = read();
-    if (input.id) {
-      const i = s.events.findIndex((e) => e.id === input.id);
-      if (i < 0) throw new Error("Event not found");
-      s.events[i] = {
-        ...s.events[i],
-        ...input,
-        updated_at: now(),
-      } as NnakEvent;
-      write(s);
-      return s.events[i];
-    }
-    const event: NnakEvent = {
-      id: uid(),
-      code: ((input as Record<string, unknown>).code as string) || "",
-      title:
-        input.title ||
-        ((input as Record<string, unknown>).name as string) ||
-        "Untitled",
-      description: input.description || "",
-      type: input.type || "cpd",
-      status: input.status || "draft",
-      start_date:
-        input.start_date ||
-        ((input as Record<string, unknown>).starts_at as string) ||
-        now(),
-      end_date:
-        input.end_date ||
-        ((input as Record<string, unknown>).ends_at as string) ||
-        now(),
-      location:
-        input.location ||
-        ((input as Record<string, unknown>).venue as string) ||
-        "",
-      theme: input.theme || null,
-      cover_image_url: input.cover_image_url || null,
-      banner_image_url: input.banner_image_url || null,
-      pricing: input.pricing || [],
-      speakers: input.speakers || [],
-      registrants_count: 0,
-      attended_count: 0,
-      revenue_total: 0,
-      created_at: now(),
-      updated_at: now(),
-    };
-    s.events.push(event);
-    write(s);
-    return event;
-  },
-  deleteEvent: (id: string) => {
-    const s = read();
-    s.events = s.events.filter((e) => e.id !== id);
-    s.registrations = s.registrations.filter((r) => r.event_id !== id);
-    write(s);
-  },
-  listEventRegistrants: (eventId: string) =>
-    read().registrations.filter((r) => r.event_id === eventId),
-  registerForEvent: (eventId: string, userId: string, fee: number) => {
-    const s = read();
-    const reg: EventRegistration = {
-      id: uid(),
-      event_id: eventId,
-      user_id: userId,
-      fee,
-      payment_status: "pending",
-      qr_token: uid(),
-      attended: false,
-      certificate_issued: false,
-      created_at: now(),
-    };
-    s.registrations.push(reg);
-    const ev = s.events.find((e) => e.id === eventId);
-    if (ev) ev.registrants_count = (ev.registrants_count || 0) + 1;
-    write(s);
-    return reg;
-  },
-  checkInRegistration: (qr_token: string) => {
-    const s = read();
-    const reg = s.registrations.find((r) => r.qr_token === qr_token);
-    if (!reg) throw new Error("Invalid QR token");
-    reg.attended = true;
-    reg.attended_at = now();
-    const ev = s.events.find((e) => e.id === reg.event_id);
-    if (ev) ev.attended_count = (ev.attended_count || 0) + 1;
-    write(s);
-    return reg;
-  },
-  issueCertificate: (regId: string) => {
-    const s = read();
-    const reg = s.registrations.find((r) => r.id === regId);
-    if (!reg) throw new Error("Registration not found");
-    reg.certificate_issued = true;
-    reg.certificate_url = `/api/mock/certificate/${regId}`;
-    write(s);
-    return reg;
-  },
-
   // ---- payments ----
   listPayments: (
     params: {
@@ -593,19 +477,6 @@ export const mockStore = {
     if (params.user_id)
       items = items.filter((p) => p.user_id === params.user_id);
     return paginate(items, params.page, params.per_page);
-  },
-
-  listMyRegistrations: (userId: string) => {
-    const s = read();
-    return s.registrations
-      .filter((r) => r.user_id === userId)
-      .map((r) => ({
-        ...r,
-        event: s.events.find((e) => e.id === r.event_id) ?? null,
-      }))
-      .sort((a, b) =>
-        (b.event?.start_date || "").localeCompare(a.event?.start_date || ""),
-      );
   },
 
   // Ensure a demo user exists as a real member record so the portal has
@@ -729,46 +600,6 @@ export const mockStore = {
       receipt_url: `/api/mock/receipt/${uid()}`,
     });
 
-    // Seed one past event registration the member already paid for + attended.
-    const pastEvent = s.events.find((e) => new Date(e.start_date) < new Date());
-    if (pastEvent) {
-      const fee =
-        pastEvent.pricing?.find(
-          (p) => p.category_code === (cat?.code || "individual"),
-        )?.fee ?? 500;
-      const reg: EventRegistration = {
-        id: uid(),
-        event_id: pastEvent.id,
-        user_id: input.id,
-        fee,
-        payment_status: "successful",
-        qr_token: uid(),
-        attended: true,
-        attended_at: pastEvent.start_date,
-        certificate_issued: true,
-        certificate_url: `/api/mock/certificate/${uid()}`,
-        created_at: new Date(
-          new Date(pastEvent.start_date).getTime() - 1000 * 60 * 60 * 24 * 14,
-        ).toISOString(),
-      };
-      s.registrations.push(reg);
-      s.payments.unshift({
-        id: uid(),
-        user_id: input.id,
-        amount: fee,
-        currency: "KES",
-        method: "mpesa",
-        purpose: "event",
-        related_id: pastEvent.id,
-        reference:
-          "MPE" + Math.random().toString(36).slice(2, 10).toUpperCase(),
-        status: "successful",
-        paid_at: reg.created_at,
-        created_at: reg.created_at,
-        receipt_url: `/api/mock/receipt/${uid()}`,
-      });
-    }
-
     write(s);
     return user;
   },
@@ -795,17 +626,6 @@ export const mockStore = {
         const exp = new Date();
         exp.setFullYear(exp.getFullYear() + 1);
         m.profile.subscription_expires_at = exp.toISOString();
-      }
-    }
-    if (p.purpose === "event" && p.related_id && p.status === "successful") {
-      const reg = s.registrations.find(
-        (r) => r.event_id === p.related_id && r.user_id === p.user_id,
-      );
-      if (reg) {
-        reg.payment_status = "successful";
-        reg.payment_id = p.id;
-        const ev = s.events.find((e) => e.id === p.related_id);
-        if (ev) ev.revenue_total = (ev.revenue_total || 0) + p.amount;
       }
     }
     write(s);
@@ -898,11 +718,6 @@ export const mockStore = {
         m.profile.subscription_expires_at &&
         new Date(m.profile.subscription_expires_at).getTime() < Date.now(),
     ).length;
-    const upcoming = s.events.filter(
-      (e) =>
-        new Date(e.start_date).getTime() > Date.now() &&
-        e.status === "published",
-    ).length;
 
     // group by category
     const by_category = s.categories.map((c) => ({
@@ -931,25 +746,15 @@ export const mockStore = {
       ).length;
       growth.push({ period: key, count: c });
     }
-    // attendance last 30d
-    const cutoff = Date.now() - 30 * 86_400_000;
-    const recentRegs = s.registrations.filter(
-      (r) => new Date(r.created_at).getTime() >= cutoff,
-    );
-    const attendanceRate =
-      recentRegs.length === 0
-        ? 0
-        : Math.round(
-            (recentRegs.filter((r) => r.attended).length / recentRegs.length) *
-              100,
-          );
+    // Event attendance is served by the real API, not this store.
+    const attendanceRate = 0;
 
     return {
       total_active_members: active.length,
       new_members_this_month: newThisMonth,
       revenue_mtd: revenueMtd,
       overdue_renewals: overdue,
-      upcoming_events: upcoming,
+      upcoming_events: 0,
       attendance_rate_30d: attendanceRate,
       by_category,
       revenue_trend: trend,

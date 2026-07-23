@@ -2,7 +2,7 @@
 //   GET  /events/{event}/sponsors           list
 //   POST /events/{event}/sponsors           create
 //   GET  /events/{event}/sponsors/{id}      detail
-//   PATCH /events/{event}/sponsors/{id}     update
+//   PUT   /events/{event}/sponsors/{id}     update
 //   DELETE /events/{event}/sponsors/{id}    delete
 import { nnakApi } from "@/lib/api";
 import type {
@@ -45,7 +45,7 @@ export const sponsorService = {
     id: string,
     input: Partial<CreateSponsorInput>,
   ): Promise<Sponsor> =>
-    unwrap<Sponsor>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
+    unwrap<Sponsor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

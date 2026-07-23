@@ -84,27 +84,15 @@ import {
   useCreateExhibitor,
   useDeleteExhibitor,
 } from "@/hooks/use-exhibitors";
-import type { NnakEvent } from "@/types/nnak";
+import type {
+  AttendanceType,
+  AttendeeType,
+  NnakEvent,
+} from "@/types/nnak";
 
 /* ─────────────────────────────────────────────────────────────────────────
  *  Helpers
  * ────────────────────────────────────────────────────────────────────── */
-
-const STATUS_TONE: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
-  published: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  closed: "bg-amber-50 text-amber-700 border-amber-200",
-  completed: "bg-blue-50 text-blue-700 border-blue-200",
-  cancelled: "bg-red-50 text-red-700 border-red-200",
-};
-
-const STATUS_DOT: Record<string, string> = {
-  draft: "bg-slate-400",
-  published: "bg-emerald-500",
-  closed: "bg-amber-500",
-  completed: "bg-blue-500",
-  cancelled: "bg-red-500",
-};
 
 const fmtDate = (iso?: string | null) =>
   iso
@@ -377,8 +365,8 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
       sponsors: sponsorsData?.data?.length ?? 0,
       exhibitors: exhibitorsData?.data?.length ?? 0,
       bookings: bookingsData?.data?.length ?? 0,
-      attendees: attendeesData?.data?.length ?? 0,
-      scanners: scannersData?.data?.length ?? 0,
+      attendees: attendeesData?.meta?.total ?? attendeesData?.data?.length ?? 0,
+      scanners: scannersData?.length ?? 0,
     }),
     [
       packagesData,
@@ -491,13 +479,6 @@ function EventHero({
   const deleteEvent = useDeleteEvent();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const cap = (event.metadata as Record<string, unknown> | null)?.capacity as
-    | number
-    | undefined;
-  const registrants = event.registrants_count || 0;
-  const attended = event.attended_count || 0;
-  const revenue = event.revenue_total || 0;
-
   return (
     <div className="relative">
       <div className="relative h-56 md:h-64 bg-gradient-to-br from-primary/80 via-primary to-primary-dark overflow-hidden">
@@ -564,19 +545,27 @@ function EventHero({
         <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
           <div className="flex items-center gap-2 mb-2">
             <span
-              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_TONE[event.status] || STATUS_TONE.draft}`}
+              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                event.is_approved
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+              }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[event.status] || STATUS_DOT.draft}`}
+                className={`w-1.5 h-1.5 rounded-full ${
+                  event.is_approved ? "bg-emerald-500" : "bg-amber-500"
+                }`}
               />
-              {event.status}
+              {event.is_approved ? "Approved" : "Awaiting approval"}
             </span>
             <span className="inline-flex items-center text-[10px] font-mono bg-white/20 px-2 py-0.5 rounded-full">
               {event.code}
             </span>
-            <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide bg-white/20 px-2 py-0.5 rounded-full">
-              {event.type}
-            </span>
+            {event.type && (
+              <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide bg-white/20 px-2 py-0.5 rounded-full">
+                {event.type}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl md:text-3xl font-bold leading-tight">
             {event.title}
@@ -602,16 +591,14 @@ function EventHero({
           />
           <KpiCell
             icon={MdGroups}
-            label="Registrants"
-            value={
-              cap ? `${registrants} / ${cap}` : registrants.toLocaleString()
-            }
-            footer={`${attended} attended`}
+            label="Approval"
+            value={event.is_approved ? "Approved" : "Pending"}
+            footer={event.is_approved ? "Publicly bookable" : "Not yet public"}
           />
           <KpiCell
             icon={MdPayments}
-            label="Revenue"
-            value={`KES ${revenue.toLocaleString()}`}
+            label="Code"
+            value={event.code}
           />
         </div>
       </div>
@@ -665,45 +652,6 @@ function OverviewTab({ event }: { event: NnakEvent }) {
           </p>
         </Card>
 
-        {event.pricing && event.pricing.length > 0 && (
-          <Card>
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">
-              Pricing tiers
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {event.pricing.map((p, i) => (
-                <div
-                  key={i}
-                  className="border border-slate-200 rounded-lg p-3 flex items-center justify-between hover:border-primary transition-colors"
-                >
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      {p.category_code.replace(/_/g, " ")}
-                    </div>
-                    <div className="text-base font-semibold text-slate-900">
-                      KES {Number(p.fee).toLocaleString()}
-                    </div>
-                  </div>
-                  <MdPayments className="w-5 h-5 text-slate-300" />
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {event.metadata && Object.keys(event.metadata).length > 0 && (
-          <Card>
-            <h3 className="text-sm font-semibold text-slate-900 mb-2">
-              Metadata
-            </h3>
-            <pre className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-md overflow-auto max-h-60">
-              {JSON.stringify(event.metadata, null, 2)}
-            </pre>
-          </Card>
-        )}
-      </div>
-
-      <div className="space-y-4">
         <Card>
           <h3 className="text-sm font-semibold text-slate-900 mb-3">
             Schedule
@@ -733,8 +681,12 @@ function OverviewTab({ event }: { event: NnakEvent }) {
           </h3>
           <div className="space-y-2 text-sm">
             <Row label="Code" value={event.code} mono />
-            <Row label="Type" value={event.type} cap />
-            <Row label="Status" value={event.status} cap />
+            <Row label="Type" value={event.type || "—"} cap />
+            <Row
+              label="Approval"
+              value={event.is_approved ? "Approved" : "Pending"}
+              cap
+            />
           </div>
         </Card>
       </div>
@@ -777,12 +729,18 @@ const emptyPackage = {
   name: "",
   description: "",
   cost: "",
-  capacity: "",
+  benefits: "",
   is_member_only: false,
-  is_available: true,
   has_limit: false,
   max_entries: "",
 };
+
+/** Benefits are edited one-per-line and sent as an array. */
+const parseBenefits = (v: string) =>
+  v
+    .split("\n")
+    .map((b) => b.trim())
+    .filter(Boolean);
 
 function PackagesTab({ eventId }: { eventId: string }) {
   const { data: packagesData, isLoading } = useEventPackages(eventId);
@@ -804,14 +762,15 @@ function PackagesTab({ eventId }: { eventId: string }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const benefits = parseBenefits(form.benefits);
     const input = {
       name: form.name,
       description: form.description || null,
       cost: form.cost === "" ? 0 : Number(form.cost),
-      capacity: form.capacity === "" ? null : Number(form.capacity),
+      benefits: benefits.length ? benefits : null,
       is_member_only: form.is_member_only,
-      is_available: form.is_available,
       has_limit: form.has_limit,
+      // The API requires max_entries whenever the tier is capped.
       max_entries:
         form.has_limit && form.max_entries !== ""
           ? Number(form.max_entries)
@@ -869,7 +828,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
                     {p.name}
                   </h4>
                   <div className="text-lg font-bold text-slate-900 mt-1">
-                    KES {Number(p.cost ?? p.price ?? 0).toLocaleString()}
+                    KES {Number(p.cost ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -879,11 +838,9 @@ function PackagesTab({ eventId }: { eventId: string }) {
                       setForm({
                         name: p.name,
                         description: p.description || "",
-                        cost: String(p.cost ?? p.price ?? ""),
-                        capacity:
-                          p.capacity != null ? String(p.capacity) : "",
+                        cost: String(p.cost ?? ""),
+                        benefits: (p.benefits ?? []).join("\n"),
                         is_member_only: !!p.is_member_only,
-                        is_available: p.is_available ?? true,
                         has_limit: !!p.has_limit,
                         max_entries:
                           p.max_entries != null ? String(p.max_entries) : "",
@@ -918,23 +875,15 @@ function PackagesTab({ eventId }: { eventId: string }) {
                     Members only
                   </span>
                 )}
-                <span
-                  className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded-full ${
-                    p.is_available ?? true
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {p.is_available ?? true ? "Available" : "Unavailable"}
-                </span>
                 {p.has_limit && p.max_entries != null && (
                   <span className="text-[10px] uppercase tracking-wide font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">
                     Limit {p.max_entries}
                   </span>
                 )}
-                {p.capacity != null && (
+                {!!p.benefits?.length && (
                   <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
-                    Capacity {p.capacity}
+                    {p.benefits.length} benefit
+                    {p.benefits.length === 1 ? "" : "s"}
                   </span>
                 )}
               </div>
@@ -971,14 +920,13 @@ function PackagesTab({ eventId }: { eventId: string }) {
               onChange={(v) => setForm({ ...form, cost: v })}
               required
             />
-            <Field
-              label="Capacity (optional)"
-              type="number"
-              value={form.capacity}
-              onChange={(v) => setForm({ ...form, capacity: v })}
-              placeholder="Seats available"
-            />
           </div>
+          <TextArea
+            label="Benefits (one per line)"
+            value={form.benefits}
+            onChange={(v) => setForm({ ...form, benefits: v })}
+            placeholder={"Access to all sessions\nLunch"}
+          />
           <div className="flex flex-wrap gap-4 pt-1">
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -994,32 +942,22 @@ function PackagesTab({ eventId }: { eventId: string }) {
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
-                checked={form.is_available}
-                onChange={(e) =>
-                  setForm({ ...form, is_available: e.target.checked })
-                }
-                className="rounded border-slate-300"
-              />
-              Available for booking
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
                 checked={form.has_limit}
                 onChange={(e) =>
                   setForm({ ...form, has_limit: e.target.checked })
                 }
                 className="rounded border-slate-300"
               />
-              Limit entries per booking
+              Cap total entries
             </label>
           </div>
           {form.has_limit && (
             <Field
-              label="Max entries per booking"
+              label="Max entries"
               type="number"
               value={form.max_entries}
               onChange={(v) => setForm({ ...form, max_entries: v })}
+              required
             />
           )}
           <div className="flex justify-end gap-2 pt-2">
@@ -1050,16 +988,27 @@ function PackagesTab({ eventId }: { eventId: string }) {
 
 const bookingStatusTone = (s?: string | null) => {
   const v = (s || "").toLowerCase();
-  if (["paid", "confirmed", "completed", "success"].includes(v))
-    return "bg-emerald-50 text-emerald-700";
-  if (["pending", "processing"].includes(v)) return "bg-amber-50 text-amber-700";
-  if (["cancelled", "failed", "expired"].includes(v))
-    return "bg-red-50 text-red-700";
+  if (v === "paid") return "bg-emerald-50 text-emerald-700";
+  if (v === "pending_payment") return "bg-amber-50 text-amber-700";
+  if (["cancelled", "expired"].includes(v)) return "bg-red-50 text-red-700";
   return "bg-slate-100 text-slate-600";
 };
 
+const BOOKING_STATUSES = [
+  { value: "", label: "All" },
+  { value: "pending_payment", label: "Awaiting payment" },
+  { value: "paid", label: "Paid" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "expired", label: "Expired" },
+];
+
 function BookingsTab({ eventId }: { eventId: string }) {
-  const { data, isLoading } = useEventBookings(eventId);
+  const [status, setStatus] = useState("");
+  const [search, setSearch] = useState("");
+  const { data, isLoading } = useEventBookings(eventId, {
+    status: status || undefined,
+    search: search.trim() || undefined,
+  });
   const bookings = data?.data ?? [];
 
   return (
@@ -1067,8 +1016,33 @@ function BookingsTab({ eventId }: { eventId: string }) {
       <SectionHeader
         title="Bookings"
         description="Every ticket booking placed for this event"
-        count={bookings.length}
+        count={data?.pagination?.total ?? bookings.length}
       />
+
+      <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search reference, name or email…"
+          className="flex-1 max-w-md px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {BOOKING_STATUSES.map((opt) => (
+            <button
+              key={opt.value || "all"}
+              onClick={() => setStatus(opt.value)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                status === opt.value
+                  ? "bg-primary text-white border-primary"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {isLoading ? (
         <SkeletonList />
       ) : bookings.length === 0 ? (
@@ -1083,47 +1057,51 @@ function BookingsTab({ eventId }: { eventId: string }) {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-2">Booking</th>
+                  <th className="px-4 py-2">Reference</th>
                   <th className="px-4 py-2">Booker</th>
                   <th className="px-4 py-2">Ticket</th>
                   <th className="px-4 py-2 text-right">Attendees</th>
                   <th className="px-4 py-2 text-right">Amount</th>
                   <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Invoice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {bookings.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2 font-mono text-xs text-slate-700">
-                      {b.booking_number || b.reference || b.id.slice(0, 8)}
+                      {b.reference_code}
                     </td>
                     <td className="px-4 py-2">
                       <div className="font-medium text-slate-900">
-                        {b.name || "—"}
+                        {b.contact_name || b.user?.name || "—"}
                       </div>
-                      {b.email && (
-                        <div className="text-xs text-slate-500">{b.email}</div>
+                      {(b.contact_email || b.user?.email) && (
+                        <div className="text-xs text-slate-500">
+                          {b.contact_email || b.user?.email}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-2 text-slate-600">
-                      {b.package?.name || "—"}
+                      {b.package_name || "—"}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {b.attendees_count ?? b.attendees?.length ?? "—"}
+                      {b.attendees_count ?? "—"}
                     </td>
                     <td className="px-4 py-2 text-right text-slate-900">
-                      {b.amount != null
-                        ? `KES ${Number(b.amount).toLocaleString()}`
-                        : "—"}
+                      KES {Number(b.total_amount ?? 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${bookingStatusTone(
-                          b.status || b.payment_status,
+                          b.status,
                         )}`}
                       >
-                        {b.status || b.payment_status || "—"}
+                        {String(b.status).replace(/_/g, " ")}
                       </span>
+                    </td>
+                    <td className="px-4 py-2 text-xs text-slate-600 capitalize">
+                      {b.invoice_status || "—"}
                     </td>
                   </tr>
                 ))}
@@ -1140,15 +1118,28 @@ function BookingsTab({ eventId }: { eventId: string }) {
  *  Attendees Tab
  * ────────────────────────────────────────────────────────────────────── */
 
+const ATTENDEE_TYPES: AttendeeType[] = [
+  "vip",
+  "sponsor",
+  "staff",
+  "speaker",
+  "other",
+];
+
 const emptyAttendee = {
   name: "",
   email: "",
   phone: "",
-  type: "vip",
+  type: "vip" as AttendeeType,
+  reason: "",
+  send_ticket: true,
 };
 
 function AttendeesTab({ eventId }: { eventId: string }) {
-  const { data, isLoading } = useEventAttendees(eventId);
+  const [search, setSearch] = useState("");
+  const { data, isLoading } = useEventAttendees(eventId, {
+    search: search.trim() || undefined,
+  });
   const createAttendee = useCreateEventAttendee();
   const { data: packagesData } = useEventPackages(eventId);
   const packages = packagesData?.data ?? [];
@@ -1164,6 +1155,7 @@ function AttendeesTab({ eventId }: { eventId: string }) {
   };
 
   const attendees = data?.data ?? [];
+  const meta = data?.meta;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1175,7 +1167,9 @@ function AttendeesTab({ eventId }: { eventId: string }) {
           email: form.email || null,
           phone: form.phone || null,
           type: form.type,
-          package_id: packageId || null,
+          reason: form.reason || null,
+          event_package_id: packageId || null,
+          send_ticket: form.send_ticket,
         },
       },
       { onSuccess: reset },
@@ -1187,11 +1181,28 @@ function AttendeesTab({ eventId }: { eventId: string }) {
       <SectionHeader
         title="Attendees"
         description="Booked ticket holders plus manually-added VIPs, staff and guests"
-        count={attendees.length}
+        count={meta?.total ?? attendees.length}
         action={
           <AddBtn onClick={() => setModalOpen(true)} label="Add attendee" />
         }
       />
+
+      <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row md:items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search attendees…"
+          className="flex-1 max-w-md px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        />
+        {meta && (
+          <div className="text-xs text-slate-500">
+            <span className="font-semibold text-slate-700">
+              {meta.scanned_in}
+            </span>{" "}
+            of {meta.total} scanned in
+          </div>
+        )}
+      </div>
 
       {isLoading ? (
         <SkeletonList />
@@ -1213,8 +1224,9 @@ function AttendeesTab({ eventId }: { eventId: string }) {
                   <th className="px-4 py-2">Name</th>
                   <th className="px-4 py-2">Contact</th>
                   <th className="px-4 py-2">Type</th>
+                  <th className="px-4 py-2">Source</th>
                   <th className="px-4 py-2">Ticket</th>
-                  <th className="px-4 py-2">Checked in</th>
+                  <th className="px-4 py-2">Ticket sent</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1234,14 +1246,22 @@ function AttendeesTab({ eventId }: { eventId: string }) {
                         {a.type || "booked"}
                       </span>
                     </td>
+                    <td className="px-4 py-2 text-xs text-slate-600">
+                      <div className="capitalize">{a.source || "—"}</div>
+                      {a.booking_reference && (
+                        <div className="font-mono text-slate-400">
+                          {a.booking_reference}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-2 font-mono text-xs text-slate-600">
                       {a.ticket_number || "—"}
                     </td>
                     <td className="px-4 py-2">
-                      {a.checked_in ? (
+                      {a.ticket_sent_at ? (
                         <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
                           <MdCheckCircle className="w-4 h-4" />
-                          {a.checked_in_at ? fmtTime(a.checked_in_at) : "Yes"}
+                          {fmtTime(a.ticket_sent_at)}
                         </span>
                       ) : (
                         <span className="text-xs text-slate-400">—</span>
@@ -1283,10 +1303,12 @@ function AttendeesTab({ eventId }: { eventId: string }) {
               </label>
               <select
                 value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, type: e.target.value as AttendeeType })
+                }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
               >
-                {["vip", "staff", "sponsor", "exhibitor", "guest"].map((t) => (
+                {ATTENDEE_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -1311,6 +1333,23 @@ function AttendeesTab({ eventId }: { eventId: string }) {
               </select>
             </div>
           </div>
+          <Field
+            label="Reason (optional)"
+            value={form.reason}
+            onChange={(v) => setForm({ ...form, reason: v })}
+            placeholder="e.g. Keynote speaker's guest"
+          />
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.send_ticket}
+              onChange={(e) =>
+                setForm({ ...form, send_ticket: e.target.checked })
+              }
+              className="rounded border-slate-300"
+            />
+            Email the ticket now
+          </label>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -1337,35 +1376,50 @@ function AttendeesTab({ eventId }: { eventId: string }) {
  *  Attendance Tab (scan + report)
  * ────────────────────────────────────────────────────────────────────── */
 
+const ATTENDANCE_TYPES: AttendanceType[] = [
+  "arrival",
+  "session",
+  "departure",
+];
+
 function AttendanceTab({ eventId }: { eventId: string }) {
-  const { data: report, isLoading } = useAttendanceReport(eventId);
+  const [typeFilter, setTypeFilter] = useState<"" | AttendanceType>("");
+  const [agendaFilter, setAgendaFilter] = useState("");
+  const { data: report, isLoading } = useAttendanceReport(eventId, {
+    type: typeFilter || undefined,
+    agenda_id: agendaFilter || undefined,
+  });
+  const { data: agendasData } = useAgendas(eventId);
+  const agendas = agendasData?.data ?? [];
+
   const scan = useAttendanceScan();
   const [ticket, setTicket] = useState("");
+  const [scanType, setScanType] = useState<AttendanceType>("arrival");
+  const [scanAgendaId, setScanAgendaId] = useState("");
   const [last, setLast] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticket.trim()) return;
     const r = await scan
-      .mutateAsync({ eventId, ticketNumber: ticket.trim() })
+      .mutateAsync({
+        eventId,
+        ticket_number: ticket.trim(),
+        type: scanType,
+        agenda_id:
+          scanType === "session" && scanAgendaId ? scanAgendaId : undefined,
+      })
       .catch(() => null);
     if (r) {
-      const name = r.attendee?.name || ticket.trim();
-      setLast(
-        r.already_checked_in
-          ? `${name} was already checked in`
-          : `Checked in ${name}`,
-      );
+      setLast(`${r.name} — ${r.type} at ${fmtTime(r.scanned_at)}`);
       setTicket("");
     }
   };
 
-  const total = report?.total ?? report?.attendees?.length ?? 0;
-  const checkedIn =
-    report?.checked_in ??
-    report?.attendees?.filter((a) => a.checked_in).length ??
-    0;
-  const rate = total ? Math.round((checkedIn / total) * 100) : 0;
+  const records = report?.data ?? [];
+  // The report lists scans, so a head count means unique ticket numbers.
+  const totalScans = report?.pagination?.total ?? records.length;
+  const uniqueAttendees = new Set(records.map((r) => r.ticket_number)).size;
 
   return (
     <div className="space-y-4">
@@ -1387,12 +1441,37 @@ function AttendanceTab({ eventId }: { eventId: string }) {
               autoFocus
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
             />
+            <select
+              value={scanType}
+              onChange={(e) => setScanType(e.target.value as AttendanceType)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm capitalize"
+            >
+              {ATTENDANCE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            {scanType === "session" && (
+              <select
+                value={scanAgendaId}
+                onChange={(e) => setScanAgendaId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              >
+                <option value="">Whole event</option>
+                {agendas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
               disabled={scan.isPending || !ticket.trim()}
               className="w-full bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
-              {scan.isPending ? "Checking in…" : "Check in"}
+              {scan.isPending ? "Recording…" : "Record scan"}
             </button>
             {last && (
               <div className="text-xs text-emerald-700 flex items-center gap-1">
@@ -1402,16 +1481,49 @@ function AttendanceTab({ eventId }: { eventId: string }) {
           </form>
         </div>
 
-        <div className="lg:col-span-2 grid grid-cols-3 gap-3">
-          <StatTile label="Registered" value={total} />
-          <StatTile label="Checked in" value={checkedIn} tone="ok" />
-          <StatTile label="Turnout" value={`${rate}%`} />
+        <div className="lg:col-span-2 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <StatTile label="Scans recorded" value={totalScans} />
+            <StatTile
+              label="Unique attendees"
+              value={uniqueAttendees}
+              tone="ok"
+            />
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-2">
+            <select
+              value={typeFilter}
+              onChange={(e) =>
+                setTypeFilter(e.target.value as "" | AttendanceType)
+              }
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm capitalize"
+            >
+              <option value="">All scan types</option>
+              {ATTENDANCE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <select
+              value={agendaFilter}
+              onChange={(e) => setAgendaFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">All sessions</option>
+              {agendas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
         <SkeletonList />
-      ) : (report?.attendees?.length ?? 0) > 0 ? (
+      ) : records.length > 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1420,11 +1532,12 @@ function AttendanceTab({ eventId }: { eventId: string }) {
                   <th className="px-4 py-2">Name</th>
                   <th className="px-4 py-2">Ticket</th>
                   <th className="px-4 py-2">Type</th>
-                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Session</th>
+                  <th className="px-4 py-2">Scanned</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {report!.attendees!.map((a) => (
+                {records.map((a) => (
                   <tr key={a.id} className="hover:bg-slate-50">
                     <td className="px-4 py-2 font-medium text-slate-900">
                       {a.name}
@@ -1432,19 +1545,21 @@ function AttendanceTab({ eventId }: { eventId: string }) {
                     <td className="px-4 py-2 font-mono text-xs text-slate-600">
                       {a.ticket_number || "—"}
                     </td>
+                    <td className="px-4 py-2 text-slate-600 capitalize">
+                      {a.type}
+                    </td>
                     <td className="px-4 py-2 text-slate-600">
-                      {a.type || "booked"}
+                      {a.agenda || "—"}
                     </td>
                     <td className="px-4 py-2">
-                      {a.checked_in ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
-                          <MdCheckCircle className="w-4 h-4" />
-                          {a.checked_in_at ? fmtTime(a.checked_in_at) : "In"}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400">
-                          Not checked in
-                        </span>
+                      <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
+                        <MdCheckCircle className="w-4 h-4" />
+                        {fmtTime(a.scanned_at)}
+                      </span>
+                      {a.scanned_by && (
+                        <div className="text-[11px] text-slate-400">
+                          by {a.scanned_by}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -1497,15 +1612,17 @@ function ScannersTab({ eventId }: { eventId: string }) {
   const deleteScanner = useDeleteEventScanner();
   const [value, setValue] = useState("");
 
-  const scanners = data?.data ?? [];
+  const scanners = data ?? [];
 
   const add = (e: React.FormEvent) => {
     e.preventDefault();
     const v = value.trim();
     if (!v) return;
-    // Accept an email or a user id.
-    const input = v.includes("@") ? { email: v } : { user_id: v };
-    createScanner.mutate({ eventId, input }, { onSuccess: () => setValue("") });
+    // The API nominates by user id only.
+    createScanner.mutate(
+      { eventId, input: { user_id: v } },
+      { onSuccess: () => setValue("") },
+    );
   };
 
   return (
@@ -1523,7 +1640,7 @@ function ScannersTab({ eventId }: { eventId: string }) {
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Scanner email or user id"
+          placeholder="Scanner user id"
           className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
         />
         <button
@@ -1542,7 +1659,7 @@ function ScannersTab({ eventId }: { eventId: string }) {
         <EmptyState
           icon={MdQrCodeScanner}
           title="No scanners nominated"
-          description="Nominate staff by email or user id so they can check attendees in."
+          description="Nominate staff by user id so they can check attendees in."
         />
       ) : (
         <div className="space-y-2">
@@ -1551,14 +1668,17 @@ function ScannersTab({ eventId }: { eventId: string }) {
               key={s.id}
               className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3"
             >
-              <Avatar name={s.name || s.email || s.user_id} />
+              <Avatar name={s.user.name || s.user.email} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-slate-900 truncate">
-                  {s.name || s.email || s.user_id}
+                  {s.user.name}
                 </div>
-                {s.email && s.name && (
-                  <div className="text-xs text-slate-500 truncate">
-                    {s.email}
+                <div className="text-xs text-slate-500 truncate">
+                  {s.user.email}
+                </div>
+                {s.nominated_by && (
+                  <div className="text-[11px] text-slate-400 truncate">
+                    Nominated by {s.nominated_by}
                   </div>
                 )}
               </div>
@@ -1597,7 +1717,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
     description: "",
     start_time: "",
     end_time: "",
-    type: "general",
+    location: "",
   });
 
   const reset = () => {
@@ -1606,7 +1726,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
       description: "",
       start_time: "",
       end_time: "",
-      type: "general",
+      location: "",
     });
     setEditId(null);
     setModalOpen(false);
@@ -1617,12 +1737,11 @@ function AgendasTab({ eventId }: { eventId: string }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      event_id: eventId,
       title: form.title,
-      description: form.description,
+      description: form.description || null,
       start_time: new Date(form.start_time).toISOString(),
       end_time: new Date(form.end_time).toISOString(),
-      type: form.type,
+      location: form.location || null,
     };
     if (editId)
       updateAgenda.mutate(
@@ -1647,7 +1766,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
                 description: "",
                 start_time: "",
                 end_time: "",
-                type: "general",
+                location: "",
               });
               setModalOpen(true);
             }}
@@ -1699,9 +1818,11 @@ function AgendasTab({ eventId }: { eventId: string }) {
                       <h4 className="font-semibold text-slate-900 truncate">
                         {a.title}
                       </h4>
-                      <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                        {a.type}
-                      </span>
+                      {a.location && (
+                        <span className="text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                          {a.location}
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
                       {fmtTime(a.start_time)} – {fmtTime(a.end_time)}
@@ -1721,7 +1842,7 @@ function AgendasTab({ eventId }: { eventId: string }) {
                           description: a.description || "",
                           start_time: a.start_time?.slice(0, 16) ?? "",
                           end_time: a.end_time?.slice(0, 16) ?? "",
-                          type: a.type,
+                          location: a.location || "",
                         });
                         setModalOpen(true);
                       }}
@@ -1783,24 +1904,12 @@ function AgendasTab({ eventId }: { eventId: string }) {
               required
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              Type
-            </label>
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              {["keynote", "panel", "workshop", "breakout", "general"].map(
-                (t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ),
-              )}
-            </select>
-          </div>
+          <Field
+            label="Location"
+            value={form.location}
+            onChange={(v) => setForm({ ...form, location: v })}
+            placeholder="Main Hall"
+          />
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -1925,7 +2034,7 @@ function SpeakersTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSpeaker.mutate(
-              { eventId, input: { event_id: eventId, ...form, links: {} } },
+              { eventId, input: form },
               { onSuccess: reset },
             );
           }}
@@ -2085,11 +2194,7 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                     {
                       eventId,
                       agendaId,
-                      input: {
-                        agenda_id: agendaId,
-                        speaker_id: speakerId,
-                        role,
-                      },
+                      input: { speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -2175,7 +2280,7 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
   const updateRoom = useUpdateBreakoutRoom();
   const deleteRoom = useDeleteBreakoutRoom();
 
-  const empty = { name: "", description: "", tag: "", location: "" };
+  const empty = { name: "", description: "", location: "" };
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
@@ -2279,11 +2384,6 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                         <span className="truncate">{r.location}</span>
                       </div>
                     )}
-                    {r.tag && (
-                      <span className="inline-block mt-2 text-[10px] uppercase tracking-wide font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
-                        {r.tag}
-                      </span>
-                    )}
                     {r.description && (
                       <p className="text-sm text-slate-600 mt-2 line-clamp-2">
                         {r.description}
@@ -2296,9 +2396,8 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
                         setEditId(r.id);
                         setForm({
                           name: r.name,
-                          description: r.description,
-                          tag: r.tag,
-                          location: r.location,
+                          description: r.description ?? "",
+                          location: r.location ?? "",
                         });
                         setModalOpen(true);
                       }}
@@ -2339,7 +2438,7 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
               );
             else
               createRoom.mutate(
-                { eventId, agendaId, input: { agenda_id: agendaId, ...form } },
+                { eventId, agendaId, input: form },
                 { onSuccess: reset },
               );
           }}
@@ -2357,12 +2456,6 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
               value={form.location}
               onChange={(v) => setForm({ ...form, location: v })}
               placeholder="Room 3, Wing B"
-            />
-            <Field
-              label="Tag"
-              value={form.tag}
-              onChange={(v) => setForm({ ...form, tag: v })}
-              placeholder="paediatrics"
             />
           </div>
           <TextArea
@@ -2480,11 +2573,6 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                       }`}
                     >
                       {r.name}
-                      {r.tag && (
-                        <span className="ml-2 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600">
-                          {r.tag}
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -2528,11 +2616,7 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                       eventId,
                       agendaId,
                       breakoutRoomId: roomId,
-                      input: {
-                        breakout_room_id: roomId,
-                        speaker_id: speakerId,
-                        role,
-                      },
+                      input: { speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -2611,6 +2695,7 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
  *  Sponsors Tab
  * ────────────────────────────────────────────────────────────────────── */
 
+/** Tier is a free-form string; these are the ones we style. */
 const SPONSOR_TONE: Record<string, string> = {
   platinum: "bg-slate-100 text-slate-800 border-slate-300",
   gold: "bg-amber-50 text-amber-800 border-amber-200",
@@ -2621,6 +2706,16 @@ const SPONSOR_TONE: Record<string, string> = {
   other: "bg-slate-50 text-slate-700 border-slate-200",
 };
 
+const SPONSOR_TIERS = [
+  "Platinum",
+  "Gold",
+  "Silver",
+  "Bronze",
+  "Partner",
+  "Media",
+  "Other",
+];
+
 function SponsorsTab({ eventId }: { eventId: string }) {
   const { data: sponsorsData, isLoading } = useSponsors(eventId);
   const createSponsor = useCreateSponsor();
@@ -2629,22 +2724,13 @@ function SponsorsTab({ eventId }: { eventId: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    website_url: "",
-    category: "platinum",
-    is_partner: false,
-    description: "",
+    website: "",
+    tier: "Platinum",
     logo_url: "",
   });
 
   const reset = () => {
-    setForm({
-      name: "",
-      website_url: "",
-      category: "platinum",
-      is_partner: false,
-      description: "",
-      logo_url: "",
-    });
+    setForm({ name: "", website: "", tier: "Platinum", logo_url: "" });
     setModalOpen(false);
   };
 
@@ -2652,7 +2738,7 @@ function SponsorsTab({ eventId }: { eventId: string }) {
   const grouped = useMemo(() => {
     const m = new Map<string, typeof sponsors>();
     sponsors.forEach((s) => {
-      const k = s.category || "other";
+      const k = s.tier || "other";
       const arr = m.get(k) ?? [];
       arr.push(s);
       m.set(k, arr);
@@ -2733,27 +2819,20 @@ function SponsorsTab({ eventId }: { eventId: string }) {
                         <h4 className="font-semibold text-slate-900 truncate">
                           {s.name}
                         </h4>
-                        {s.is_partner && (
-                          <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
-                            Partner
-                          </span>
-                        )}
                       </div>
-                      <span
-                        className={`inline-block mt-1 text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full border ${
-                          SPONSOR_TONE[s.category] || SPONSOR_TONE.other
-                        }`}
-                      >
-                        {s.category}
-                      </span>
-                      {s.description && (
-                        <p className="text-xs text-slate-600 mt-2 line-clamp-2">
-                          {s.description}
-                        </p>
+                      {s.tier && (
+                        <span
+                          className={`inline-block mt-1 text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full border ${
+                            SPONSOR_TONE[s.tier.toLowerCase()] ||
+                            SPONSOR_TONE.other
+                          }`}
+                        >
+                          {s.tier}
+                        </span>
                       )}
-                      {s.website_url && (
+                      {s.website && (
                         <a
-                          href={s.website_url}
+                          href={s.website}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline"
@@ -2790,7 +2869,7 @@ function SponsorsTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSponsor.mutate(
-              { eventId, input: { event_id: eventId, ...form, metadata: {} } },
+              { eventId, input: form },
               { onSuccess: reset },
             );
           }}
@@ -2808,19 +2887,11 @@ function SponsorsTab({ eventId }: { eventId: string }) {
                 Tier
               </label>
               <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                value={form.tier}
+                onChange={(e) => setForm({ ...form, tier: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
               >
-                {[
-                  "platinum",
-                  "gold",
-                  "silver",
-                  "bronze",
-                  "partner",
-                  "media",
-                  "other",
-                ].map((c) => (
+                {SPONSOR_TIERS.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -2831,8 +2902,8 @@ function SponsorsTab({ eventId }: { eventId: string }) {
           <div className="grid grid-cols-2 gap-3">
             <Field
               label="Website"
-              value={form.website_url}
-              onChange={(v) => setForm({ ...form, website_url: v })}
+              value={form.website}
+              onChange={(v) => setForm({ ...form, website: v })}
               placeholder="https://…"
             />
             <Field
@@ -2842,22 +2913,6 @@ function SponsorsTab({ eventId }: { eventId: string }) {
               placeholder="https://…"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.is_partner}
-              onChange={(e) =>
-                setForm({ ...form, is_partner: e.target.checked })
-              }
-              className="accent-primary"
-            />
-            Mark as long-term partner
-          </label>
-          <TextArea
-            label="Description"
-            value={form.description}
-            onChange={(v) => setForm({ ...form, description: v })}
-          />
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -2932,8 +2987,6 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {exhibitors.map((ex) => {
-            const booth = (ex.metadata as Record<string, unknown> | null)
-              ?.booth;
             return (
               <div
                 key={ex.id}
@@ -2955,10 +3008,10 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
                   <h4 className="font-semibold text-slate-900 truncate">
                     {ex.name}
                   </h4>
-                  {typeof booth === "string" && booth && (
+                  {ex.booth_number && (
                     <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                       <MdCampaign className="w-3.5 h-3.5" />
-                      Booth {booth}
+                      Booth {ex.booth_number}
                     </div>
                   )}
                   {ex.description && (
@@ -2991,11 +3044,10 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
               {
                 eventId,
                 input: {
-                  event_id: eventId,
                   name: form.name,
-                  description: form.description,
-                  logo_url: form.logo_url,
-                  metadata: form.booth ? { booth: form.booth } : {},
+                  description: form.description || null,
+                  logo_url: form.logo_url || null,
+                  booth_number: form.booth || null,
                 },
               },
               { onSuccess: reset },

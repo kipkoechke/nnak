@@ -4,12 +4,16 @@ import toast from "react-hot-toast";
 import { eventsService } from "@/services/events.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import type { CreateEventInput, NnakEvent } from "@/types/nnak";
+import type { CreateEventInput, NnakEvent, UpdateEventInput } from "@/types/nnak";
 
-export const useEvents = (p?: Record<string, unknown>) =>
+export const useEvents = (params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+}) =>
   useQuery({
-    queryKey: nqk.events.list(p ?? {}),
-    queryFn: () => eventsService.list(p as { page?: number; per_page?: number; status?: string }),
+    queryKey: nqk.events.list(params as Record<string, unknown>),
+    queryFn: () => eventsService.list(params),
     placeholderData: (prev) => prev,
   });
 
@@ -18,20 +22,6 @@ export const useEvent = (id: string) =>
     queryKey: nqk.events.detail(id),
     queryFn: () => eventsService.getById(id),
     enabled: !!id,
-  });
-
-export const useEventRegistrants = (id: string) =>
-  useQuery({
-    queryKey: nqk.events.registrants(id),
-    queryFn: () => eventsService.registrants(id),
-    enabled: !!id,
-  });
-
-export const useMyRegistrations = (userId?: string) =>
-  useQuery({
-    queryKey: [...nqk.events.all, "mine", userId ?? ""] as const,
-    queryFn: () => eventsService.myRegistrations(userId!),
-    enabled: !!userId,
   });
 
 export const useCreateEvent = () => {
@@ -49,7 +39,7 @@ export const useCreateEvent = () => {
 export const useUpdateEvent = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<CreateEventInput> }) =>
+    mutationFn: ({ id, input }: { id: string; input: UpdateEventInput }) =>
       eventsService.update(id, input),
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: nqk.events.all });
@@ -60,14 +50,21 @@ export const useUpdateEvent = () => {
   });
 };
 
+/** One entry point for the create/edit form — routes on the presence of an id. */
 export const useUpsertEvent = () => {
   const createMutation = useCreateEvent();
   const updateMutation = useUpdateEvent();
 
   return {
-    mutateAsync: async (data: Partial<NnakEvent & CreateEventInput>): Promise<NnakEvent | null> => {
-      if ("id" in data && data.id) {
-        return updateMutation.mutateAsync({ id: data.id, input: data as Partial<CreateEventInput> });
+    mutateAsync: async (
+      data: Partial<NnakEvent> & Partial<CreateEventInput>,
+    ): Promise<NnakEvent> => {
+      if (data.id) {
+        const { id, ...input } = data;
+        return updateMutation.mutateAsync({
+          id,
+          input: input as UpdateEventInput,
+        });
       }
       return createMutation.mutateAsync(data as CreateEventInput);
     },
@@ -87,40 +84,17 @@ export const useDeleteEvent = () => {
   });
 };
 
-export const useRegisterForEvent = () => {
+/** Approval is just an update; surfaced separately because the UI is a toggle. */
+export const useSetEventApproval = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventId, userId, fee }: { eventId: string; userId: string; fee: number }) =>
-      eventsService.register(eventId, userId, fee),
+    mutationFn: ({ id, is_approved }: { id: string; is_approved: boolean }) =>
+      eventsService.update(id, { is_approved }),
     onSuccess: (_, v) => {
-      qc.invalidateQueries({ queryKey: nqk.events.detail(v.eventId) });
-      qc.invalidateQueries({ queryKey: nqk.events.registrants(v.eventId) });
-      toast.success("Registered");
-    },
-    onError: (e) => toast.error(extractApiError(e, "Registration failed")),
-  });
-};
-
-export const useCheckIn = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (qrToken: string) => eventsService.checkIn(qrToken),
-    onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.events.all });
-      toast.success("Checked in");
+      qc.invalidateQueries({ queryKey: nqk.events.detail(v.id) });
+      toast.success(v.is_approved ? "Event approved" : "Approval withdrawn");
     },
-    onError: (e) => toast.error(extractApiError(e, "Check-in failed")),
-  });
-};
-
-export const useIssueCertificate = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (regId: string) => eventsService.issueCertificate(regId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: nqk.events.all });
-      toast.success("Certificate issued");
-    },
-    onError: (e) => toast.error(extractApiError(e, "Certificate failed")),
+    onError: (e) => toast.error(extractApiError(e, "Could not update approval")),
   });
 };

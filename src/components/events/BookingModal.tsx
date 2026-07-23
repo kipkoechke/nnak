@@ -9,10 +9,10 @@ import {
 import type {
   BookingAttendeeInput,
   BookingScope,
-  MemberEventPackage,
+  EventPackage,
 } from "@/types/nnak";
 
-const pkgCost = (pkg: MemberEventPackage) => Number(pkg.cost ?? pkg.price ?? 0);
+const pkgCost = (pkg: EventPackage) => Number(pkg.cost ?? 0);
 
 const blankAttendee = (): BookingAttendeeInput => ({
   name: "",
@@ -21,11 +21,11 @@ const blankAttendee = (): BookingAttendeeInput => ({
 });
 
 const isSettled = (s?: string | null) =>
-  !!s && ["paid", "confirmed"].includes(String(s).toLowerCase());
+  String(s ?? "").toLowerCase() === "paid";
 
 interface BookingModalProps {
   scope: BookingScope;
-  pkg: MemberEventPackage;
+  pkg: EventPackage;
   /** Prefills the first attendee row with the signed-in user. */
   defaultAttendee?: BookingAttendeeInput;
   onClose: () => void;
@@ -48,11 +48,13 @@ export default function BookingModal({
   ]);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Blank bills the phone captured on the booking's contact record.
+  const [payPhone, setPayPhone] = useState(defaultAttendee?.phone ?? "");
 
   const createBooking = useCreateBooking(scope);
-  const payBooking = usePayBooking(scope);
+  const payBooking = usePayBooking();
   // Poll only once a payment has been kicked off.
-  const { data: booking } = useBooking(scope, bookingId ?? undefined, {
+  const { data: booking } = useBooking(bookingId ?? undefined, {
     poll: payBooking.isSuccess,
   });
 
@@ -88,8 +90,16 @@ export default function BookingModal({
     onBooked?.();
 
     // Free packages have no invoice to settle.
-    if (total > 0) await payBooking.mutateAsync(created.id).catch(() => null);
+    if (total > 0) await pay(created.id);
   };
+
+  const pay = (id: string) =>
+    payBooking
+      .mutateAsync({
+        bookingId: id,
+        phone_number: payPhone.trim() || undefined,
+      })
+      .catch(() => null);
 
   const awaitingPayment = payBooking.isSuccess && !paid;
   const busy = createBooking.isPending || payBooking.isPending;
@@ -121,12 +131,22 @@ export default function BookingModal({
           {paid ? (
             <div className="text-sm rounded-md px-3 py-4 text-center bg-emerald-50 border border-emerald-200 text-emerald-700">
               <div className="font-semibold mb-1">Booking confirmed</div>
-              {booking?.ticket_number && (
-                <div className="text-xs">
-                  Ticket{" "}
-                  <span className="font-mono font-semibold">
-                    {booking.ticket_number}
-                  </span>
+              <div className="text-xs">
+                Reference{" "}
+                <span className="font-mono font-semibold">
+                  {booking?.reference_code}
+                </span>
+              </div>
+              {booking?.attendees?.some((a) => a.ticket_number) && (
+                <div className="text-xs mt-1 space-y-0.5">
+                  {booking.attendees.map((a) => (
+                    <div key={a.id}>
+                      {a.name} ·{" "}
+                      <span className="font-mono font-semibold">
+                        {a.ticket_number ?? "ticket pending"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -201,6 +221,24 @@ export default function BookingModal({
                 ))}
               </div>
 
+              {/* M-Pesa number to bill */}
+              {total > 0 && (
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase text-slate-500">
+                    M-Pesa number
+                  </label>
+                  <input
+                    value={payPhone}
+                    onChange={(e) => setPayPhone(e.target.value)}
+                    placeholder="254712345678"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    Leave blank to use the booking&apos;s contact phone.
+                  </p>
+                </div>
+              )}
+
               {/* Total */}
               <div className="bg-slate-50 rounded-lg p-3 text-sm space-y-1">
                 <div className="flex justify-between">
@@ -245,7 +283,7 @@ export default function BookingModal({
 
               {bookingId && !awaitingPayment && !paid && total > 0 && (
                 <button
-                  onClick={() => payBooking.mutate(bookingId)}
+                  onClick={() => pay(bookingId)}
                   disabled={payBooking.isPending}
                   className="w-full bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-emerald-700 disabled:opacity-50"
                 >

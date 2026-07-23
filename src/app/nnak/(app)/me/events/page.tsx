@@ -1,44 +1,17 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { MdEvent, MdSearch, MdCalendarToday, MdLocationOn } from "react-icons/md";
+import {
+  MdEvent,
+  MdSearch,
+  MdCalendarToday,
+  MdLocationOn,
+  MdConfirmationNumber,
+} from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
-import { useMemberEvents } from "@/hooks/use-member-events";
-import { useStudentEvents } from "@/hooks/use-student-events";
-import { useMe } from "@/hooks/use-auth";
-import type { MemberEvent } from "@/types/nnak";
-
-const STATUS_TONE: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-700 border-slate-200",
-  published: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  closed: "bg-amber-50 text-amber-700 border-amber-200",
-  completed: "bg-blue-50 text-blue-700 border-blue-200",
-  cancelled: "bg-red-50 text-red-700 border-red-200",
-};
-
-const STATUS_DOT: Record<string, string> = {
-  draft: "bg-slate-400",
-  published: "bg-emerald-500",
-  closed: "bg-amber-500",
-  completed: "bg-blue-500",
-  cancelled: "bg-red-500",
-};
-
-const TYPE_TONE: Record<string, string> = {
-  conference: "bg-violet-50 text-violet-700",
-  workshop: "bg-cyan-50 text-cyan-700",
-  cpd: "bg-emerald-50 text-emerald-700",
-  agm: "bg-amber-50 text-amber-700",
-  training: "bg-blue-50 text-blue-700",
-};
-
-const STATUS_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "published", label: "Published" },
-  { value: "closed", label: "Closed" },
-  { value: "completed", label: "Completed" },
-];
+import { usePublicEvents } from "@/hooks/use-public-events";
+import type { PublicEvent } from "@/types/nnak";
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
@@ -64,17 +37,13 @@ const fmtRange = (start: string, end: string) => {
 export default function MemberEventsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
 
-  const { data: user } = useMe();
-  const isStudent = user?.role === "student";
-
-  const params = { page, per_page: 12, search: search || undefined, status: status || undefined };
-  const memberQ = useMemberEvents(params);
-  const studentQ = useStudentEvents(params);
-
-  const data = isStudent ? studentQ.data : memberQ.data;
-  const isLoading = isStudent ? studentQ.isLoading : memberQ.isLoading;
+  // Members, students and the public all browse the same /events listing.
+  const { data, isLoading } = usePublicEvents({
+    page,
+    per_page: 12,
+    search: search || undefined,
+  });
 
   const events = data?.data ?? [];
   const pagination = data?.pagination;
@@ -95,21 +64,6 @@ export default function MemberEventsPage() {
             placeholder="Search events…"
             className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value || "all"}
-              onClick={() => { setStatus(opt.value); setPage(1); }}
-              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                status === opt.value
-                  ? "bg-primary text-white border-primary"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -154,7 +108,7 @@ export default function MemberEventsPage() {
   );
 }
 
-const EventCard = ({ event }: { event: MemberEvent }) => (
+const EventCard = ({ event }: { event: PublicEvent }) => (
   <Link
     href={`/nnak/me/events/${event.id}`}
     className="group bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-primary hover:shadow-md transition-all flex flex-col"
@@ -173,25 +127,11 @@ const EventCard = ({ event }: { event: MemberEvent }) => (
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-      <div className="absolute top-2 left-2 flex gap-1.5">
-        <span
-          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_TONE[event.status] || STATUS_TONE.draft}`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[event.status] || STATUS_DOT.draft}`} />
-          {event.status}
-        </span>
-      </div>
-      <div className="absolute bottom-2 right-2">
-        <span
-          className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${TYPE_TONE[event.type] || "bg-slate-100 text-slate-700"}`}
-        >
-          {event.type}
-        </span>
-      </div>
-      {event.is_registered && (
+      {!!event.packages_count && (
         <div className="absolute bottom-2 left-2">
-          <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
-            Registered
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/90 text-slate-700">
+            <MdConfirmationNumber className="w-3 h-3" />
+            {event.packages_count} package{event.packages_count === 1 ? "" : "s"}
           </span>
         </div>
       )}

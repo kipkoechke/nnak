@@ -5,7 +5,14 @@ import { bookingsService } from "@/services/bookings.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
 import { useNnakMe } from "@/hooks/use-auth";
-import type { BookingScope, CreateBookingInput } from "@/types/nnak";
+import type {
+  BookingScope,
+  CreateBookingInput,
+  PayBookingInput,
+} from "@/types/nnak";
+
+/** Booking statuses that will never change again, so polling can stop. */
+const SETTLED_STATUSES = ["paid", "cancelled", "expired"];
 
 /** Picks the booking prefix that matches the signed-in role. */
 export const useBookingScope = (): BookingScope => {
@@ -31,19 +38,19 @@ export const useMyBookings = (
  * UI reflects an M-Pesa confirmation without the user refreshing.
  */
 export const useBooking = (
-  scope: BookingScope,
   id: string | undefined,
   opts?: { poll?: boolean },
 ) =>
   useQuery({
-    queryKey: nqk.bookings.detail(scope, id ?? ""),
-    queryFn: () => bookingsService.getById(scope, id!),
+    queryKey: nqk.bookings.detail(id ?? ""),
+    queryFn: () => bookingsService.getById(id!),
     enabled: !!id,
     refetchInterval: (q) => {
       if (!opts?.poll) return false;
-      const s = (q.state.data as { status?: string } | undefined)?.status;
-      const settled = ["paid", "confirmed", "cancelled", "failed", "expired"];
-      return s && settled.includes(String(s).toLowerCase()) ? false : 4000;
+      const s = q.state.data?.status;
+      return s && SETTLED_STATUSES.includes(String(s).toLowerCase())
+        ? false
+        : 4000;
     },
   });
 
@@ -54,30 +61,35 @@ export const useCreateBooking = (scope: BookingScope) => {
       bookingsService.create(scope, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.bookings.scope(scope) });
-      toast.success("Booking created");
+      toast.success("Booking created — pay the invoice to confirm");
     },
     onError: (e) => toast.error(extractApiError(e, "Could not create booking")),
   });
 };
 
-export const usePayBooking = (scope: BookingScope) => {
+export const usePayBooking = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (bookingId: string) => bookingsService.pay(scope, bookingId),
-    onSuccess: (_, bookingId) => {
-      qc.invalidateQueries({ queryKey: nqk.bookings.detail(scope, bookingId) });
+    mutationFn: ({
+      bookingId,
+      ...body
+    }: { bookingId: string } & PayBookingInput) =>
+      bookingsService.pay(bookingId, body),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: nqk.bookings.detail(v.bookingId) });
       toast.success("Payment request sent — check your phone");
     },
     onError: (e) => toast.error(extractApiError(e, "Could not start payment")),
   });
 };
 
-export const useCancelBooking = (scope: BookingScope) => {
+export const useCancelBooking = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (bookingId: string) => bookingsService.cancel(scope, bookingId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: nqk.bookings.scope(scope) });
+    mutationFn: (bookingId: string) => bookingsService.cancel(bookingId),
+    onSuccess: (_, bookingId) => {
+      qc.invalidateQueries({ queryKey: nqk.bookings.all });
+      qc.invalidateQueries({ queryKey: nqk.bookings.detail(bookingId) });
       toast.success("Booking cancelled");
     },
     onError: (e) => toast.error(extractApiError(e, "Could not cancel booking")),
