@@ -836,6 +836,8 @@ export interface AdminDashboardMembers {
   total: number;
   active: number;
   inactive: number;
+  /** Members who have claimed their pre-loaded corporate record. */
+  claimed?: number;
   pending_approval: number;
   new_this_period: number;
   corporate: number;
@@ -855,7 +857,9 @@ export interface AdminDashboardBranchRow {
   employer_type: string;
 }
 
-export interface AdminBatchThisMonth {
+/** One batch reporting window. The API has sent this as `this_month` and as
+ *  `last_month`; the shape is identical, only the label differs. */
+export interface AdminBatchPeriod {
   count: number;
   paid_count: number;
   pending_count: number;
@@ -881,18 +885,40 @@ export interface AdminDashboardData {
   categories: AdminDashboardCategoryRow[];
   branches: AdminDashboardBranchRow[];
   chapters: AdminDashboardChapterRow[];
-  batches: {
-    this_month: AdminBatchThisMonth;
-    all_time: AdminBatchAllTime;
+  /** Which windows are reported varies; render whichever arrive. */
+  batches?: {
+    this_month?: AdminBatchPeriod;
+    last_month?: AdminBatchPeriod;
+    all_time?: AdminBatchAllTime;
   };
-  invites: {
+  invites?: {
     pending_invites: number;
     pending_transfers: number;
   };
-  recent_pending_members: RecentPendingMember[];
+  recent_pending_members?: RecentPendingMember[];
   trendline?: PaymentTrendPoint[];
-  supported_params: string[];
-  applied_filters: Record<string, string>;
+  events?: AdminDashboardEvents;
+  supported_params?: string[];
+  applied_filters?: Record<string, string>;
+}
+
+// ── Admin dashboard: events block ──────────────────────────────────
+export interface AdminDashboardUpcomingEvent {
+  id: string;
+  title: string;
+  start_date: string;
+  location?: string | null;
+  packages_count?: number;
+}
+
+export interface AdminDashboardEvents {
+  total_bookings: number;
+  paid_bookings: number;
+  pending_bookings: number;
+  revenue: string | number;
+  total_attendees: number;
+  scanned_in: number;
+  upcoming: AdminDashboardUpcomingEvent[];
 }
 
 // ── Branch manager dashboard (GET /branch/dashboard?start_date&end_date)

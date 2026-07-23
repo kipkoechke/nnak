@@ -9,6 +9,8 @@ const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
 export interface DateRangeParams {
   start_date?: string;
   end_date?: string;
+  /** Advertised in the response's `supported_params`; narrows to one branch. */
+  branch_id?: string;
 }
 
 export const adminDashboardService = {
