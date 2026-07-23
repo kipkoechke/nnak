@@ -43,6 +43,12 @@ const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
  */
 type Nested<K extends string, T> = T & Partial<Record<K, T>>;
 
+/** As sent by /finance/remittances, before `remittance_type` is normalised. */
+type RawRemittanceItem = Omit<FinanceRemittanceItem, "type"> & {
+  type?: string;
+  remittance_type?: string;
+};
+
 const pick = <K extends string, T>(
   key: K,
   payload: Nested<K, T> | null | undefined,
@@ -260,17 +266,28 @@ export const financeService = {
   ): Promise<{
     data: FinanceRemittanceItem[];
     meta?: FinanceRemittanceMeta;
+    pagination?: NnakPagination;
   }> => {
     const r = await nnakApi.get<{
       success: boolean;
+      pagination?: NnakPagination;
       data: {
-        data: FinanceRemittanceItem[];
+        data: RawRemittanceItem[];
         meta?: FinanceRemittanceMeta;
+        pagination?: NnakPagination;
       };
     }>("/finance/remittances", { params });
+    const body = r.data?.data;
     return {
-      data: r.data?.data?.data ?? [],
-      meta: r.data?.data?.meta,
+      // The API calls the discriminator `remittance_type`; every other
+      // remittance shape in the app reads `type`.
+      data: (body?.data ?? []).map((item) => ({
+        ...item,
+        type: item.type ?? item.remittance_type ?? "unknown",
+      })),
+      meta: body?.meta,
+      // Seen both inside `data` and on the envelope, depending on the route.
+      pagination: body?.pagination ?? r.data?.pagination,
     };
   },
 };

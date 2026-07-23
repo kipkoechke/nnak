@@ -1269,11 +1269,16 @@ export interface FinancePaymentsSummary {
 // ── Finance: Remittances (/finance/remittances) ────────────────────
 export interface FinanceRemittanceItem {
   id: string;
+  /** Normalised from the API's `remittance_type`. */
   type: string;
   amount: number;
-  branch_name?: string | null;
-  member_name?: string | null;
+  /** Member for an M-Pesa remittance, branch for a batch one. */
+  payer_name?: string | null;
+  /** M-Pesa only. */
+  phone?: string | null;
   reference?: string | null;
+  /** M-Pesa receipt code; mirrors `reference` for batch remittances. */
+  receipt?: string | null;
   created_at: string;
 }
 
@@ -1289,8 +1294,8 @@ export interface FinanceRemittanceMeta {
   date_range: { start: string; end: string };
   category: string;
   summary: FinanceRemittanceSummary;
-  supported_params: string[];
-  applied_filters: Record<string, string>;
+  supported_params?: string[];
+  applied_filters?: Record<string, string>;
 }
 
 // Monthly payment-status trend (shared by finance + branch dashboards).

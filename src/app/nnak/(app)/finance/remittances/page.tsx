@@ -4,6 +4,7 @@ import { MdSwapHoriz } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import { useFinanceRemittances, useFinanceBranches } from "@/hooks/use-finance";
+import { fmtKes } from "@/lib/commission";
 
 const toISO = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -15,8 +16,6 @@ const fmtDate = (s?: string | null) =>
         year: "numeric",
       })
     : "—";
-
-const fmtKes = (n: number) => `KES ${Number(n).toLocaleString()}`;
 
 const PERIOD_PRESETS: { label: string; getDates: () => { start: string; end: string } }[] = [
   {
@@ -72,6 +71,8 @@ export default function FinanceRemittancesPage() {
 
   const remittances = data?.data ?? [];
   const meta = data?.meta;
+  // Absent when the whole result set fits on one page.
+  const pagination = data?.pagination;
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
@@ -163,7 +164,7 @@ export default function FinanceRemittancesPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 sticky top-0">
               <tr>
                 <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Member / Branch</th>
+                <th className="px-3 py-2">Payer</th>
                 <th className="px-3 py-2">Reference</th>
                 <th className="px-3 py-2 text-right">Amount</th>
                 <th className="px-3 py-2">Date</th>
@@ -185,8 +186,21 @@ export default function FinanceRemittancesPage() {
                       {r.type}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs">{r.member_name || r.branch_name || "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-slate-600">{r.reference || "—"}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <div className="text-slate-900">{r.payer_name || "—"}</div>
+                    {r.phone && (
+                      <div className="text-[11px] text-slate-400">{r.phone}</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-slate-600">
+                    <div>{r.reference || "—"}</div>
+                    {/* Batch remittances mirror the reference into `receipt`. */}
+                    {r.receipt && r.receipt !== r.reference && (
+                      <div className="text-[11px] text-slate-400">
+                        {r.receipt}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right font-semibold text-slate-900">
                     {fmtKes(r.amount)}
                   </td>
@@ -198,10 +212,23 @@ export default function FinanceRemittancesPage() {
         )}
       </div>
 
-      {meta && (
-        <div className="shrink-0 text-xs text-slate-500">
-          {remittances.length > 0 && `Showing ${remittances.length} remittance${remittances.length !== 1 ? "s" : ""}`}
+      {pagination && pagination.last_page > 1 ? (
+        <div className="shrink-0">
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.last_page}
+            totalItems={pagination.total}
+            onPageChange={setPage}
+          />
         </div>
+      ) : (
+        remittances.length > 0 && (
+          <div className="shrink-0 text-xs text-slate-500">
+            Showing {remittances.length} remittance
+            {remittances.length === 1 ? "" : "s"}
+            {meta?.summary ? ` of ${meta.summary.count}` : ""}
+          </div>
+        )
       )}
     </div>
   );
