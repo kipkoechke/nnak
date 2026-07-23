@@ -735,9 +735,12 @@ export interface BranchBatch {
   branch?: BranchBrief | null;
   members_count?: number;
   total_collected: string | number;
-  commission_amount: string | number;
+  commission: string | number;
   branch_share: string | number;
-  outstanding: number;
+  hq_share?: number;
+  net_value?: number;
+  total_remitted?: number;
+  pending_remittance?: number;
   paid_at?: string | null;
   created_at: string;
   updated_at?: string;
@@ -761,6 +764,7 @@ export interface BranchBatchDetail extends BranchBatch {
     payment_method?: string;
     paid_at?: string;
     notes?: string | null;
+    received_by?: string | null;
     attachments?: { id: string; url: string; name?: string }[];
   }[];
 }
@@ -1299,38 +1303,88 @@ export interface RevenueTrendPoint {
 export interface FinanceDashboardData {
   date_range?: { start: string; end: string };
   members?: {
-    total: number; active: number; inactive: number;
-    pending_approval: number; new_this_period: number;
-    corporate: number; individual: number; nnak_hq?: number;
+    total: number;
+    active: number;
+    inactive: number;
+    pending_approval: number;
+    new_this_period: number;
+    corporate: number;
+    individual: number;
+    nnak_hq?: number;
     aging?: Record<string, number>;
   };
   remittances?: {
-    mpesa_collected: number; batch_payments: number; total: number;
+    mpesa_collected: number;
+    batch_payments: number;
+    total: number;
     by_category?: { category: string; label: string; amount: number }[];
     corporate?: { label: string; amount: number };
     individual?: { label: string; amount: number };
   };
   payments?: {
-    total_invoiced: number; total_collected: number;
-    total_invoices?: number; paid_invoices?: number;
-    pending_invoices: number; pending_amount: number; collection_rate: number;
+    total_invoiced: number;
+    total_collected: number;
+    total_invoices?: number;
+    paid_invoices?: number;
+    pending_invoices: number;
+    pending_amount: number;
+    collection_rate: number;
     corporate?: { label: string; collected: number; pending_invoices: number };
     individual?: { label: string; collected: number; pending_invoices: number };
   };
   trendline?: PaymentTrendPoint[];
   revenue_trendline?: RevenueTrendPoint[];
-  pending_payments_aging?: { buckets: Record<string, number>; total_pending_amount: number };
-  branches?: { id: string; name: string; members: number; employer_type: string; commission_type: string; commission_value: string }[];
+  pending_payments_aging?: {
+    buckets: Record<string, number>;
+    total_pending_amount: number;
+  };
+  branches?: {
+    id: string;
+    name: string;
+    members: number;
+    employer_type: string;
+    commission_type: string;
+    commission_value: string;
+  }[];
   recent_members?: {
-    id: string; name: string; email: string; membership_number: string;
-    membership_type: string; chapter: string; designation: string | null;
-    nck_number: string | null; branch_name: string | null; created_at: string;
+    id: string;
+    name: string;
+    email: string;
+    membership_number: string;
+    membership_type: string;
+    chapter: string;
+    designation: string | null;
+    nck_number: string | null;
+    branch_name: string | null;
+    created_at: string;
   }[];
   batches?: {
-    this_month: { count: number; paid_count: number; pending_count: number; total_collected: number; commission: number; branch_share: number; hq_share: number };
-    all_time: { total_collected: number; total_commission: number; total_branch_share: number; total_hq_share: number; paid_total: number; pending_total: number };
+    this_month: {
+      count: number;
+      paid_count: number;
+      pending_count: number;
+      total_collected: number;
+      commission: number;
+      branch_share: number;
+      hq_share: number;
+    };
+    all_time: {
+      total_collected: number;
+      total_commission: number;
+      total_branch_share: number;
+      total_hq_share: number;
+      paid_total: number;
+      pending_total: number;
+    };
   };
-  byproducts?: { id: string; file_name: string; status: string; total_rows: number; processed_rows: number; created_at: string }[];
+  byproducts?: {
+    id: string;
+    file_name: string;
+    status: string;
+    total_rows: number;
+    processed_rows: number;
+    created_at: string;
+  }[];
   supported_params?: string[];
   applied_filters?: Record<string, string>;
 }

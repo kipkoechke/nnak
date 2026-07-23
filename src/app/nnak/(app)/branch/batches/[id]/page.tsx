@@ -65,7 +65,14 @@ export default function BranchBatchDetailPage({
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Members" value={(batch.members_count ?? batch.members?.length ?? 0).toLocaleString()} />
+        <Stat
+          label="Members"
+          value={(
+            batch.members_count ??
+            batch.members?.length ??
+            0
+          ).toLocaleString()}
+        />
         <Stat
           label="Collected"
           value={`KES ${Number(batch.total_collected).toLocaleString()}`}
@@ -76,7 +83,7 @@ export default function BranchBatchDetailPage({
         />
         <Stat
           label="Outstanding"
-          value={`KES ${Number(batch.outstanding).toLocaleString()}`}
+          value={`KES ${Number(batch.pending_remittance).toLocaleString()}`}
         />
       </div>
 
@@ -122,10 +129,18 @@ export default function BranchBatchDetailPage({
             <tbody className="divide-y divide-slate-100">
               {batch.members.map((m) => (
                 <tr key={m.id}>
-                  <td className="px-3 py-2 font-medium">{m.user?.name || "—"}</td>
-                  <td className="px-3 py-2 text-slate-500 text-xs">{m.user?.email || "—"}</td>
-                  <td className="px-3 py-2 text-right">KES {Number(m.amount_paid).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right text-slate-500">KES {Number(m.commission_amount).toLocaleString()}</td>
+                  <td className="px-3 py-2 font-medium">
+                    {m.user?.name || "—"}
+                  </td>
+                  <td className="px-3 py-2 text-slate-500 text-xs">
+                    {m.user?.email || "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    KES {Number(m.amount_paid).toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right text-slate-500">
+                    KES {Number(m.commission_amount).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
