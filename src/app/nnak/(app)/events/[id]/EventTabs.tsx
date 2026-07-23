@@ -23,6 +23,7 @@ import {
   MdPerson,
   MdRecordVoiceOver,
   MdSchedule,
+  MdSearch,
   MdStore,
   MdConfirmationNumber,
   MdQrCodeScanner,
@@ -31,6 +32,7 @@ import {
   MdCheckCircle,
 } from "react-icons/md";
 import { useEvent, useDeleteEvent } from "@/hooks/use-events";
+import { useAdmins } from "@/hooks/use-admins";
 import {
   useEventPackages,
   useCreateEventPackage,
@@ -1681,22 +1683,27 @@ const StatTile = ({
 
 function ScannersTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useEventScanners(eventId);
+  const { data: adminsData, isLoading: adminsLoading } = useAdmins();
   const createScanner = useCreateEventScanner();
   const deleteScanner = useDeleteEventScanner();
-  const [value, setValue] = useState("");
+  const [query, setQuery] = useState("");
 
   const scanners = data ?? [];
 
-  const add = (e: React.FormEvent) => {
-    e.preventDefault();
-    const v = value.trim();
-    if (!v) return;
-    // The API nominates by user id only.
-    createScanner.mutate(
-      { eventId, input: { user_id: v } },
-      { onSuccess: () => setValue("") },
-    );
-  };
+  // The API nominates by user id, so offer the staff directory rather than
+  // asking an admin to paste a UUID. Anyone already nominated drops out.
+  const candidates = useMemo(() => {
+    const taken = new Set((data ?? []).map((s) => s.user.id));
+    const q = query.trim().toLowerCase();
+    return (adminsData ?? [])
+      .filter((u) => !taken.has(u.id))
+      .filter(
+        (u) =>
+          !q ||
+          u.name?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q),
+      );
+  }, [adminsData, data, query]);
 
   return (
     <div className="space-y-4">
@@ -1706,69 +1713,117 @@ function ScannersTab({ eventId }: { eventId: string }) {
         count={scanners.length}
       />
 
-      <form
-        onSubmit={add}
-        className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row gap-2"
-      >
-        <input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="Scanner user id"
-          className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-        />
-        <button
-          type="submit"
-          disabled={createScanner.isPending || !value.trim()}
-          className="inline-flex items-center justify-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
-        >
-          <MdAdd className="w-4 h-4" />
-          {createScanner.isPending ? "Adding…" : "Nominate"}
-        </button>
-      </form>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* Nominate */}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100">
+            <h4 className="text-sm font-semibold text-slate-900">
+              Nominate a scanner
+            </h4>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Pick a staff member to give ticket-scanning access.
+            </p>
+          </div>
 
-      {isLoading ? (
-        <SkeletonList />
-      ) : scanners.length === 0 ? (
-        <EmptyState
-          icon={MdQrCodeScanner}
-          title="No scanners nominated"
-          description="Nominate staff by user id so they can check attendees in."
-        />
-      ) : (
-        <div className="space-y-2">
-          {scanners.map((s) => (
-            <div
-              key={s.id}
-              className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3"
-            >
-              <Avatar name={s.user.name || s.user.email} />
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-900 truncate">
-                  {s.user.name}
-                </div>
-                <div className="text-xs text-slate-500 truncate">
-                  {s.user.email}
-                </div>
-                {s.nominated_by && (
-                  <div className="text-[11px] text-slate-400 truncate">
-                    Nominated by {s.nominated_by}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  if (confirm("Remove this scanner?"))
-                    deleteScanner.mutate({ eventId, scannerId: s.id });
-                }}
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
-                title="Remove"
-              >
-                <MdDelete className="w-4 h-4" />
-              </button>
+          <div className="p-3">
+            <div className="relative">
+              <MdSearch className="absolute left-2.5 top-2.5 text-slate-400 w-4 h-4" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search staff by name or email…"
+                className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+              />
             </div>
-          ))}
+          </div>
+
+          <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 border-t border-slate-100">
+            {adminsLoading ? (
+              <div className="p-4 text-sm text-slate-500">Loading staff…</div>
+            ) : candidates.length === 0 ? (
+              <div className="p-4 text-sm text-slate-500">
+                {query
+                  ? "No staff match that search."
+                  : "Everyone available has already been nominated."}
+              </div>
+            ) : (
+              candidates.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() =>
+                    createScanner.mutate({
+                      eventId,
+                      input: { user_id: u.id },
+                    })
+                  }
+                  disabled={createScanner.isPending}
+                  className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                >
+                  <Avatar name={u.name || u.email} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-900 truncate">
+                      {u.name}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {u.email}
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary shrink-0">
+                    <MdAdd className="w-4 h-4" /> Nominate
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Nominated */}
+        <div>
+          {isLoading ? (
+            <SkeletonList />
+          ) : scanners.length === 0 ? (
+            <EmptyState
+              icon={MdQrCodeScanner}
+              title="No scanners nominated"
+              description="Pick staff from the list to let them check attendees in."
+            />
+          ) : (
+            <div className="space-y-2">
+              {scanners.map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3"
+                >
+                  <Avatar name={s.user.name || s.user.email} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-slate-900 truncate">
+                      {s.user.name}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {s.user.email}
+                    </div>
+                    {s.nominated_by && (
+                      <div className="text-[11px] text-slate-400 truncate">
+                        Nominated by {s.nominated_by}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Remove ${s.user.name} as a scanner?`))
+                        deleteScanner.mutate({ eventId, scannerId: s.id });
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                    title="Remove"
+                  >
+                    <MdDelete className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
