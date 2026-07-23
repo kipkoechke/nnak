@@ -461,8 +461,8 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
       <EventHero event={event} onBack={() => router.back()} />
 
       {/* Sticky tab bar — groups on top, panels of the active group below */}
-      <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
-        <div className="px-4 flex overflow-x-auto gap-1 no-scrollbar">
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div className="px-4 flex overflow-x-auto gap-6 no-scrollbar">
           {TAB_GROUPS.map((g) => {
             const active = activeGroup.key === g.key;
             const Icon = g.icon;
@@ -470,49 +470,69 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
               <button
                 key={g.key}
                 onClick={() => setTab(g.tabs[0].key)}
-                className={`relative inline-flex items-center gap-1.5 px-3 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                className={`group relative inline-flex items-center gap-2 py-3.5 text-sm whitespace-nowrap transition-colors ${
                   active
-                    ? "border-primary text-primary font-semibold"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
+                    ? "text-primary font-semibold"
+                    : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon
+                  className={`w-[18px] h-[18px] transition-colors ${
+                    active
+                      ? "text-primary"
+                      : "text-slate-400 group-hover:text-slate-600"
+                  }`}
+                />
                 {g.label}
+                {/* Underline the group rather than the whole bar */}
+                <span
+                  className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-colors ${
+                    active ? "bg-primary" : "bg-transparent"
+                  }`}
+                />
               </button>
             );
           })}
         </div>
 
         {activeGroup.tabs.length > 1 && (
-          <div className="px-4 pb-2 flex overflow-x-auto gap-1.5 no-scrollbar">
-            {activeGroup.tabs.map((t) => {
-              const active = tab === t.key;
-              const Icon = t.icon;
-              const count = counts[t.key as keyof typeof counts];
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs whitespace-nowrap transition-colors ${
-                    active
-                      ? "bg-primary text-white border-primary font-semibold"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {t.label}
-                  {typeof count === "number" && count > 0 && (
-                    <span
-                      className={`text-[10px] font-semibold px-1.5 rounded-full ${
-                        active ? "bg-white/20" : "bg-slate-100 text-slate-600"
+          <div className="px-4 pb-3 -mt-0.5 flex overflow-x-auto no-scrollbar">
+            <div className="inline-flex items-center gap-0.5 bg-slate-100 p-1 rounded-lg">
+              {activeGroup.tabs.map((t) => {
+                const active = tab === t.key;
+                const Icon = t.icon;
+                const count = counts[t.key as keyof typeof counts];
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs whitespace-nowrap transition-all ${
+                      active
+                        ? "bg-white text-slate-900 font-semibold shadow-sm"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-3.5 h-3.5 ${
+                        active ? "text-primary" : "text-slate-400"
                       }`}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                    />
+                    {t.label}
+                    {typeof count === "number" && count > 0 && (
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-px rounded-full tabular-nums ${
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
