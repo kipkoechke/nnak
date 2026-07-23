@@ -310,6 +310,7 @@ export interface BreakoutRoom {
 }
 
 export interface CreateBreakoutRoomInput {
+  agenda_id: string;
   name: string;
   description?: string | null;
   location?: string | null;
