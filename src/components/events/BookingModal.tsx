@@ -1,11 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MdAdd, MdClose, MdDeleteOutline } from "react-icons/md";
 import {
   useBooking,
   useCreateBooking,
   usePayBooking,
 } from "@/hooks/use-bookings";
+import {
+  isStkSuccess,
+  isStkTerminal,
+  useInvoiceStkQuery,
+} from "@/hooks/use-member-payments";
 import type {
   BookingAttendeeInput,
   BookingScope,
@@ -47,20 +52,58 @@ export default function BookingModal({
     defaultAttendee ?? blankAttendee(),
   ]);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Blank bills the phone captured on the booking's contact record.
   const [payPhone, setPayPhone] = useState(defaultAttendee?.phone ?? "");
 
   const createBooking = useCreateBooking(scope);
   const payBooking = usePayBooking();
-  // Poll only once a payment has been kicked off.
+
+  /**
+   * Two things are watched while a payment is in flight. The STK query says
+   * what the phone prompt did — including *why* it failed — within seconds,
+   * while the booking record is what eventually carries the reference and
+   * ticket numbers once the callback lands.
+   */
+  const stkQuery = useInvoiceStkQuery(invoiceId, {
+    enabled: !!invoiceId,
+    // A null result means the push is not registered yet, so keep asking.
+    refetchInterval: (data) => (isStkTerminal(data?.status) ? false : 3000),
+  });
+
+  const stkStatus = stkQuery.data?.status;
+  const stkFailed = isStkTerminal(stkStatus) && !isStkSuccess(stkStatus);
+
   const { data: booking } = useBooking(bookingId ?? undefined, {
-    poll: payBooking.isSuccess,
+    poll: payBooking.isSuccess && !stkFailed,
   });
 
   const cost = pkgCost(pkg);
   const total = cost * attendees.length;
   const paid = isSettled(booking?.status);
+
+  // Surface the M-Pesa reason rather than leaving the spinner running.
+  // Clearing the invoice below disables the query but leaves its cached
+  // failure in place, so the handled push is recorded to avoid re-running.
+  const handledPush = useRef<string | null>(null);
+  useEffect(() => {
+    const pushId = stkQuery.data?.checkout_request_id ?? null;
+    if (!stkFailed || handledPush.current === pushId) return;
+    handledPush.current = pushId;
+    setError(
+      stkQuery.data?.ResultDesc ||
+        stkQuery.data?.message ||
+        (String(stkStatus).toLowerCase() === "cancelled"
+          ? "You cancelled the payment on your phone."
+          : String(stkStatus).toLowerCase() === "timeout"
+            ? "The payment prompt timed out before you completed it."
+            : "Payment was not completed."),
+    );
+    // Clearing the invoice stops the poll and re-enables Retry payment.
+    setInvoiceId(null);
+    payBooking.reset();
+  }, [stkFailed, stkQuery.data, stkStatus, payBooking]);
 
   const setAt = (i: number, patch: Partial<BookingAttendeeInput>) =>
     setAttendees((rows) =>
@@ -93,15 +136,20 @@ export default function BookingModal({
     if (total > 0) await pay(created.id);
   };
 
-  const pay = (id: string) =>
-    payBooking
+  const pay = async (id: string) => {
+    setError(null);
+    // The pay response carries the invoice the STK query is keyed on.
+    const init = await payBooking
       .mutateAsync({
         bookingId: id,
         phone_number: payPhone.trim() || undefined,
       })
       .catch(() => null);
+    if (init?.invoice_id) setInvoiceId(init.invoice_id);
+    return init;
+  };
 
-  const awaitingPayment = payBooking.isSuccess && !paid;
+  const awaitingPayment = payBooking.isSuccess && !paid && !stkFailed;
   const busy = createBooking.isPending || payBooking.isPending;
 
   return (
@@ -253,9 +301,21 @@ export default function BookingModal({
               </div>
 
               {awaitingPayment && (
-                <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-                  <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-                  STK push sent. Enter your M-Pesa PIN on your phone.
+                <div className="flex items-start gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+                  <span className="inline-block w-3 h-3 mt-0.5 shrink-0 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                  <div>
+                    <div>
+                      {isStkSuccess(stkStatus)
+                        ? "Payment received — issuing tickets…"
+                        : "STK push sent. Enter your M-Pesa PIN on your phone."}
+                    </div>
+                    {/* Null until Safaricom registers the push. */}
+                    {stkStatus && !isStkSuccess(stkStatus) && (
+                      <div className="text-[11px] text-emerald-600/80 mt-0.5 capitalize">
+                        Status: {stkStatus}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

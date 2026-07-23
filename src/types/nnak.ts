@@ -1077,23 +1077,33 @@ export interface InvoiceStkPushResponse {
   message: string;
   data: {
     invoice_id: string;
-    invoice_amount: string;
-    invoice_number: string;
+    phone?: string;
+    checkout_request_id?: string;
+    merchant_request_id?: string;
+    invoice_amount?: string;
+    invoice_number?: string;
   };
 }
 
 // ── Member invoice M-Pesa STK Query ────────────────────────────────
+export interface InvoiceStkQueryResult {
+  invoice_id: string;
+  checkout_request_id: string;
+  status: string;
+  ResultCode?: number | string | null;
+  ResultDesc?: string | null;
+  message?: string | null;
+}
+
+/**
+ * When no push has been dispatched for the invoice the API answers
+ * `{ success: false, message: "No STK Push found for this invoice." }` with no
+ * `data` at all, so consumers must treat the result as nullable.
+ */
 export interface InvoiceStkQueryResponse {
   success: boolean;
   message: string;
-  data: {
-    invoice_id: string;
-    checkout_request_id: string;
-    status: string;
-    ResultCode?: number | string | null;
-    ResultDesc?: string | null;
-    message?: string | null;
-  };
+  data?: InvoiceStkQueryResult;
 }
 
 // ── M-Pesa C2B register URLs ───────────────────────────────────────
