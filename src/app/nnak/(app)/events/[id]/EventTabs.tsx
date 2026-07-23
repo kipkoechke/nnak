@@ -322,21 +322,72 @@ interface TabDef {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const TABS: TabDef[] = [
-  { key: "overview", label: "Overview", icon: MdEvent },
-  { key: "packages", label: "Tickets", icon: MdPayments },
-  { key: "agendas", label: "Agendas", icon: MdSchedule },
-  { key: "speakers", label: "Speakers", icon: MdMic },
-  { key: "agendaSpeakers", label: "Agenda Speakers", icon: MdRecordVoiceOver },
-  { key: "breakoutRooms", label: "Breakout Rooms", icon: MdMeetingRoom },
-  { key: "breakoutSpeakers", label: "Breakout Speakers", icon: MdGroups },
-  { key: "sponsors", label: "Sponsors & Partners", icon: MdHandshake },
-  { key: "exhibitors", label: "Exhibitors", icon: MdStore },
-  { key: "bookings", label: "Bookings", icon: MdReceiptLong },
-  { key: "attendees", label: "Attendees", icon: MdConfirmationNumber },
-  { key: "attendance", label: "Attendance", icon: MdHowToReg },
-  { key: "scanners", label: "Scanners", icon: MdQrCodeScanner },
+interface TabGroup {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tabs: TabDef[];
+}
+
+/**
+ * Thirteen panels is too many for one row, so they are grouped by the job
+ * being done: shaping the programme, managing people, and running the door.
+ */
+const TAB_GROUPS: TabGroup[] = [
+  {
+    key: "overview",
+    label: "Overview",
+    icon: MdEvent,
+    tabs: [{ key: "overview", label: "Overview", icon: MdEvent }],
+  },
+  {
+    key: "programme",
+    label: "Programme",
+    icon: MdSchedule,
+    tabs: [
+      { key: "agendas", label: "Agendas", icon: MdSchedule },
+      { key: "breakoutRooms", label: "Breakout Rooms", icon: MdMeetingRoom },
+    ],
+  },
+  {
+    key: "people",
+    label: "Speakers",
+    icon: MdMic,
+    tabs: [
+      { key: "speakers", label: "Speaker Directory", icon: MdMic },
+      {
+        key: "agendaSpeakers",
+        label: "On Agendas",
+        icon: MdRecordVoiceOver,
+      },
+      { key: "breakoutSpeakers", label: "In Breakouts", icon: MdGroups },
+    ],
+  },
+  {
+    key: "partners",
+    label: "Partners",
+    icon: MdHandshake,
+    tabs: [
+      { key: "sponsors", label: "Sponsors & Partners", icon: MdHandshake },
+      { key: "exhibitors", label: "Exhibitors", icon: MdStore },
+    ],
+  },
+  {
+    key: "sales",
+    label: "Bookings & Entry",
+    icon: MdReceiptLong,
+    tabs: [
+      { key: "packages", label: "Packages", icon: MdPayments },
+      { key: "bookings", label: "Bookings", icon: MdReceiptLong },
+      { key: "attendees", label: "Attendees", icon: MdConfirmationNumber },
+      { key: "attendance", label: "Attendance", icon: MdHowToReg },
+      { key: "scanners", label: "Scanners", icon: MdQrCodeScanner },
+    ],
+  },
 ];
+
+const groupForTab = (tabKey: string) =>
+  TAB_GROUPS.find((g) => g.tabs.some((t) => t.key === tabKey)) ?? TAB_GROUPS[0];
 
 /* ─────────────────────────────────────────────────────────────────────────
  *  Main page
@@ -345,6 +396,7 @@ const TABS: TabDef[] = [
 export default function EventTabsPage({ eventId }: { eventId: string }) {
   const router = useRouter();
   const [tab, setTab] = useState<string>("overview");
+  const activeGroup = groupForTab(tab);
   const { data: event, isLoading } = useEvent(eventId);
 
   // Pull counts for the tab badges
@@ -406,17 +458,16 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
     <div className="flex flex-col">
       <EventHero event={event} onBack={() => router.back()} />
 
-      {/* Sticky tab bar */}
+      {/* Sticky tab bar — groups on top, panels of the active group below */}
       <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200">
-        <div className="px-4 -mb-px flex overflow-x-auto gap-1 no-scrollbar">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const Icon = t.icon;
-            const count = counts[t.key as keyof typeof counts];
+        <div className="px-4 flex overflow-x-auto gap-1 no-scrollbar">
+          {TAB_GROUPS.map((g) => {
+            const active = activeGroup.key === g.key;
+            const Icon = g.icon;
             return (
               <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
+                key={g.key}
+                onClick={() => setTab(g.tabs[0].key)}
                 className={`relative inline-flex items-center gap-1.5 px-3 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? "border-primary text-primary font-semibold"
@@ -424,22 +475,44 @@ export default function EventTabsPage({ eventId }: { eventId: string }) {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {t.label}
-                {typeof count === "number" && count > 0 && (
-                  <span
-                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
+                {g.label}
               </button>
             );
           })}
         </div>
+
+        {activeGroup.tabs.length > 1 && (
+          <div className="px-4 pb-2 flex overflow-x-auto gap-1.5 no-scrollbar">
+            {activeGroup.tabs.map((t) => {
+              const active = tab === t.key;
+              const Icon = t.icon;
+              const count = counts[t.key as keyof typeof counts];
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-primary text-white border-primary font-semibold"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {t.label}
+                  {typeof count === "number" && count > 0 && (
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 rounded-full ${
+                        active ? "bg-white/20" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Tab content */}
@@ -722,7 +795,7 @@ const Row = ({
 );
 
 /* ─────────────────────────────────────────────────────────────────────────
- *  Packages (Tickets) Tab
+ *  Packages Tab
  * ────────────────────────────────────────────────────────────────────── */
 
 const emptyPackage = {
@@ -786,8 +859,8 @@ function PackagesTab({ eventId }: { eventId: string }) {
   return (
     <div className="space-y-4">
       <SectionHeader
-        title="Tickets"
-        description="Set the ticket tiers (packages) attendees book and pay for"
+        title="Packages"
+        description="Set the packages attendees book and pay for"
         count={packages.length}
         action={
           <AddBtn
@@ -796,7 +869,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
               setEditId(null);
               setModalOpen(true);
             }}
-            label="New ticket"
+            label="New package"
           />
         }
       />
@@ -806,12 +879,12 @@ function PackagesTab({ eventId }: { eventId: string }) {
       ) : packages.length === 0 ? (
         <EmptyState
           icon={MdPayments}
-          title="No tickets yet"
-          description="Add ticket tiers so members and the public can book and pay for this event."
+          title="No packages yet"
+          description="Add packages so members and the public can book and pay for this event."
           action={
             <AddBtn
               onClick={() => setModalOpen(true)}
-              label="Add the first ticket"
+              label="Add the first package"
             />
           }
         />
@@ -854,7 +927,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`Delete ticket "${p.name}"?`))
+                      if (confirm(`Delete package "${p.name}"?`))
                         deletePackage.mutate({ eventId, id: p.id });
                     }}
                     className="p-1.5 text-slate-500 hover:text-red-600 rounded hover:bg-red-50"
@@ -895,7 +968,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
       <Modal
         open={modalOpen}
         onClose={reset}
-        title={editId ? "Edit ticket" : "New ticket"}
+        title={editId ? "Edit package" : "New package"}
         size="lg"
       >
         <form onSubmit={submit} className="space-y-3">
@@ -910,7 +983,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
             label="Description"
             value={form.description}
             onChange={(v) => setForm({ ...form, description: v })}
-            placeholder="What's included in this ticket?"
+            placeholder="What's included in this package?"
           />
           <div className="grid grid-cols-2 gap-3">
             <Field
@@ -973,7 +1046,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
               disabled={saving}
               className="px-4 py-2 bg-primary text-white rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
-              {saving ? "Saving…" : editId ? "Save changes" : "Create ticket"}
+              {saving ? "Saving…" : editId ? "Save changes" : "Create package"}
             </button>
           </div>
         </form>
@@ -1015,7 +1088,7 @@ function BookingsTab({ eventId }: { eventId: string }) {
     <div className="space-y-4">
       <SectionHeader
         title="Bookings"
-        description="Every ticket booking placed for this event"
+        description="Every booking placed for this event"
         count={data?.pagination?.total ?? bookings.length}
       />
 
@@ -1049,7 +1122,7 @@ function BookingsTab({ eventId }: { eventId: string }) {
         <EmptyState
           icon={MdReceiptLong}
           title="No bookings yet"
-          description="Bookings appear here once members or the public reserve tickets."
+          description="Bookings appear here once members or the public book a package."
         />
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -1059,7 +1132,7 @@ function BookingsTab({ eventId }: { eventId: string }) {
                 <tr>
                   <th className="px-4 py-2">Reference</th>
                   <th className="px-4 py-2">Booker</th>
-                  <th className="px-4 py-2">Ticket</th>
+                  <th className="px-4 py-2">Package</th>
                   <th className="px-4 py-2 text-right">Attendees</th>
                   <th className="px-4 py-2 text-right">Amount</th>
                   <th className="px-4 py-2">Status</th>
@@ -1180,7 +1253,7 @@ function AttendeesTab({ eventId }: { eventId: string }) {
     <div className="space-y-4">
       <SectionHeader
         title="Attendees"
-        description="Booked ticket holders plus manually-added VIPs, staff and guests"
+        description="Booked attendees plus manually-added VIPs, staff and guests"
         count={meta?.total ?? attendees.length}
         action={
           <AddBtn onClick={() => setModalOpen(true)} label="Add attendee" />
@@ -1210,7 +1283,7 @@ function AttendeesTab({ eventId }: { eventId: string }) {
         <EmptyState
           icon={MdConfirmationNumber}
           title="No attendees yet"
-          description="Add VIPs, staff or guests here, or wait for ticket bookings to come in."
+          description="Add VIPs, staff or guests here, or wait for bookings to come in."
           action={
             <AddBtn onClick={() => setModalOpen(true)} label="Add an attendee" />
           }
@@ -1317,7 +1390,7 @@ function AttendeesTab({ eventId }: { eventId: string }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Ticket (optional)
+                Package (optional)
               </label>
               <select
                 value={packageId}
