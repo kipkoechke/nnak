@@ -63,6 +63,24 @@ const emptyAgenda = {
 const emptyRoom = { name: "", description: "", location: "" };
 
 /**
+ * The API takes `role` as a free-form string, but leaving it as a text box
+ * produced inconsistent values ("Speaker", "speaker", "spkr"). These are the
+ * roles the programme actually uses.
+ */
+const SPEAKER_ROLES = [
+  "speaker",
+  "keynote",
+  "moderator",
+  "panelist",
+  "chair",
+  "facilitator",
+  "discussant",
+  "rapporteur",
+] as const;
+
+const DEFAULT_ROLE = SPEAKER_ROLES[0];
+
+/**
  * The API nests agenda-speakers and breakout rooms (which nest their own
  * speakers) under an agenda, so they are edited in place rather than in
  * separate tabs that would make you re-pick the parent each time.
@@ -738,7 +756,7 @@ function LinkSpeakerForm({
   compact?: boolean;
 }) {
   const [speakerId, setSpeakerId] = useState("");
-  const [role, setRole] = useState("speaker");
+  const [role, setRole] = useState<string>(DEFAULT_ROLE);
 
   const available = speakers.filter((s) => !taken.includes(s.id));
   const control = compact
@@ -768,18 +786,24 @@ function LinkSpeakerForm({
           </option>
         ))}
       </select>
-      <input
+      <select
         value={role}
         onChange={(e) => setRole(e.target.value)}
-        placeholder="Role"
-        className={`w-20 border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 ${control}`}
-      />
+        aria-label="Role"
+        className={`w-28 shrink-0 border border-slate-200 bg-white text-slate-700 capitalize focus:outline-none focus:ring-2 focus:ring-primary/30 ${control}`}
+      >
+        {SPEAKER_ROLES.map((r) => (
+          <option key={r} value={r} className="capitalize">
+            {r}
+          </option>
+        ))}
+      </select>
       <button
         disabled={!speakerId || pending}
         onClick={() =>
           onLink(speakerId, role, () => {
             setSpeakerId("");
-            setRole("speaker");
+            setRole(DEFAULT_ROLE);
           })
         }
         className="shrink-0 text-xs font-medium text-primary hover:text-primary/80 disabled:text-slate-300 px-1"
