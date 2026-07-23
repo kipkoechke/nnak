@@ -272,6 +272,7 @@ export interface Speaker {
 }
 
 export interface CreateSpeakerInput {
+  event_id: string;
   name: string;
   title?: string | null;
   bio?: string | null;
@@ -293,6 +294,7 @@ export interface AgendaSpeaker {
 }
 
 export interface CreateAgendaSpeakerInput {
+  agenda_id: string;
   speaker_id: string;
   role?: string | null;
 }
@@ -328,6 +330,7 @@ export interface BreakoutSpeaker {
 }
 
 export interface CreateBreakoutSpeakerInput {
+  breakout_room_id: string;
   speaker_id: string;
   role?: string | null;
 }
@@ -345,6 +348,7 @@ export interface Sponsor {
 }
 
 export interface CreateSponsorInput {
+  event_id: string;
   name: string;
   logo_url?: string | null;
   website?: string | null;
@@ -364,6 +368,7 @@ export interface Exhibitor {
 }
 
 export interface CreateExhibitorInput {
+  event_id: string;
   name: string;
   description?: string | null;
   logo_url?: string | null;
@@ -1408,6 +1413,7 @@ export interface EventPackage {
 }
 
 export interface CreateEventPackageInput {
+  event_id: string;
   name: string;
   description?: string | null;
   is_member_only?: boolean;

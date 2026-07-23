@@ -859,6 +859,7 @@ function PackagesTab({ eventId }: { eventId: string }) {
     e.preventDefault();
     const benefits = parseBenefits(form.benefits);
     const input = {
+      event_id: eventId,
       name: form.name,
       description: form.description || null,
       cost: form.cost === "" ? 0 : Number(form.cost),
@@ -2183,7 +2184,7 @@ function SpeakersTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSpeaker.mutate(
-              { eventId, input: form },
+              { eventId, input: { event_id: eventId, ...form } },
               { onSuccess: reset },
             );
           }}
@@ -2343,7 +2344,7 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                     {
                       eventId,
                       agendaId,
-                      input: { speaker_id: speakerId, role },
+                      input: { agenda_id: agendaId, speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -2765,7 +2766,7 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                       eventId,
                       agendaId,
                       breakoutRoomId: roomId,
-                      input: { speaker_id: speakerId, role },
+                      input: { breakout_room_id: roomId, speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -3018,7 +3019,7 @@ function SponsorsTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSponsor.mutate(
-              { eventId, input: form },
+              { eventId, input: { event_id: eventId, ...form } },
               { onSuccess: reset },
             );
           }}
@@ -3193,6 +3194,7 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
               {
                 eventId,
                 input: {
+                  event_id: eventId,
                   name: form.name,
                   description: form.description || null,
                   logo_url: form.logo_url || null,
