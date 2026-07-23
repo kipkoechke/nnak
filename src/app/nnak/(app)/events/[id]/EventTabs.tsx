@@ -86,11 +86,7 @@ import {
   useCreateExhibitor,
   useDeleteExhibitor,
 } from "@/hooks/use-exhibitors";
-import type {
-  AttendanceType,
-  AttendeeType,
-  NnakEvent,
-} from "@/types/nnak";
+import type { AttendanceType, AttendeeType, NnakEvent } from "@/types/nnak";
 
 /* ─────────────────────────────────────────────────────────────────────────
  *  Helpers
@@ -690,11 +686,7 @@ function EventHero({
             value={event.is_approved ? "Approved" : "Pending"}
             footer={event.is_approved ? "Publicly bookable" : "Not yet public"}
           />
-          <KpiCell
-            icon={MdPayments}
-            label="Code"
-            value={event.code}
-          />
+          <KpiCell icon={MdPayments} label="Code" value={event.code} />
         </div>
       </div>
     </div>
@@ -859,7 +851,6 @@ function PackagesTab({ eventId }: { eventId: string }) {
     e.preventDefault();
     const benefits = parseBenefits(form.benefits);
     const input = {
-      event_id: eventId,
       name: form.name,
       description: form.description || null,
       cost: form.cost === "" ? 0 : Number(form.cost),
@@ -873,7 +864,10 @@ function PackagesTab({ eventId }: { eventId: string }) {
           : null,
     };
     if (editId)
-      updatePackage.mutate({ eventId, id: editId, input }, { onSuccess: reset });
+      updatePackage.mutate(
+        { eventId, id: editId, input },
+        { onSuccess: reset },
+      );
     else createPackage.mutate({ eventId, input }, { onSuccess: reset });
   };
 
@@ -1308,7 +1302,10 @@ function AttendeesTab({ eventId }: { eventId: string }) {
           title="No attendees yet"
           description="Add VIPs, staff or guests here, or wait for bookings to come in."
           action={
-            <AddBtn onClick={() => setModalOpen(true)} label="Add an attendee" />
+            <AddBtn
+              onClick={() => setModalOpen(true)}
+              label="Add an attendee"
+            />
           }
         />
       ) : (
@@ -1472,11 +1469,7 @@ function AttendeesTab({ eventId }: { eventId: string }) {
  *  Attendance Tab (scan + report)
  * ────────────────────────────────────────────────────────────────────── */
 
-const ATTENDANCE_TYPES: AttendanceType[] = [
-  "arrival",
-  "session",
-  "departure",
-];
+const ATTENDANCE_TYPES: AttendanceType[] = ["arrival", "session", "departure"];
 
 function AttendanceTab({ eventId }: { eventId: string }) {
   const [typeFilter, setTypeFilter] = useState<"" | AttendanceType>("");
@@ -1886,7 +1879,6 @@ function AgendasTab({ eventId }: { eventId: string }) {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      event_id: eventId,
       title: form.title,
       description: form.description || null,
       start_time: new Date(form.start_time).toISOString(),
@@ -2184,7 +2176,7 @@ function SpeakersTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSpeaker.mutate(
-              { eventId, input: { event_id: eventId, ...form } },
+              { eventId, input: form },
               { onSuccess: reset },
             );
           }}
@@ -2344,7 +2336,7 @@ function AgendaSpeakersTab({ eventId }: { eventId: string }) {
                     {
                       eventId,
                       agendaId,
-                      input: { agenda_id: agendaId, speaker_id: speakerId, role },
+                      input: { speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -2583,12 +2575,12 @@ function BreakoutRoomsTab({ eventId }: { eventId: string }) {
             e.preventDefault();
             if (editId)
               updateRoom.mutate(
-                { eventId, agendaId, id: editId, input: { agenda_id: agendaId, ...form } },
+                { eventId, agendaId, id: editId, input: form },
                 { onSuccess: reset },
               );
             else
               createRoom.mutate(
-                { eventId, agendaId, input: { agenda_id: agendaId, ...form } },
+                { eventId, agendaId, input: form },
                 { onSuccess: reset },
               );
           }}
@@ -2766,7 +2758,7 @@ function BreakoutSpeakersTab({ eventId }: { eventId: string }) {
                       eventId,
                       agendaId,
                       breakoutRoomId: roomId,
-                      input: { breakout_room_id: roomId, speaker_id: speakerId, role },
+                      input: { speaker_id: speakerId, role },
                     },
                     {
                       onSuccess: () => {
@@ -3019,7 +3011,7 @@ function SponsorsTab({ eventId }: { eventId: string }) {
           onSubmit={(e) => {
             e.preventDefault();
             createSponsor.mutate(
-              { eventId, input: { event_id: eventId, ...form } },
+              { eventId, input: form },
               { onSuccess: reset },
             );
           }}
@@ -3194,7 +3186,6 @@ function ExhibitorsTab({ eventId }: { eventId: string }) {
               {
                 eventId,
                 input: {
-                  event_id: eventId,
                   name: form.name,
                   description: form.description || null,
                   logo_url: form.logo_url || null,
