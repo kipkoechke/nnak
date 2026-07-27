@@ -9,13 +9,22 @@ import {
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
+import DownloadButton from "@/components/common/DownloadButton";
 import { usePublicEvent } from "@/hooks/use-public-events";
 import {
   useAttendanceReport,
   useEventAttendees,
   useEventBookings,
 } from "@/hooks/use-event-operations";
-import type { AttendanceType } from "@/types/nnak";
+import { eventBookingService } from "@/services/event-booking.service";
+import { eventAttendeeService } from "@/services/event-attendee.service";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
+import type {
+  AttendanceRecord,
+  AttendanceType,
+  EventAttendee,
+  EventBooking,
+} from "@/types/nnak";
 
 /** Finance sees the same payloads as admin, read-only. */
 const SCOPE = "finance" as const;
@@ -139,6 +148,28 @@ function BookingsView({ eventId }: { eventId: string }) {
   );
   const bookings = data?.data ?? [];
 
+  const exportColumns: ExcelColumn<EventBooking>[] = [
+    { header: "Reference", value: (b) => b.reference_code },
+    { header: "Booker", value: (b) => b.contact_name || b.user?.name || "" },
+    { header: "Email", value: (b) => b.contact_email || b.user?.email || "" },
+    { header: "Phone", value: (b) => b.contact_phone ?? "" },
+    { header: "Package", value: (b) => b.package_name ?? "" },
+    { header: "Attendees", value: (b) => b.attendees_count ?? 0 },
+    { header: "Amount", value: (b) => Number(b.total_amount ?? 0) },
+    { header: "Status", value: (b) => String(b.status).replace(/_/g, " ") },
+    { header: "Invoice", value: (b) => b.invoice_status ?? "" },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<EventBooking>((p) =>
+      eventBookingService.list(SCOPE, eventId, {
+        page: p,
+        per_page: 100,
+        status: status || undefined,
+        search: search.trim() || undefined,
+      }),
+    );
+
   return (
     <div className="space-y-3">
       <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row gap-3">
@@ -168,6 +199,14 @@ function BookingsView({ eventId }: { eventId: string }) {
               {opt.label}
             </button>
           ))}
+        </div>
+        <div className="md:ml-auto">
+          <DownloadButton
+            filename="event-bookings"
+            sheetName="Bookings"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
         </div>
       </div>
 
@@ -255,6 +294,27 @@ function AttendeesView({ eventId }: { eventId: string }) {
   const attendees = data?.data ?? [];
   const meta = data?.meta;
 
+  const exportColumns: ExcelColumn<EventAttendee>[] = [
+    { header: "Name", value: (a) => a.name },
+    { header: "Email", value: (a) => a.email ?? "" },
+    { header: "Phone", value: (a) => a.phone ?? "" },
+    { header: "Type", value: (a) => a.type ?? "booked" },
+    { header: "Source", value: (a) => a.source ?? "" },
+    { header: "Booking Ref", value: (a) => a.booking_reference ?? "" },
+    { header: "Ticket No.", value: (a) => a.ticket_number ?? "" },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<EventAttendee>((p) =>
+      eventAttendeeService
+        .list(SCOPE, eventId, {
+          page: p,
+          per_page: 100,
+          search: search.trim() || undefined,
+        })
+        .then((r) => ({ data: r.data, pagination: r.meta })),
+    );
+
   return (
     <div className="space-y-3">
       <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col md:flex-row md:items-center gap-3">
@@ -275,6 +335,14 @@ function AttendeesView({ eventId }: { eventId: string }) {
             of {meta.total} scanned in
           </div>
         )}
+        <div className="md:ml-auto">
+          <DownloadButton
+            filename="event-attendees"
+            sheetName="Attendees"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -351,6 +419,25 @@ function AttendanceView({ eventId }: { eventId: string }) {
   );
   const records = data?.data ?? [];
 
+  const exportColumns: ExcelColumn<AttendanceRecord>[] = [
+    { header: "Name", value: (a) => a.attendee_name },
+    { header: "Email", value: (a) => a.email ?? "" },
+    { header: "Ticket No.", value: (a) => a.ticket_number ?? "" },
+    { header: "Type", value: (a) => a.type },
+    { header: "Session", value: (a) => a.agenda || "Whole event" },
+    { header: "Scanned By", value: (a) => a.scanned_by ?? "" },
+    { header: "Scanned At", value: (a) => fmtTime(a.scanned_at) },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<AttendanceRecord>((p) =>
+      eventBookingService.report(SCOPE, eventId, {
+        page: p,
+        per_page: 100,
+        type: type || undefined,
+      }),
+    );
+
   return (
     <div className="space-y-3">
       <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-1.5">
@@ -372,6 +459,14 @@ function AttendanceView({ eventId }: { eventId: string }) {
             </button>
           ),
         )}
+        <div className="ml-auto">
+          <DownloadButton
+            filename="event-attendance"
+            sheetName="Attendance"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        </div>
       </div>
 
       {isLoading ? (

@@ -149,6 +149,10 @@ export default function MembersPage() {
     { header: "NCK No.", value: (m) => m.profile?.nck_number ?? "" },
     { header: "Phone", value: (m) => m.profile?.phone ?? "" },
     {
+      header: "Chapter",
+      value: (m) => m.profile?.chapter_label ?? m.profile?.chapter ?? "",
+    },
+    {
       header: "Category",
       value: (m) =>
         m.profile?.member_category?.name ??
