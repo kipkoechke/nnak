@@ -127,7 +127,7 @@ export default function AdminDashboard() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Members
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {/* Total, with the active/inactive split sitting beneath it. */}
               <StatCard
                 title="Total Members"
@@ -153,27 +153,24 @@ export default function AdminDashboard() {
                   </div>
                 }
               />
-
-              <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {typeof data.members.claimed === "number" && (
-                  <StatCard
-                    title="Claimed Account"
-                    mainValue={data.members.claimed}
-                  />
-                )}
+              {typeof data.members.claimed === "number" && (
                 <StatCard
-                  title="Pending Approval"
-                  mainValue={data.members.pending_approval}
+                  title="Claimed Account"
+                  mainValue={data.members.claimed}
                 />
-                <StatCard
-                  title="New This Period"
-                  mainValue={data.members.new_this_period}
-                />
-                <StatCard
-                  title="Corporate / Individual"
-                  mainValue={`${data.members.corporate} / ${data.members.individual}`}
-                />
-              </div>
+              )}
+              <StatCard
+                title="Pending Approval"
+                mainValue={data.members.pending_approval}
+              />
+              <StatCard
+                title="New This Period"
+                mainValue={data.members.new_this_period}
+              />
+              <StatCard
+                title="Corporate / Individual"
+                mainValue={`${data.members.corporate} / ${data.members.individual}`}
+              />
             </div>
           </section>
 
