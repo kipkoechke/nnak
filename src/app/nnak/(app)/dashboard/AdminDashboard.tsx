@@ -126,39 +126,60 @@ export default function AdminDashboard() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Members
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <KpiCard label="Total Members" value={data.members.total} />
-              <KpiCard
-                label="Active"
-                value={data.members.active}
-                accent="emerald"
-              />
-              <KpiCard
-                label="Inactive"
-                value={data.members.inactive}
-                accent="amber"
-              />
-              {typeof data.members.claimed === "number" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              {/* Total, with the active/inactive split sitting beneath it. */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-3">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                    Total Members
+                  </div>
+                  <div className="text-2xl font-bold mt-1 text-slate-900">
+                    {data.members.total}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      Active
+                    </div>
+                    <div className="text-lg font-bold mt-0.5 text-emerald-700">
+                      {data.members.active}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                      Inactive
+                    </div>
+                    <div className="text-lg font-bold mt-0.5 text-amber-600">
+                      {data.members.inactive}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {typeof data.members.claimed === "number" && (
+                  <KpiCard
+                    label="Claimed Account"
+                    value={data.members.claimed}
+                    accent="blue"
+                  />
+                )}
                 <KpiCard
-                  label="Claimed"
-                  value={data.members.claimed}
+                  label="Pending Approval"
+                  value={data.members.pending_approval}
+                  accent="amber"
+                />
+                <KpiCard
+                  label="New This Period"
+                  value={data.members.new_this_period}
                   accent="blue"
                 />
-              )}
-              <KpiCard
-                label="Pending Approval"
-                value={data.members.pending_approval}
-                accent="amber"
-              />
-              <KpiCard
-                label="New This Period"
-                value={data.members.new_this_period}
-                accent="blue"
-              />
-              <KpiCard
-                label="Corporate / Individual"
-                value={`${data.members.corporate} / ${data.members.individual}`}
-              />
+                <KpiCard
+                  label="Corporate / Individual"
+                  value={`${data.members.corporate} / ${data.members.individual}`}
+                />
+              </div>
             </div>
           </section>
 
