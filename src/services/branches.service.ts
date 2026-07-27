@@ -43,13 +43,26 @@ export const nnakBranchesService = {
     });
     return r.data?.data ?? [];
   },
-  /** Admin: POST /admin/branches — create a branch with its primary contact.
-   *  Returns a pending_token; must complete with OTP verification. */
+  /** Admin: POST /admin/branches — create a branch, optionally with a manager.
+   *  With a manager the response is a pending_token to verify by OTP; without
+   *  one the created branch is returned directly. */
   create: async (
     body: import("@/types/nnak").CreateBranchInput,
-  ): Promise<PendingOtpResponse> => {
-    const r = await nnakApi.post<{ success: boolean; data: PendingOtpResponse }>(
-      "/admin/branches",
+  ): Promise<import("@/types/nnak").CreateBranchResult> => {
+    const r = await nnakApi.post<{
+      success: boolean;
+      data: import("@/types/nnak").CreateBranchResult;
+    }>("/admin/branches", body);
+    return r.data?.data;
+  },
+
+  /** Admin: PUT /admin/branches/{id} — edit branch details (not the manager). */
+  update: async (
+    id: string,
+    body: import("@/types/nnak").UpdateBranchInput,
+  ): Promise<Branch> => {
+    const r = await nnakApi.put<{ success: boolean; data: Branch }>(
+      `/admin/branches/${id}`,
       body,
     );
     return r.data?.data;

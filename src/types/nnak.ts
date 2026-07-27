@@ -647,10 +647,27 @@ export interface CreateBranchInput {
   employer_type: EmployerType | string;
   commission_type: string;
   commission_value: string;
-  branch_manager_email: string;
-  branch_manager_name: string;
-  branch_manager_phone: string;
+  // Manager is optional: supply all three to nominate one (which triggers OTP
+  // verification), or omit them to create the branch without a manager.
+  branch_manager_email?: string;
+  branch_manager_name?: string;
+  branch_manager_phone?: string;
 }
+
+/** PUT /admin/branches/{id}. Manager is changed via its own endpoint. */
+export interface UpdateBranchInput {
+  name?: string;
+  employer_type?: EmployerType | string;
+  commission_type?: string;
+  commission_value?: string;
+}
+
+/**
+ * Creating a branch either returns the finished record (no manager) or a
+ * pending-OTP handle to verify the nominated manager. `pending_token` tells
+ * the two apart.
+ */
+export type CreateBranchResult = PendingOtpResponse | Branch;
 
 // ── Admin: verify branch manager (POST /admin/branches/verify) ─────
 // Two separate requests: first with email_otp, then with phone_otp.
