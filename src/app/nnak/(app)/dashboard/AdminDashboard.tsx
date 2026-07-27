@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MdCalendarToday, MdEvent, MdReceipt } from "react-icons/md";
 import { useAdminDashboard } from "@/hooks/use-admin-dashboard";
+import StatCard from "@/components/common/StatCard";
 import type { AdminBatchPeriod } from "@/types/nnak";
 import {
   Bar,
@@ -128,56 +129,49 @@ export default function AdminDashboard() {
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               {/* Total, with the active/inactive split sitting beneath it. */}
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col gap-3">
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                    Total Members
-                  </div>
-                  <div className="text-2xl font-bold mt-1 text-slate-900">
-                    {data.members.total}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      Active
+              <StatCard
+                title="Total Members"
+                mainValue={data.members.total}
+                subtitle={
+                  <div className="grid grid-cols-2 gap-3 w-full pt-2 mt-1 border-t border-slate-100">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+                        Active
+                      </div>
+                      <div className="text-base md:text-lg font-bold text-emerald-700">
+                        {data.members.active}
+                      </div>
                     </div>
-                    <div className="text-lg font-bold mt-0.5 text-emerald-700">
-                      {data.members.active}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                      Inactive
-                    </div>
-                    <div className="text-lg font-bold mt-0.5 text-amber-600">
-                      {data.members.inactive}
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+                        Inactive
+                      </div>
+                      <div className="text-base md:text-lg font-bold text-amber-600">
+                        {data.members.inactive}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                }
+              />
 
               <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {typeof data.members.claimed === "number" && (
-                  <KpiCard
-                    label="Claimed Account"
-                    value={data.members.claimed}
-                    accent="blue"
+                  <StatCard
+                    title="Claimed Account"
+                    mainValue={data.members.claimed}
                   />
                 )}
-                <KpiCard
-                  label="Pending Approval"
-                  value={data.members.pending_approval}
-                  accent="amber"
+                <StatCard
+                  title="Pending Approval"
+                  mainValue={data.members.pending_approval}
                 />
-                <KpiCard
-                  label="New This Period"
-                  value={data.members.new_this_period}
-                  accent="blue"
+                <StatCard
+                  title="New This Period"
+                  mainValue={data.members.new_this_period}
                 />
-                <KpiCard
-                  label="Corporate / Individual"
-                  value={`${data.members.corporate} / ${data.members.individual}`}
+                <StatCard
+                  title="Corporate / Individual"
+                  mainValue={`${data.members.corporate} / ${data.members.individual}`}
                 />
               </div>
             </div>
