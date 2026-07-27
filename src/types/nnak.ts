@@ -1411,25 +1411,14 @@ export interface FinanceDashboardData {
     branch_name: string | null;
     created_at: string;
   }[];
+  /** Which windows are reported varies (this_month / last_month), and may be
+   *  absent; render whichever arrive. Reuses the admin dashboard's shapes. */
   batches?: {
-    this_month: {
-      count: number;
-      paid_count: number;
-      pending_count: number;
-      total_collected: number;
-      commission: number;
-      branch_share: number;
-      hq_share: number;
-    };
-    all_time: {
-      total_collected: number;
-      total_commission: number;
-      total_branch_share: number;
-      total_hq_share: number;
-      paid_total: number;
-      pending_total: number;
-    };
+    this_month?: AdminBatchPeriod;
+    last_month?: AdminBatchPeriod;
+    all_time?: AdminBatchAllTime;
   };
+  events?: FinanceDashboardEvents;
   byproducts?: {
     id: string;
     file_name: string;
@@ -1440,6 +1429,14 @@ export interface FinanceDashboardData {
   }[];
   supported_params?: string[];
   applied_filters?: Record<string, string>;
+}
+
+export interface FinanceDashboardEvents {
+  total_bookings: number;
+  paid_bookings: number;
+  revenue: string | number;
+  pending_bookings: number;
+  upcoming_events: number;
 }
 
 // ── Finance: Batches (/finance/batches) ───────────────────────────
