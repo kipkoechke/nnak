@@ -10,13 +10,23 @@ import type { MemberStatus, NnakProfile } from "@/types/nnak";
 
 export type MemberListParams = MemberListQuery;
 
-export const useMembers = (p: MemberListParams = {}, opts?: { enabled?: boolean }) =>
-  useQuery({
-    queryKey: nqk.members.list(p as Record<string, unknown>),
+export const useMembers = (
+  p: MemberListParams = {},
+  opts?: { enabled?: boolean },
+) => {
+  // Pagination is kept out of the cache key so a filter combination is one
+  // cache entry rather than one-per-page-size. `page` has to stay, though —
+  // TanStack Query only refetches when the key changes, so dropping it would
+  // freeze the Pagination control on page 1. The server still receives both.
+  const keyParams: Record<string, unknown> = { ...p };
+  delete keyParams.per_page;
+  return useQuery({
+    queryKey: nqk.members.list(keyParams),
     queryFn: () => membersService.list(p),
     placeholderData: (prev) => prev,
     enabled: opts?.enabled,
   });
+};
 
 export const useMember = (id: string) =>
   useQuery({
