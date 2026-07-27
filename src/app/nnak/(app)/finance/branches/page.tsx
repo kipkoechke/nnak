@@ -4,8 +4,12 @@ import Link from "next/link";
 import { MdSearch, MdCorporateFare } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
+import DownloadButton from "@/components/common/DownloadButton";
 import { useFinanceBranches } from "@/hooks/use-finance";
+import { financeService } from "@/services/finance.service";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import { fmtCommissionValue } from "@/lib/commission";
+import type { FinanceBranch } from "@/types/nnak";
 
 export default function FinanceBranchesPage() {
   const [page, setPage] = useState(1);
@@ -20,11 +24,53 @@ export default function FinanceBranchesPage() {
   const branches = data?.data ?? [];
   const pagination = data?.pagination;
 
+  const exportColumns: ExcelColumn<FinanceBranch>[] = [
+    { header: "Branch", value: (b) => b.name },
+    {
+      header: "Employer Type",
+      value: (b) => b.employer_type?.replace(/_/g, " ") ?? "",
+    },
+    {
+      header: "Commission Type",
+      value: (b) => b.commission_type?.replace(/_/g, " ") ?? "",
+    },
+    {
+      header: "Commission",
+      value: (b) => fmtCommissionValue(b.commission_value, b.commission_type),
+    },
+    { header: "Members", value: (b) => b.member_count ?? 0 },
+    {
+      header: "Paid Branch Share",
+      value: (b) => Number(b.total_paid_branch_share ?? 0),
+    },
+    {
+      header: "Pending Branch Share",
+      value: (b) => Number(b.pending_branch_share ?? 0),
+    },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<FinanceBranch>((p) =>
+      financeService.branches({
+        page: p,
+        per_page: 100,
+        search: search || undefined,
+      }),
+    );
+
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
       <PageHeader
         title="Branches"
         description="Finance view of all corporate branches"
+        action={
+          <DownloadButton
+            filename="finance-branches"
+            sheetName="Branches"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       <div className="flex flex-wrap gap-2 items-end shrink-0">

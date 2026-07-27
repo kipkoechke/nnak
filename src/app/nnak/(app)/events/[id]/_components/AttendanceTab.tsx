@@ -13,6 +13,9 @@ import {
   useAttendanceScan,
 } from "@/hooks/use-event-operations";
 import { useAgendas } from "@/hooks/use-agendas";
+import { eventBookingService } from "@/services/event-booking.service";
+import DownloadButton from "@/components/common/DownloadButton";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import type { AttendanceRecord, AttendanceType } from "@/types/nnak";
 import type { Column } from "./shared";
 import {
@@ -102,11 +105,39 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
     },
   ];
 
+  const exportColumns: ExcelColumn<AttendanceRecord>[] = [
+    { header: "Name", value: (a) => a.attendee_name },
+    { header: "Email", value: (a) => a.email ?? "" },
+    { header: "Ticket No.", value: (a) => a.ticket_number ?? "" },
+    { header: "Type", value: (a) => a.type },
+    { header: "Session", value: (a) => a.agenda || "Whole event" },
+    { header: "Scanned By", value: (a) => a.scanned_by ?? "" },
+    { header: "Scanned At", value: (a) => fmtDateTime(a.scanned_at) },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<AttendanceRecord>((p) =>
+      eventBookingService.report("admin", eventId, {
+        page: p,
+        per_page: 100,
+        type: typeFilter || undefined,
+        agenda_id: agendaFilter || undefined,
+      }),
+    );
+
   return (
     <div className="space-y-4">
       <SectionHeader
         title="Attendance"
         description="Check tickets at the door, record scans and track turnout"
+        action={
+          <DownloadButton
+            filename="event-attendance"
+            sheetName="Attendance"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">

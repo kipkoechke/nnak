@@ -3,8 +3,10 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import { MdGroups, MdPerson } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import DownloadButton from "@/components/common/DownloadButton";
 import { useFinanceBranch } from "@/hooks/use-finance";
 import { fmtCommissionValue, fmtKes } from "@/lib/commission";
+import type { ExcelColumn } from "@/lib/export-excel";
 import type { FinanceBranchMember } from "@/types/nnak";
 
 const fmtDate = (s?: string | null) =>
@@ -43,12 +45,40 @@ export default function FinanceBranchDetailPage({
   const members = branch.members ?? [];
   const memberCount = branch.members_count ?? members.length;
 
+  const exportColumns: ExcelColumn<FinanceBranchMember>[] = [
+    { header: "Name", value: (m) => m.name },
+    { header: "Email", value: (m) => m.email ?? "" },
+    { header: "Membership No.", value: (m) => m.membership_number ?? "" },
+    { header: "Chapter", value: (m) => m.chapter_label || m.chapter || "" },
+    { header: "Category", value: (m) => m.member_category?.name ?? "" },
+    {
+      header: "Subscription",
+      value: (m) => (m.subscription_active ? "Active" : "Inactive"),
+    },
+    {
+      header: "Subscription Expires",
+      value: (m) => m.subscription_expires_at ?? "",
+    },
+    {
+      header: "Pending Invoices",
+      value: (m) => Number(m.pending_invoices_total ?? 0),
+    },
+  ];
+
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
         title={branch.name}
         description={branch.employer_type_label || branch.employer_type}
         back={() => router.back()}
+        action={
+          <DownloadButton
+            filename={`branch-${branch.name}-members`}
+            sheetName="Members"
+            columns={exportColumns}
+            rows={members}
+          />
+        }
       />
 
       {/* Summary stats */}

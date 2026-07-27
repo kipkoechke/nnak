@@ -10,7 +10,9 @@ import {
 import { useNnakMe } from "@/hooks/use-auth";
 import { usePaymentMethods } from "@/hooks/use-enums";
 import { MdAttachMoney, MdClose } from "react-icons/md";
+import DownloadButton from "@/components/common/DownloadButton";
 import { fmtCommissionValue, fmtKes } from "@/lib/commission";
+import type { ExcelColumn } from "@/lib/export-excel";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -120,6 +122,32 @@ export default function AdminBatchDetailPage({
   const outstanding = num(batch.pending_remittance);
   const paid = num(batch.total_remitted);
 
+  // Finance and admin batch detail return slightly different member shapes;
+  // this is the subset both share and the export reads.
+  type BatchMemberRow = {
+    id: string;
+    user?: { name?: string | null; email?: string | null } | null;
+    amount_paid: string | number;
+    commission_amount: string | number;
+    commission_type?: string | null;
+    commission_value?: string | number | null;
+  };
+  const members = (batch.members ?? []) as BatchMemberRow[];
+  const memberColumns: ExcelColumn<BatchMemberRow>[] = [
+    { header: "Member", value: (m) => m.user?.name ?? "" },
+    { header: "Email", value: (m) => m.user?.email ?? "" },
+    { header: "Amount Paid", value: (m) => Number(m.amount_paid ?? 0) },
+    { header: "Commission", value: (m) => Number(m.commission_amount ?? 0) },
+    {
+      header: "Commission Type",
+      value: (m) => m.commission_type?.replace(/_/g, " ") ?? "",
+    },
+    {
+      header: "Commission Value",
+      value: (m) => (m.commission_value == null ? "" : m.commission_value),
+    },
+  ];
+
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
@@ -128,6 +156,12 @@ export default function AdminBatchDetailPage({
         back={() => router.back()}
         action={
           <div className="flex items-center gap-2">
+            <DownloadButton
+              filename={`batch-${batch.reference_code}-members`}
+              sheetName="Members"
+              columns={memberColumns}
+              rows={members}
+            />
             <span
               className={`text-[10px] px-2 py-1 rounded-full uppercase font-semibold ${
                 STATUS_TONE[batch.status] || STATUS_TONE.pending

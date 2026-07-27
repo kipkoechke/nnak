@@ -2,7 +2,11 @@
 import { useState } from "react";
 import { MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import DownloadButton from "@/components/common/DownloadButton";
 import { useMpesaTransactions } from "@/hooks/use-mpesa-transactions";
+import { mpesaTransactionService } from "@/services/mpesa-transaction.service";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
+import type { MpesaTransaction } from "@/types/nnak";
 
 const statusTone = (s?: string) => {
   const v = (s || "").toLowerCase();
@@ -33,11 +37,42 @@ export default function MpesaTransactionsPage() {
   const txns = data?.data ?? [];
   const pagination = data?.pagination;
 
+  const exportColumns: ExcelColumn<MpesaTransaction>[] = [
+    { header: "Receipt", value: (t) => t.MpesaReceiptNumber || t.TransID || "" },
+    { header: "Phone", value: (t) => t.MSISDN ?? "" },
+    { header: "Name", value: (t) => t.FirstName ?? "" },
+    { header: "Amount", value: (t) => Number(t.TransAmount ?? 0) },
+    {
+      header: "Reference",
+      value: (t) => t.BillRefNumber || t.InvoiceNumber || "",
+    },
+    { header: "Time", value: (t) => fmtTime(t.TransTime) },
+    { header: "Status", value: (t) => t.status ?? "" },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<MpesaTransaction>((p) =>
+      mpesaTransactionService.list({
+        page: p,
+        per_page: 100,
+        search: search || undefined,
+        status: status || undefined,
+      }),
+    );
+
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="M-Pesa Transactions"
         description="Daraja STK Push and C2B transactions received by the platform"
+        action={
+          <DownloadButton
+            filename="mpesa-transactions"
+            sheetName="Transactions"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       <div className="flex flex-wrap items-center gap-2">

@@ -3,6 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
+import DownloadButton from "@/components/common/DownloadButton";
+import { type ExcelColumn } from "@/lib/export-excel";
 import {
   useFinanceBatches,
   useRecordFinanceBatchPayment,
@@ -132,11 +134,31 @@ export default function FinanceBranchBatchesPage() {
 
   const paidAmount = (b: BatchRow) => Number(b.total_remitted || 0);
 
+  const exportColumns: ExcelColumn<BatchRow>[] = [
+    { header: "Reference", value: (b) => b.reference_code },
+    { header: "Period", value: (b) => b.period },
+    { header: "Branch", value: (b) => b.branch?.name ?? "" },
+    { header: "Status", value: (b) => b.status?.replace(/_/g, " ") ?? "" },
+    { header: "Collected", value: (b) => Number(b.total_collected ?? 0) },
+    { header: "Commission", value: (b) => Number(b.commission ?? 0) },
+    { header: "Branch Share", value: (b) => Number(b.branch_share ?? 0) },
+    { header: "Remitted", value: (b) => Number(b.total_remitted ?? 0) },
+    { header: "Pending", value: (b) => Number(b.pending_remittance ?? 0) },
+  ];
+
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Branch Batches"
         description="Reconcile branch monthly remittances"
+        action={
+          <DownloadButton
+            filename="branch-batches"
+            sheetName="Batches"
+            columns={exportColumns}
+            rows={batches}
+          />
+        }
       />
 
       <div className="flex flex-wrap gap-2 items-end">

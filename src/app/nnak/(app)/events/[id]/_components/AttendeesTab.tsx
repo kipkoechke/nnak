@@ -6,6 +6,9 @@ import {
   useEventAttendees,
 } from "@/hooks/use-event-operations";
 import { useEventPackages } from "@/hooks/use-event-packages";
+import { eventAttendeeService } from "@/services/event-attendee.service";
+import DownloadButton from "@/components/common/DownloadButton";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import type { AttendeeType, EventAttendee } from "@/types/nnak";
 import type { Column } from "./shared";
 import {
@@ -175,6 +178,30 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
     },
   ];
 
+  const exportColumns: ExcelColumn<EventAttendee>[] = [
+    { header: "Name", value: (a) => a.name },
+    { header: "Email", value: (a) => a.email ?? "" },
+    { header: "Phone", value: (a) => a.phone ?? "" },
+    { header: "Type", value: (a) => a.type ?? "booked" },
+    { header: "Source", value: (a) => a.source ?? "" },
+    { header: "Booking Ref", value: (a) => a.booking_reference ?? "" },
+    { header: "Package", value: (a) => a.package_name ?? "" },
+    { header: "Ticket No.", value: (a) => a.ticket_number ?? "" },
+    { header: "Ticket Sent", value: (a) => a.ticket_sent_at ?? "" },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<EventAttendee>((p) =>
+      eventAttendeeService
+        .list("admin", eventId, {
+          page: p,
+          per_page: 100,
+          search: search.trim() || undefined,
+        })
+        // The attendees endpoint paginates inside `meta`, not `pagination`.
+        .then((r) => ({ data: r.data, pagination: r.meta })),
+    );
+
   return (
     <div className="space-y-4">
       <SectionHeader
@@ -182,7 +209,15 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
         description="Booked attendees plus manually-added VIPs, staff and guests"
         count={meta?.total ?? attendees.length}
         action={
-          <AddBtn onClick={() => setModalOpen(true)} label="Add attendee" />
+          <div className="flex items-center gap-2">
+            <DownloadButton
+              filename="event-attendees"
+              sheetName="Attendees"
+              columns={exportColumns}
+              fetchRows={fetchExportRows}
+            />
+            <AddBtn onClick={() => setModalOpen(true)} label="Add attendee" />
+          </div>
         }
       />
 

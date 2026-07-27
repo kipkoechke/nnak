@@ -4,12 +4,15 @@ import Link from "next/link";
 import { MdAdd, MdSearch, MdUploadFile, MdDownload } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
+import DownloadButton from "@/components/common/DownloadButton";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import {
   useImportMembers,
   useMembers,
   useSetMemberStatus,
 } from "@/hooks/use-members";
 import { membersService } from "@/services/members.service";
+import { branchManagerService } from "@/services/branch-manager.service";
 import { useBranchMembers } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
@@ -137,6 +140,57 @@ export default function MembersPage() {
     memberName: string;
   } | null>(null);
 
+  // Export walks every page of the current filter, not just the 15 on screen.
+  type MemberRow = NonNullable<typeof data>["data"][number];
+  const exportColumns: ExcelColumn<MemberRow>[] = [
+    { header: "Name", value: (m) => m.name },
+    { header: "Email", value: (m) => m.email },
+    { header: "Membership No.", value: (m) => m.profile?.membership_number ?? "" },
+    { header: "NCK No.", value: (m) => m.profile?.nck_number ?? "" },
+    { header: "Phone", value: (m) => m.profile?.phone ?? "" },
+    {
+      header: "Category",
+      value: (m) =>
+        m.profile?.member_category?.name ??
+        cats.find((c) => c.id === m.profile?.member_category_id)?.name ??
+        "",
+    },
+    {
+      header: "Branch",
+      value: (m) =>
+        m.profile?.branch?.name ??
+        branches.find((b) => b.id === m.profile?.branch_id)?.name ??
+        "",
+    },
+    {
+      header: "Subscription",
+      value: (m) => (m.profile?.subscription_active ? "Active" : "Inactive"),
+    },
+    {
+      header: "Subscription Expires",
+      value: (m) => m.profile?.subscription_expires_at ?? "",
+    },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<MemberRow>((p) =>
+      isBranchManager
+        ? branchManagerService.listMembers({
+            page: p,
+            per_page: 100,
+            search: search || undefined,
+          })
+        : membersService.list({
+            page: p,
+            per_page: 100,
+            search: search || undefined,
+            status: status || undefined,
+            member_category_id: categoryId || undefined,
+            branch_id: branchId || undefined,
+            aging: aging || undefined,
+          }),
+    );
+
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
       <PageHeader
@@ -144,6 +198,12 @@ export default function MembersPage() {
         description="NNAK member register"
         action={
           <div className="flex items-center gap-2">
+            <DownloadButton
+              filename="members"
+              sheetName="Members"
+              columns={exportColumns}
+              fetchRows={fetchExportRows}
+            />
             {canImport && (
               <>
                 <button

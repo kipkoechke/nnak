@@ -3,8 +3,12 @@ import { useMemo, useState } from "react";
 import { MdSwapHoriz } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
+import DownloadButton from "@/components/common/DownloadButton";
 import { useFinanceRemittances, useFinanceBranches } from "@/hooks/use-finance";
+import { financeService } from "@/services/finance.service";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import { fmtKes } from "@/lib/commission";
+import type { FinanceRemittanceItem } from "@/types/nnak";
 
 const toISO = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -74,11 +78,41 @@ export default function FinanceRemittancesPage() {
   // Absent when the whole result set fits on one page.
   const pagination = data?.pagination;
 
+  const exportColumns: ExcelColumn<FinanceRemittanceItem>[] = [
+    { header: "Type", value: (r) => r.type },
+    { header: "Payer", value: (r) => r.payer_name ?? "" },
+    { header: "Phone", value: (r) => r.phone ?? "" },
+    { header: "Reference", value: (r) => r.reference ?? "" },
+    { header: "Receipt", value: (r) => r.receipt ?? "" },
+    { header: "Amount", value: (r) => Number(r.amount ?? 0) },
+    { header: "Date", value: (r) => fmtDate(r.created_at) },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<FinanceRemittanceItem>((p) =>
+      financeService.remittances({
+        page: p,
+        per_page: 100,
+        category: category !== "all" ? category : undefined,
+        branch_id: branchId || undefined,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    );
+
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
       <PageHeader
         title="Remittances"
         description="Track M-Pesa and batch remittance history"
+        action={
+          <DownloadButton
+            filename="remittances"
+            sheetName="Remittances"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       {/* Summary */}

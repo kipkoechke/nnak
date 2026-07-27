@@ -6,6 +6,9 @@ import {
   MdReceiptLong,
 } from "react-icons/md";
 import { useEventBooking, useEventBookings } from "@/hooks/use-event-operations";
+import { eventBookingService } from "@/services/event-booking.service";
+import DownloadButton from "@/components/common/DownloadButton";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import type { BookingStatus, EventBooking } from "@/types/nnak";
 import type { Column } from "./shared";
 import {
@@ -55,6 +58,29 @@ export default function BookingsTab({ eventId }: { eventId: string }) {
   });
 
   const bookings = data?.data ?? [];
+
+  const exportColumns: ExcelColumn<EventBooking>[] = [
+    { header: "Reference", value: (b) => b.reference_code },
+    { header: "Booker", value: (b) => b.contact_name || b.user?.name || "" },
+    { header: "Email", value: (b) => b.contact_email || b.user?.email || "" },
+    { header: "Phone", value: (b) => b.contact_phone ?? "" },
+    { header: "Package", value: (b) => b.package_name ?? "" },
+    { header: "Attendees", value: (b) => b.attendees_count ?? 0 },
+    { header: "Amount", value: (b) => Number(b.total_amount ?? 0) },
+    { header: "Status", value: (b) => humanise(b.status) },
+    { header: "Invoice", value: (b) => b.invoice_status ?? "" },
+    { header: "Booked At", value: (b) => fmtDateTime(b.created_at) },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<EventBooking>((p) =>
+      eventBookingService.list("admin", eventId, {
+        page: p,
+        per_page: 100,
+        status: status || undefined,
+        search: search.trim() || undefined,
+      }),
+    );
 
   const columns: Column<EventBooking>[] = [
     {
@@ -118,6 +144,14 @@ export default function BookingsTab({ eventId }: { eventId: string }) {
         title="Bookings"
         description="Every booking placed for this event — open a row for invoice and ticket detail"
         count={data?.pagination?.total ?? bookings.length}
+        action={
+          <DownloadButton
+            filename="event-bookings"
+            sheetName="Bookings"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       <Toolbar>
