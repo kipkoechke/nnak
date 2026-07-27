@@ -239,3 +239,18 @@ body {
   color: #6b7280;
   cursor: not-allowed;
 }
+
+/* Every interactive control shows a pointer; disabled ones keep not-allowed.
+ * Covers native buttons, links styled as buttons, selects and role="button". */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+select:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
