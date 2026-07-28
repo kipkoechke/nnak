@@ -985,6 +985,8 @@ export interface BranchDashboardMembers {
   total: number;
   active: number;
   inactive: number;
+  /** Migrated members who have claimed their account. */
+  claimed?: number;
   pending_approval: number;
   new_this_period: number;
 }
@@ -1005,7 +1007,7 @@ export interface BranchBatchMetrics {
 }
 
 export interface BranchPeriodBatch {
-  batch: BranchBatch | null;
+  batch: BranchBatchDetail | null;
   metrics: BranchBatchMetrics;
 }
 
@@ -1017,10 +1019,14 @@ export interface BranchAllTimeBatch {
   pending_total: string | number;
 }
 
+/**
+ * Every block is optional — the branch dashboard only sends the periods it
+ * has batches for (it may answer with `last_month` alone).
+ */
 export interface BranchDashboardBatches {
-  current_month: BranchPeriodBatch;
-  last_month: BranchPeriodBatch;
-  all_time: BranchAllTimeBatch;
+  current_month?: BranchPeriodBatch;
+  last_month?: BranchPeriodBatch;
+  all_time?: BranchAllTimeBatch;
 }
 
 export interface BranchDashboardInvites {
@@ -1028,19 +1034,24 @@ export interface BranchDashboardInvites {
   pending_transfers: number;
 }
 
+/**
+ * Only `branch`, `date_range`, `members` and `revenue` are always sent; the
+ * rest of the blocks come and go with what the branch has, so every consumer
+ * must guard rather than index straight in.
+ */
 export interface BranchDashboardData {
   branch: BranchDashboardBranch;
   date_range: { start: string; end: string };
   members: BranchDashboardMembers;
   revenue: BranchDashboardRevenue;
-  batches: BranchDashboardBatches;
-  byproduct: { recent_uploads: unknown[] };
-  invites: BranchDashboardInvites;
-  chapters: AdminDashboardChapterRow[];
-  recent_members: RecentPendingMember[];
+  batches?: BranchDashboardBatches;
+  byproduct?: { recent_uploads: unknown[] };
+  invites?: BranchDashboardInvites;
+  chapters?: AdminDashboardChapterRow[];
+  recent_members?: RecentPendingMember[];
   trendline?: PaymentTrendPoint[];
-  supported_params: string[];
-  applied_filters: Record<string, string>;
+  supported_params?: string[];
+  applied_filters?: Record<string, string>;
 }
 
 // ── Pending profile (GET /members/pending) ────────────────────────
