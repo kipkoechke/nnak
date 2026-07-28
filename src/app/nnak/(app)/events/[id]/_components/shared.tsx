@@ -487,6 +487,7 @@ export const AddBtn = ({
   label?: string;
 }) => (
   <button
+    type="button"
     onClick={onClick}
     className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-primary/90 shadow-sm transition-colors"
   >
@@ -643,6 +644,7 @@ export const IconButton = ({
   children: React.ReactNode;
 }) => (
   <button
+    type="button"
     onClick={onClick}
     title={title}
     aria-label={title}

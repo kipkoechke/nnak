@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNnakLogin } from "@/hooks/use-auth";
+import PasswordInput from "@/components/common/PasswordInput";
 
 export default function NnakLoginPage() {
   const router = useRouter();
@@ -43,8 +44,7 @@ export default function NnakLoginPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

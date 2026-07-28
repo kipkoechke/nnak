@@ -42,6 +42,20 @@ const parseBenefits = (v: string) =>
     .map((b) => b.trim())
     .filter(Boolean);
 
+/** Tolerates the API sending benefits as an array, a JSON string, or null. */
+const toBenefitList = (b: EventPackage["benefits"]): string[] => {
+  if (Array.isArray(b)) return b;
+  if (typeof b === "string") {
+    try {
+      const parsed = JSON.parse(b);
+      return Array.isArray(parsed) ? parsed.map(String) : [b];
+    } catch {
+      return [b];
+    }
+  }
+  return [];
+};
+
 export default function PackagesTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useEventPackages(eventId);
   const createPackage = useCreateEventPackage();
@@ -73,7 +87,9 @@ export default function PackagesTab({ eventId }: { eventId: string }) {
       name: p.name,
       description: p.description || "",
       cost: String(p.cost ?? ""),
-      benefits: (p.benefits ?? []).join("\n"),
+      // Benefits have come back as a JSON-encoded string as well as an array;
+      // `.join` on a string would throw and leave the dialog unopened.
+      benefits: toBenefitList(p.benefits).join("\n"),
       is_member_only: !!p.is_member_only,
       has_limit: !!p.has_limit,
       max_entries: p.max_entries != null ? String(p.max_entries) : "",
@@ -83,19 +99,21 @@ export default function PackagesTab({ eventId }: { eventId: string }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const benefits = parseBenefits(form.benefits);
+    // Optional fields are validated by type when present, so an empty one is
+    // sent as an empty string / empty array (which also clears it) rather
+    // than as null, which the API rejects.
     const input = {
       name: form.name,
-      description: form.description || null,
+      description: form.description,
       cost: form.cost === "" ? 0 : Number(form.cost),
-      benefits: benefits.length ? benefits : null,
+      benefits: parseBenefits(form.benefits),
       is_member_only: form.is_member_only,
       has_limit: form.has_limit,
-      // The API requires max_entries whenever the tier is capped.
-      max_entries:
-        form.has_limit && form.max_entries !== ""
-          ? Number(form.max_entries)
-          : null,
+      // The API requires max_entries whenever the tier is capped, and
+      // ignores it otherwise.
+      ...(form.has_limit && form.max_entries !== ""
+        ? { max_entries: Number(form.max_entries) }
+        : {}),
     };
     if (editId)
       updatePackage.mutate(
@@ -169,24 +187,28 @@ export default function PackagesTab({ eventId }: { eventId: string }) {
                 </p>
               )}
 
-              {!!p.benefits?.length && (
-                <ul className="mt-3 space-y-1">
-                  {p.benefits.slice(0, 4).map((b) => (
-                    <li
-                      key={b}
-                      className="flex items-start gap-1.5 text-xs text-slate-600"
-                    >
-                      <MdCheck className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                      <span className="min-w-0">{b}</span>
-                    </li>
-                  ))}
-                  {p.benefits.length > 4 && (
-                    <li className="text-[11px] text-slate-400 pl-5">
-                      +{p.benefits.length - 4} more
-                    </li>
-                  )}
-                </ul>
-              )}
+              {(() => {
+                const benefits = toBenefitList(p.benefits);
+                if (!benefits.length) return null;
+                return (
+                  <ul className="mt-3 space-y-1">
+                    {benefits.slice(0, 4).map((b) => (
+                      <li
+                        key={b}
+                        className="flex items-start gap-1.5 text-xs text-slate-600"
+                      >
+                        <MdCheck className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                        <span className="min-w-0">{b}</span>
+                      </li>
+                    ))}
+                    {benefits.length > 4 && (
+                      <li className="text-[11px] text-slate-400 pl-5">
+                        +{benefits.length - 4} more
+                      </li>
+                    )}
+                  </ul>
+                );
+              })()}
 
               <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100">
                 {p.is_member_only ? (
