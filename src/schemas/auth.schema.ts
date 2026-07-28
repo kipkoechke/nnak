@@ -16,6 +16,17 @@ const eighteenYearsAgo = () => {
   return d.toISOString().slice(0, 10);
 };
 
+/**
+ * Data Protection Act, 2019 consent. The policy states authorization is given
+ * "by checking the consent box at registration", so the box must be ticked to
+ * submit. Kept client-side; strip it from payloads the API doesn't expect.
+ */
+const consentField = z
+  .boolean()
+  .refine((v) => v === true, {
+    message: "You must accept the Privacy Policy to continue",
+  });
+
 export const registerSchema = z
   .object({
     name: z.string().min(1, "Full name is required"),
@@ -44,6 +55,7 @@ export const registerSchema = z
     chapter: z.string().min(1, "Chapter is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
+    consent: consentField,
   })
   .refine((data) => data.password === data.password_confirmation, {
     message: "Passwords do not match",
@@ -89,6 +101,7 @@ export const studentRegisterSchema = z
     institution_id: z.string().min(1, "Institution is required"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
+    consent: consentField,
   })
   .refine((data) => data.password === data.password_confirmation, {
     message: "Passwords do not match",
@@ -121,6 +134,7 @@ export const claimSchema = z
     professional_cadre: z.string().min(1, "Professional cadre is required"),
     designation: z.string().min(1, "Designation is required"),
     nck_number: z.string().min(1, "NCK number is required"),
+    consent: consentField,
   })
   .refine((data) => data.password === data.password_confirmation, {
     message: "Passwords do not match",

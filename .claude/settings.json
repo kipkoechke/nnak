@@ -4,7 +4,11 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\({...p.dependencies,...p.devDependencies},null,0\\)\\)\")",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(Object.keys\\(p.dependencies\\).join\\('\\\\n'\\)\\)\")",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('pkgMgr:', p.packageManager||'unset'\\)\")",
-      "Bash(awk '{print $NF, $5}')"
+      "Bash(awk '{print $NF, $5}')",
+      "Bash(python -c \"import pypdf\")",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(grep -iE \"\\\\.\\(tsx|ts\\)$\")"
     ]
   }
 }

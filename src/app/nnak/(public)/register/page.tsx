@@ -13,6 +13,7 @@ import {
   useProfessionalQualifications,
 } from "@/hooks/use-enums";
 import { InputField } from "@/components/common/InputField";
+import { ConsentCheckbox } from "@/components/common/ConsentCheckbox";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { DatePicker } from "@/components/common/DatePicker";
@@ -96,6 +97,7 @@ export default function NnakRegisterPage() {
       chapter: "",
       password: "",
       password_confirmation: "",
+      consent: false,
     },
   });
 
@@ -461,6 +463,18 @@ export default function NnakRegisterPage() {
             Use 8 characters or more, mixing letters, numbers and symbols for a
             strong account.
           </div>
+
+          <Controller
+            control={control}
+            name="consent"
+            render={({ field }) => (
+              <ConsentCheckbox
+                checked={!!field.value}
+                onChange={field.onChange}
+                error={errors.consent?.message}
+              />
+            )}
+          />
 
           <div className="flex gap-2">
             <button
