@@ -3,11 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   financeService,
+  type FinanceBatchDetailParams,
   type RecordFinanceBatchPaymentInput,
 } from "@/services/finance.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import type { ByProductUploadInput } from "@/types/nnak";
+import type { ByProductUploadInput, GenerateBatchesInput } from "@/types/nnak";
 
 // ── Dashboard ────────────────────────────────────────────────────
 export const useFinanceDashboard = (params?: {
@@ -129,13 +130,58 @@ export const useFinanceBatches = (
     enabled: opts?.enabled,
   });
 
-export const useFinanceBatch = (id: string, opts?: { enabled?: boolean }) =>
+export const useFinanceBatch = (
+  id: string,
+  opts?: { enabled?: boolean },
+  params?: FinanceBatchDetailParams,
+) =>
   useQuery({
-    queryKey: nqk.finance.batches.detail(id),
-    queryFn: () => financeService.batchDetail(id),
+    queryKey: nqk.finance.batches.detail(
+      id,
+      (params ?? {}) as Record<string, unknown>,
+    ),
+    queryFn: () => financeService.batchDetail(id, params),
     enabled: !!id && (opts?.enabled ?? true),
+    placeholderData: (prev) => prev,
     refetchOnWindowFocus: false,
   });
+
+/**
+ * Generation and retry are queued jobs — the response only confirms the
+ * dispatch, so the lists are invalidated and the batch appears once the
+ * worker finishes.
+ */
+export const useGenerateFinanceBatches = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: GenerateBatchesInput) =>
+      financeService.generateBatches(body),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: nqk.finance.batches.all });
+      const count = data?.branches?.length ?? 0;
+      toast.success(
+        count
+          ? `Generation queued for ${count} branch${count === 1 ? "" : "es"}`
+          : "Generation queued for all branches",
+      );
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not queue batch generation")),
+  });
+};
+
+export const useRetryFinanceBatch = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId, period }: { batchId: string; period?: string }) =>
+      financeService.retryBatch(batchId, period),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.finance.batches.all });
+      toast.success("Batch deleted and regeneration queued");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Could not retry batch")),
+  });
+};
 
 export const useRecordFinanceBatchPayment = () => {
   const qc = useQueryClient();
@@ -147,9 +193,10 @@ export const useRecordFinanceBatchPayment = () => {
       batchId: string;
       body: RecordFinanceBatchPaymentInput;
     }) => financeService.recordBatchPayment(batchId, body),
-    onSuccess: (_d, vars) => {
+    onSuccess: () => {
+      // `all` is the prefix of every list and detail key, member-pagination
+      // variants included.
       qc.invalidateQueries({ queryKey: nqk.finance.batches.all });
-      qc.invalidateQueries({ queryKey: nqk.finance.batches.detail(vars.batchId) });
       toast.success("Payment recorded");
     },
     onError: (e) => toast.error(extractApiError(e, "Could not record payment")),

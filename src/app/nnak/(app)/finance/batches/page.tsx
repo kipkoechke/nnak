@@ -4,20 +4,37 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import DownloadButton from "@/components/common/DownloadButton";
-import { type ExcelColumn } from "@/lib/export-excel";
+import Pagination from "@/components/common/Pagination";
+import { ModalShell } from "@/components/common/Modal";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import GenerateBatchesModal from "@/components/batches/GenerateBatchesModal";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
+import { financeService } from "@/services/finance.service";
+import { branchBatchesService } from "@/services/branch-batches.service";
 import {
   useFinanceBatches,
   useRecordFinanceBatchPayment,
   useFinanceBranches,
+  useGenerateFinanceBatches,
+  useRetryFinanceBatch,
 } from "@/hooks/use-finance";
 import {
   useAdminBranchBatches,
   useRecordBatchPayment,
+  useGenerateBranchBatches,
+  useRetryBranchBatch,
 } from "@/hooks/use-branch-batches";
 import { useNnakMe } from "@/hooks/use-auth";
 import { useNnakBranches } from "@/hooks/use-branches";
 import { usePaymentMethods } from "@/hooks/use-enums";
-import { MdAttachMoney, MdClose, MdReceipt } from "react-icons/md";
+import {
+  MdAttachMoney,
+  MdClose,
+  MdPlaylistAdd,
+  MdReceipt,
+  MdRefresh,
+  MdSearch,
+} from "react-icons/md";
 
 /**
  * The finance and admin batch endpoints return the same fields under
@@ -47,10 +64,14 @@ const STATUS_TONE: Record<string, string> = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+const PER_PAGE = 15;
+
 export default function FinanceBranchBatchesPage() {
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const { data: paymentMethods = [] } = usePaymentMethods();
 
   // Finance staff use /finance/batches; admins have their own
@@ -71,6 +92,9 @@ export default function FinanceBranchBatchesPage() {
     period: period || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
+    search: search || undefined,
+    page,
+    per_page: PER_PAGE,
   };
 
   const financeQ = useFinanceBatches(filters, { enabled: !!me && isFinance });
@@ -78,14 +102,28 @@ export default function FinanceBranchBatchesPage() {
     enabled: !!me && !isFinance,
   });
 
-  const batches: BatchRow[] = isFinance
-    ? (financeQ.data?.data ?? [])
-    : (adminQ.data ?? []);
-  const isLoading = isFinance ? financeQ.isLoading : adminQ.isLoading;
+  const active = isFinance ? financeQ : adminQ;
+  const batches: BatchRow[] = active.data?.data ?? [];
+  const pagination = active.data?.pagination;
+  const isLoading = active.isLoading;
 
   const financeRecord = useRecordFinanceBatchPayment();
   const adminRecord = useRecordBatchPayment();
   const record = isFinance ? financeRecord : adminRecord;
+
+  const financeGenerate = useGenerateFinanceBatches();
+  const adminGenerate = useGenerateBranchBatches();
+  const generate = isFinance ? financeGenerate : adminGenerate;
+
+  const financeRetry = useRetryFinanceBatch();
+  const adminRetry = useRetryBranchBatch();
+  const retry = isFinance ? financeRetry : adminRetry;
+
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [retryFor, setRetryFor] = useState<BatchRow | null>(null);
+
+  // Any filter change invalidates the current page number.
+  const resetPage = () => setPage(1);
 
   const [openFor, setOpenFor] = useState<BatchRow | null>(null);
   const [amount, setAmount] = useState("");
@@ -146,29 +184,64 @@ export default function FinanceBranchBatchesPage() {
     { header: "Pending", value: (b) => Number(b.pending_remittance ?? 0) },
   ];
 
+  /** The table shows one page; the export walks every matching batch. */
+  const fetchExportRows = () =>
+    collectAllPages<BatchRow>((p) => {
+      const q = { ...filters, page: p, per_page: 100 };
+      return isFinance
+        ? financeService.batches(q)
+        : branchBatchesService.adminList(q);
+    });
+
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
         title="Branch Batches"
         description="Reconcile branch monthly remittances"
         action={
-          <DownloadButton
-            filename="branch-batches"
-            sheetName="Batches"
-            columns={exportColumns}
-            rows={batches}
-          />
+          <div className="flex items-center gap-2">
+            <DownloadButton
+              filename="branch-batches"
+              sheetName="Batches"
+              columns={exportColumns}
+              fetchRows={fetchExportRows}
+            />
+            <button
+              onClick={() => setShowGenerate(true)}
+              className="inline-flex items-center gap-1 text-xs bg-primary text-white font-semibold px-3 py-2 rounded-md hover:bg-primary/90"
+            >
+              <MdPlaylistAdd className="w-4 h-4" /> Generate Batches
+            </button>
+          </div>
         }
       />
 
       <div className="flex flex-wrap gap-2 items-end">
+        <div className="relative min-w-45 max-w-xs flex-1">
+          <label className="text-[11px] text-slate-500 block mb-1">
+            Search
+          </label>
+          <MdSearch className="absolute left-2.5 bottom-2.5 text-slate-400 w-4 h-4" />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              resetPage();
+            }}
+            placeholder="Search member names…"
+            className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
         <div>
           <label className="text-[11px] text-slate-500 block mb-1">
             Branch
           </label>
           <select
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
+            onChange={(e) => {
+              setBranchId(e.target.value);
+              resetPage();
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All branches</option>
@@ -186,7 +259,10 @@ export default function FinanceBranchBatchesPage() {
           <input
             type="month"
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => {
+              setPeriod(e.target.value);
+              resetPage();
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           />
         </div>
@@ -196,10 +272,14 @@ export default function FinanceBranchBatchesPage() {
           </label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              resetPage();
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All</option>
+            <option value="pending">Pending</option>
             <option value="submitted">Submitted</option>
             <option value="partially_paid">Partially Paid</option>
             <option value="paid">Paid</option>
@@ -287,6 +367,17 @@ export default function FinanceBranchBatchesPage() {
                         >
                           <MdAttachMoney className="w-4 h-4" /> Record
                         </button>
+                        {/* A paid batch cannot be retried — the API rejects
+                            it, so the action is hidden rather than failing. */}
+                        {b.status !== "paid" && (
+                          <button
+                            onClick={() => setRetryFor(b)}
+                            title="Delete this batch and regenerate it"
+                            className="inline-flex items-center gap-1 text-xs text-amber-700 font-semibold hover:underline"
+                          >
+                            <MdRefresh className="w-4 h-4" /> Retry
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -296,6 +387,49 @@ export default function FinanceBranchBatchesPage() {
           </table>
         )}
       </div>
+
+      {pagination && pagination.last_page > 1 && (
+        <Pagination
+          currentPage={pagination.current_page || page}
+          totalPages={pagination.last_page}
+          totalItems={pagination.total}
+          onPageChange={setPage}
+        />
+      )}
+
+      <GenerateBatchesModal
+        isOpen={showGenerate}
+        onClose={() => setShowGenerate(false)}
+        branches={branches}
+        isPending={generate.isPending}
+        onSubmit={async (input) => {
+          await generate.mutateAsync(input).catch(() => null);
+        }}
+      />
+
+      <ModalShell
+        isOpen={!!retryFor}
+        onClose={() => setRetryFor(null)}
+        size="md"
+      >
+        <DeleteConfirmationModal
+          itemName={retryFor?.reference_code ?? ""}
+          title="Retry batch"
+          message={`This deletes batch ${retryFor?.reference_code ?? ""} (${
+            retryFor?.period ?? ""
+          }) along with its members and recorded payments, then queues it for regeneration.`}
+          confirmLabel="Delete & Regenerate"
+          pendingLabel="Queueing…"
+          isDeleting={retry.isPending}
+          onConfirm={async () => {
+            if (!retryFor) return;
+            await retry
+              .mutateAsync({ batchId: retryFor.id, period: retryFor.period })
+              .catch(() => null);
+          }}
+          onCloseModal={() => setRetryFor(null)}
+        />
+      </ModalShell>
 
       {openFor && (
         <div

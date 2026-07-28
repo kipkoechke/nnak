@@ -2,15 +2,24 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useFinanceBatch, useRecordFinanceBatchPayment } from "@/hooks/use-finance";
+import {
+  useFinanceBatch,
+  useRecordFinanceBatchPayment,
+  useRetryFinanceBatch,
+} from "@/hooks/use-finance";
 import {
   useAdminBranchBatch,
   useRecordBatchPayment,
+  useRetryBranchBatch,
 } from "@/hooks/use-branch-batches";
 import { useNnakMe } from "@/hooks/use-auth";
 import { usePaymentMethods } from "@/hooks/use-enums";
-import { MdAttachMoney, MdClose } from "react-icons/md";
+import { MdAttachMoney, MdClose, MdRefresh, MdSearch } from "react-icons/md";
 import DownloadButton from "@/components/common/DownloadButton";
+import { ModalShell } from "@/components/common/Modal";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import { financeService } from "@/services/finance.service";
+import { branchBatchesService } from "@/services/branch-batches.service";
 import { fmtCommissionValue, fmtKes } from "@/lib/commission";
 import type { ExcelColumn } from "@/lib/export-excel";
 import { useState } from "react";
@@ -43,6 +52,10 @@ const Stat = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Members inside a batch are paged server-side; the detail `meta` carries no
+ *  page count, so paging is driven by whether a full page came back. */
+const MEMBERS_PER_PAGE = 15;
+
 export default function AdminBatchDetailPage({
   params,
 }: {
@@ -53,8 +66,24 @@ export default function AdminBatchDetailPage({
   // Finance staff read /finance/batches/{id}; admins /admin/branch-batches/{id}.
   const { data: me } = useNnakMe();
   const isFinance = me?.role === "finance";
-  const financeQ = useFinanceBatch(id, { enabled: !!me && isFinance });
-  const adminQ = useAdminBranchBatch(!!me && !isFinance ? id : undefined);
+
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberPage, setMemberPage] = useState(1);
+  const memberParams = {
+    search: memberSearch || undefined,
+    page: memberPage,
+    per_page: MEMBERS_PER_PAGE,
+  };
+
+  const financeQ = useFinanceBatch(
+    id,
+    { enabled: !!me && isFinance },
+    memberParams,
+  );
+  const adminQ = useAdminBranchBatch(
+    !!me && !isFinance ? id : undefined,
+    memberParams,
+  );
   const batch = isFinance ? financeQ.data : adminQ.data;
   const isLoading = isFinance ? financeQ.isLoading : adminQ.isLoading;
 
@@ -62,6 +91,11 @@ export default function AdminBatchDetailPage({
   const financeRecord = useRecordFinanceBatchPayment();
   const adminRecord = useRecordBatchPayment();
   const record = isFinance ? financeRecord : adminRecord;
+
+  const financeRetry = useRetryFinanceBatch();
+  const adminRetry = useRetryBranchBatch();
+  const retry = isFinance ? financeRetry : adminRetry;
+  const [showRetry, setShowRetry] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [amount, setAmount] = useState("");
@@ -127,16 +161,28 @@ export default function AdminBatchDetailPage({
   type BatchMemberRow = {
     id: string;
     user?: { name?: string | null; email?: string | null } | null;
-    amount_paid: string | number;
+    /** The list sends `amount_paid`, the detail `amount`. */
+    amount_paid?: string | number;
+    amount?: string | number;
     commission_amount: string | number;
     commission_type?: string | null;
     commission_value?: string | number | null;
   };
+  const memberAmount = (m: BatchMemberRow) => m.amount_paid ?? m.amount ?? 0;
   const members = (batch.members ?? []) as BatchMemberRow[];
+
+  /** The table shows one server page; the export pulls the whole batch. */
+  const fetchExportMembers = async (): Promise<BatchMemberRow[]> => {
+    const full = isFinance
+      ? await financeService.batchDetail(id, { per_page: 1000 })
+      : await branchBatchesService.adminDetail(id, { per_page: 1000 });
+    return (full?.members ?? []) as BatchMemberRow[];
+  };
+
   const memberColumns: ExcelColumn<BatchMemberRow>[] = [
     { header: "Member", value: (m) => m.user?.name ?? "" },
     { header: "Email", value: (m) => m.user?.email ?? "" },
-    { header: "Amount Paid", value: (m) => Number(m.amount_paid ?? 0) },
+    { header: "Amount Paid", value: (m) => Number(memberAmount(m)) },
     { header: "Commission", value: (m) => Number(m.commission_amount ?? 0) },
     {
       header: "Commission Type",
@@ -160,7 +206,7 @@ export default function AdminBatchDetailPage({
               filename={`batch-${batch.reference_code}-members`}
               sheetName="Members"
               columns={memberColumns}
-              rows={members}
+              fetchRows={fetchExportMembers}
             />
             <span
               className={`text-[10px] px-2 py-1 rounded-full uppercase font-semibold ${
@@ -169,6 +215,16 @@ export default function AdminBatchDetailPage({
             >
               {String(batch.status).replace(/_/g, " ")}
             </span>
+            {/* The API refuses to retry a paid batch. */}
+            {batch.status !== "paid" && (
+              <button
+                onClick={() => setShowRetry(true)}
+                title="Delete this batch and regenerate it"
+                className="inline-flex items-center gap-1 text-xs border border-amber-300 text-amber-700 font-semibold px-3 py-1.5 rounded-md hover:bg-amber-50"
+              >
+                <MdRefresh className="w-4 h-4" /> Retry
+              </button>
+            )}
             {outstanding > 0 && (
               <button
                 onClick={() => {
@@ -243,11 +299,27 @@ export default function AdminBatchDetailPage({
 
       {/* Members in batch */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 text-sm font-semibold text-slate-900">
-          Members in this batch
+        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-900">
+            Members in this batch
+          </span>
+          <div className="relative min-w-45 max-w-xs flex-1">
+            <MdSearch className="absolute left-2.5 top-2.5 text-slate-400 w-4 h-4" />
+            <input
+              value={memberSearch}
+              onChange={(e) => {
+                setMemberSearch(e.target.value);
+                setMemberPage(1);
+              }}
+              placeholder="Search member names…"
+              className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
         </div>
-        {!batch.members?.length ? (
-          <div className="p-6 text-sm text-center text-slate-500">No members.</div>
+        {!members.length ? (
+          <div className="p-6 text-sm text-center text-slate-500">
+            {memberSearch ? "No members match the search." : "No members."}
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -260,11 +332,13 @@ export default function AdminBatchDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {batch.members.map((m) => (
+              {members.map((m) => (
                 <tr key={m.id}>
                   <td className="px-3 py-2 font-medium">{m.user?.name || "—"}</td>
                   <td className="px-3 py-2 text-slate-500">{m.user?.email || "—"}</td>
-                  <td className="px-3 py-2 text-right">{fmtKes(m.amount_paid)}</td>
+                  <td className="px-3 py-2 text-right">
+                    {fmtKes(memberAmount(m))}
+                  </td>
                   <td className="px-3 py-2 text-right text-slate-500">{fmtKes(m.commission_amount)}</td>
                   <td className="px-3 py-2 text-right text-xs text-slate-500 capitalize">
                     {m.commission_type?.replace(/_/g, " ")} ·{" "}
@@ -274,6 +348,27 @@ export default function AdminBatchDetailPage({
               ))}
             </tbody>
           </table>
+        )}
+        {(memberPage > 1 || members.length === MEMBERS_PER_PAGE) && (
+          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-slate-100">
+            <span className="text-xs text-slate-500">Page {memberPage}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
+                disabled={memberPage === 1}
+                className="px-3 py-1 text-xs border border-slate-300 rounded-md disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setMemberPage((p) => p + 1)}
+                disabled={members.length < MEMBERS_PER_PAGE}
+                className="px-3 py-1 text-xs border border-slate-300 rounded-md disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -311,6 +406,26 @@ export default function AdminBatchDetailPage({
           </table>
         </div>
       )}
+
+      {/* Retry confirmation — regeneration is queued, so the page is sent
+          back to the list once it is dispatched. */}
+      <ModalShell isOpen={showRetry} onClose={() => setShowRetry(false)} size="md">
+        <DeleteConfirmationModal
+          itemName={batch.reference_code}
+          title="Retry batch"
+          message={`This deletes batch ${batch.reference_code} (${batch.period}) along with its members and recorded payments, then queues it for regeneration.`}
+          confirmLabel="Delete & Regenerate"
+          pendingLabel="Queueing…"
+          isDeleting={retry.isPending}
+          onConfirm={async () => {
+            const r = await retry
+              .mutateAsync({ batchId: batch.id, period: batch.period })
+              .catch(() => null);
+            if (r) router.push("/nnak/finance/batches");
+          }}
+          onCloseModal={() => setShowRetry(false)}
+        />
+      </ModalShell>
 
       {/* Record payment modal */}
       {showModal && (

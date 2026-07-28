@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
+import Pagination from "@/components/common/Pagination";
 import { useBranchBatches } from "@/hooks/use-branch-batches";
 import { MdReceipt } from "react-icons/md";
 import type { BranchBatch } from "@/types/nnak";
@@ -15,13 +16,20 @@ const STATUS_TONE: Record<string, string> = {
   overdue: "bg-red-100 text-red-700",
 };
 
+const PER_PAGE = 15;
+
 export default function BranchBatchesPage() {
   const [period, setPeriod] = useState("");
   const [status, setStatus] = useState("");
-  const { data: batches = [], isLoading } = useBranchBatches({
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useBranchBatches({
     period: period || undefined,
     status: status || undefined,
+    page,
+    per_page: PER_PAGE,
   });
+  const batches = data?.data ?? [];
+  const pagination = data?.pagination;
 
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
@@ -38,7 +46,10 @@ export default function BranchBatchesPage() {
           <input
             type="month"
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => {
+              setPeriod(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           />
         </div>
@@ -48,10 +59,14 @@ export default function BranchBatchesPage() {
           </label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">All</option>
+            <option value="pending">Pending</option>
             <option value="draft">Draft</option>
             <option value="submitted">Submitted</option>
             <option value="partially_paid">Partially Paid</option>
@@ -129,6 +144,15 @@ export default function BranchBatchesPage() {
           </table>
         )}
       </div>
+
+      {pagination && pagination.last_page > 1 && (
+        <Pagination
+          currentPage={pagination.current_page || page}
+          totalPages={pagination.last_page}
+          totalItems={pagination.total}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

@@ -204,7 +204,8 @@ export const nqk = {
     batches: {
       all: ["nnak", "finance", "batches"] as const,
       list: (p?: Record<string, unknown>) => ["nnak", "finance", "batches", "list", p ?? {}] as const,
-      detail: (id: string) => ["nnak", "finance", "batches", "detail", id] as const,
+      detail: (id: string, p?: Record<string, unknown>) =>
+        ["nnak", "finance", "batches", "detail", id, p ?? {}] as const,
     },
     payments: {
       all: ["nnak", "finance", "payments"] as const,
@@ -243,12 +244,23 @@ export const nqk = {
     adminTransfers: (p?: Record<string, unknown>) =>
       ["nnak", "admin", "branch-transfers", p ?? {}] as const,
   },
+  /**
+   * Branch + admin batch keys all hang off `all` so a write can invalidate
+   * every list and detail (including the member-pagination variants) at once.
+   */
   batches: {
     all: ["nnak", "batches"] as const,
     list: (p?: Record<string, unknown>) =>
-      ["nnak", "branch", "batches", "list", p ?? {}] as const,
-    detail: (id: string) => ["nnak", "branch", "batches", "detail", id] as const,
+      ["nnak", "batches", "branch", "list", p ?? {}] as const,
+    detailAll: (id: string) =>
+      ["nnak", "batches", "branch", "detail", id] as const,
+    detail: (id: string, p?: Record<string, unknown>) =>
+      ["nnak", "batches", "branch", "detail", id, p ?? {}] as const,
     adminList: (p?: Record<string, unknown>) =>
-      ["nnak", "admin", "branch-batches", p ?? {}] as const,
+      ["nnak", "batches", "admin", "list", p ?? {}] as const,
+    adminDetailAll: (id: string) =>
+      ["nnak", "batches", "admin", "detail", id] as const,
+    adminDetail: (id: string, p?: Record<string, unknown>) =>
+      ["nnak", "batches", "admin", "detail", id, p ?? {}] as const,
   },
 };

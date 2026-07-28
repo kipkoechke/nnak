@@ -768,8 +768,11 @@ export interface BranchBatch {
 
 export interface BranchBatchMember {
   id: string;
+  user_id?: string;
   user?: { id: string; name: string; email?: string | null } | null;
-  amount_paid: string | number;
+  /** The list sends `amount_paid`; the batch detail sends `amount`. */
+  amount_paid?: string | number;
+  amount?: string | number;
   commission_amount: string | number;
   commission_type?: string;
   commission_value?: string;
@@ -796,6 +799,37 @@ export interface RecordBatchPaymentInput {
   notes?: string;
   paid_at: string;
   attachments?: File[];
+}
+
+/** POST /{admin|finance}/…/generate — omit `branch_ids` for every branch. */
+export interface GenerateBatchesInput {
+  /** `YYYY-MM` */
+  period: string;
+  branch_ids?: string[];
+}
+
+export interface GenerateBatchesResult {
+  period: string;
+  branches: string[];
+}
+
+/** POST /{admin|finance}/…/{batch}/retry */
+export interface RetryBatchResult {
+  branch_id: string;
+  period: string;
+}
+
+/**
+ * Batch lists answer with `meta` rather than the `pagination` block the rest
+ * of the API uses; it also advertises which filters the route accepts.
+ */
+export interface BatchListMeta {
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
+  supported_params?: string[];
+  applied_filters?: Record<string, unknown>;
 }
 
 // ── Admin dashboard (GET /admin/dashboard?start_date&end_date) ─────
@@ -1490,8 +1524,11 @@ export interface FinanceBatch {
 
 export interface FinanceBatchMember {
   id: string;
+  user_id?: string;
   user: { id: string; name: string; email: string | null };
-  amount_paid: string;
+  /** The list sends `amount_paid`; the batch detail sends `amount`. */
+  amount_paid?: string;
+  amount?: string;
   commission_amount: string;
   commission_type: string;
   commission_value: string;

@@ -1,6 +1,7 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import { useBranchBatch } from "@/hooks/use-branch-batches";
 
@@ -31,6 +32,10 @@ const Stat = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
+/** Members inside a batch are paged server-side; the detail `meta` carries no
+ *  page count, so paging is driven by whether a full page came back. */
+const MEMBERS_PER_PAGE = 15;
+
 export default function BranchBatchDetailPage({
   params,
 }: {
@@ -38,7 +43,14 @@ export default function BranchBatchDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: batch, isLoading } = useBranchBatch(id);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberPage, setMemberPage] = useState(1);
+  const { data: batch, isLoading } = useBranchBatch(id, {
+    search: memberSearch || undefined,
+    page: memberPage,
+    per_page: MEMBERS_PER_PAGE,
+  });
+  const members = batch?.members ?? [];
 
   if (isLoading) {
     return <div className="p-6 text-sm text-slate-500">Loading batch…</div>;
@@ -109,12 +121,26 @@ export default function BranchBatchDetailPage({
       </div>
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 text-sm font-semibold text-slate-900">
-          Members in this batch
+        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-slate-900">
+            Members in this batch
+          </span>
+          <div className="relative min-w-45 max-w-xs flex-1">
+            <MdSearch className="absolute left-2.5 top-2.5 text-slate-400 w-4 h-4" />
+            <input
+              value={memberSearch}
+              onChange={(e) => {
+                setMemberSearch(e.target.value);
+                setMemberPage(1);
+              }}
+              placeholder="Search member names…"
+              className="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
         </div>
-        {!batch.members?.length ? (
+        {!members.length ? (
           <div className="p-6 text-sm text-center text-slate-500">
-            No members.
+            {memberSearch ? "No members match the search." : "No members."}
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -127,7 +153,7 @@ export default function BranchBatchDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {batch.members.map((m) => (
+              {members.map((m) => (
                 <tr key={m.id}>
                   <td className="px-3 py-2 font-medium">
                     {m.user?.name || "—"}
@@ -136,7 +162,8 @@ export default function BranchBatchDetailPage({
                     {m.user?.email || "—"}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    KES {Number(m.amount_paid).toLocaleString()}
+                    {/* The list sends `amount_paid`, the detail `amount`. */}
+                    KES {Number(m.amount_paid ?? m.amount ?? 0).toLocaleString()}
                   </td>
                   <td className="px-3 py-2 text-right text-slate-500">
                     KES {Number(m.commission_amount).toLocaleString()}
@@ -145,6 +172,27 @@ export default function BranchBatchDetailPage({
               ))}
             </tbody>
           </table>
+        )}
+        {(memberPage > 1 || members.length === MEMBERS_PER_PAGE) && (
+          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-slate-100">
+            <span className="text-xs text-slate-500">Page {memberPage}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
+                disabled={memberPage === 1}
+                className="px-3 py-1 text-xs border border-slate-300 rounded-md disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setMemberPage((p) => p + 1)}
+                disabled={members.length < MEMBERS_PER_PAGE}
+                className="px-3 py-1 text-xs border border-slate-300 rounded-md disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

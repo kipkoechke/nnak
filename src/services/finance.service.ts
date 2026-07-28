@@ -10,16 +10,23 @@
 //   POST /finance/byproduct/upload
 //   GET  /finance/batches
 //   GET  /finance/batches/{id}
+//   POST /finance/batches/generate
+//   POST /finance/batches/{id}/retry
 //   POST /finance/batches/{id}/payments
 //   GET  /finance/payments
 //   GET  /finance/remittances
 import { nnakApi } from "@/lib/api";
+import { normalizePagination } from "@/lib/pagination";
 import type {
   ApiEnvelope,
+  BatchListMeta,
   ByProductUploadInput,
   ByProductUploadRecord,
   FinanceBatch,
   FinanceBatchDetail,
+  GenerateBatchesInput,
+  GenerateBatchesResult,
+  RetryBatchResult,
   FinanceBranch,
   FinanceBranchDetail,
   FinanceDashboardData,
@@ -57,7 +64,7 @@ const pick = <K extends string, T>(
 interface Paginated<T> {
   data: T[];
   pagination?: NnakPagination;
-  meta?: Record<string, unknown>;
+  meta?: BatchListMeta | Record<string, unknown>;
 }
 
 interface FinanceMembersFilters {
@@ -81,6 +88,14 @@ interface FinanceBatchFilters {
   period?: string;
   branch_id?: string;
   status?: string;
+  search?: string;
+}
+
+/** Members inside a batch are paginated independently of the batch list. */
+export interface FinanceBatchDetailParams {
+  search?: string;
+  page?: number;
+  per_page?: number;
 }
 
 interface FinancePaymentsFilters {
@@ -211,15 +226,52 @@ export const financeService = {
       success: boolean;
       data: FinanceBatch[];
       pagination?: NnakPagination;
+      meta?: BatchListMeta;
     }>("/finance/batches", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      // The batch list pages via `meta`, not the usual `pagination` block.
+      pagination: normalizePagination(r.data?.pagination, r.data?.meta),
+      meta: r.data?.meta,
+    };
   },
 
-  batchDetail: async (id: string): Promise<FinanceBatchDetail | null> => {
+  batchDetail: async (
+    id: string,
+    params: FinanceBatchDetailParams = {},
+  ): Promise<FinanceBatchDetail | null> => {
     const payload = await unwrap<Nested<"batch", FinanceBatchDetail>>(
-      nnakApi.get(`/finance/batches/${id}`),
+      nnakApi.get(`/finance/batches/${id}`, { params }),
     );
     return pick("batch", payload);
+  },
+
+  /** Queue generation for a period. An empty `branch_ids` means all branches,
+   *  so it is dropped rather than sent as `[]`. */
+  generateBatches: async (
+    body: GenerateBatchesInput,
+  ): Promise<GenerateBatchesResult | null> => {
+    const r = await nnakApi.post<ApiEnvelope<GenerateBatchesResult>>(
+      "/finance/batches/generate",
+      {
+        period: body.period,
+        ...(body.branch_ids?.length ? { branch_ids: body.branch_ids } : {}),
+      },
+    );
+    return r.data?.data ?? null;
+  },
+
+  /** Deletes the batch and re-queues it. Omitting `period` reuses the
+   *  batch's own period. */
+  retryBatch: async (
+    batchId: string,
+    period?: string,
+  ): Promise<RetryBatchResult | null> => {
+    const r = await nnakApi.post<ApiEnvelope<RetryBatchResult>>(
+      `/finance/batches/${batchId}/retry`,
+      period ? { period } : {},
+    );
+    return r.data?.data ?? null;
   },
 
   recordBatchPayment: async (
