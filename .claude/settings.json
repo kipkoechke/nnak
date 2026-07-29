@@ -10,7 +10,8 @@
       "Bash(python -c ' *)",
       "Bash(grep -iE \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(echo \"tsc=$?\")",
-      "Bash(echo \"eslint=$?\")"
+      "Bash(echo \"eslint=$?\")",
+      "Bash(npm view *)"
     ]
   }
 }

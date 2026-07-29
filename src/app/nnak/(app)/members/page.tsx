@@ -202,12 +202,15 @@ export default function MembersPage() {
         description="NNAK member register"
         action={
           <div className="flex items-center gap-2">
-            <DownloadButton
-              filename="members"
-              sheetName="Members"
-              columns={exportColumns}
-              fetchRows={fetchExportRows}
-            />
+            {/* Branch managers do not export the register. */}
+            {!isBranchManager && (
+              <DownloadButton
+                filename="members"
+                sheetName="Members"
+                columns={exportColumns}
+                fetchRows={fetchExportRows}
+              />
+            )}
             {canImport && (
               <>
                 <button

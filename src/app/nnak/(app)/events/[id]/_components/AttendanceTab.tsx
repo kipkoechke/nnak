@@ -6,7 +6,11 @@ import {
   MdHowToReg,
   MdQrCodeScanner,
   MdSearch,
+  MdVideocam,
+  MdVideocamOff,
 } from "react-icons/md";
+import QrScanner from "@/components/events/QrScanner";
+import { extractTicketNumber } from "@/lib/ticket-code";
 import {
   useAttendanceLookup,
   useAttendanceReport,
@@ -224,6 +228,10 @@ function ScanConsole({
   const [type, setType] = useState<AttendanceType>("arrival");
   const [agendaId, setAgendaId] = useState("");
   const [last, setLast] = useState<string | null>(null);
+  const [camera, setCamera] = useState(false);
+  // Pauses the decoder while a scan is in flight so one badge held in frame
+  // is not submitted repeatedly.
+  const [busy, setBusy] = useState(false);
 
   // Only queried once the desk explicitly asks, so typing stays cheap.
   const [lookupTicket, setLookupTicket] = useState("");
@@ -233,13 +241,14 @@ function ScanConsole({
     isError: lookupFailed,
   } = useAttendanceLookup(eventId, lookupTicket);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ticket.trim()) return;
+  const record = async (ticketNumber: string) => {
+    const clean = ticketNumber.trim();
+    if (!clean || busy) return;
+    setBusy(true);
     const r = await scan
       .mutateAsync({
         eventId,
-        ticket_number: ticket.trim(),
+        ticket_number: clean,
         type,
         agenda_id: type === "session" && agendaId ? agendaId : undefined,
       })
@@ -249,16 +258,54 @@ function ScanConsole({
       setTicket("");
       setLookupTicket("");
     }
+    // Held briefly so the badge can be taken out of frame before the next read.
+    setTimeout(() => setBusy(false), 1200);
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    record(ticket);
   };
 
   return (
     <Card className="lg:col-span-1 space-y-3">
-      <div className="flex items-center gap-2">
-        <MdQrCodeScanner className="w-4 h-4 text-primary" />
-        <h4 className="text-sm font-semibold text-slate-900">
-          Door check-in
-        </h4>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <MdQrCodeScanner className="w-4 h-4 text-primary" />
+          <h4 className="text-sm font-semibold text-slate-900">
+            Door check-in
+          </h4>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCamera((v) => !v)}
+          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg ${
+            camera
+              ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
+              : "bg-primary text-white hover:bg-primary/90"
+          }`}
+        >
+          {camera ? (
+            <>
+              <MdVideocamOff className="w-4 h-4" /> Stop
+            </>
+          ) : (
+            <>
+              <MdVideocam className="w-4 h-4" /> Scan QR
+            </>
+          )}
+        </button>
       </div>
+
+      {camera && (
+        <QrScanner
+          paused={busy}
+          onDecode={(raw) => {
+            const code = extractTicketNumber(raw);
+            if (code) record(code);
+          }}
+        />
+      )}
 
       <form onSubmit={submit} className="space-y-3">
         <div>
