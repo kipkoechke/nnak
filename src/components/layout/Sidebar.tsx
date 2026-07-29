@@ -141,7 +141,7 @@ const STAFF_ITEMS: MenuItem[] = [
     name: "Institutions",
     icon: MdBusiness,
     href: "/nnak/institutions",
-    show: nnakCan.manageMembers,
+    show: nnakCan.manageInstitutions,
   },
   {
     name: "M-Pesa Transactions",
