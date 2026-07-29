@@ -24,7 +24,7 @@ export const eventAttendeeService = {
   list: async (
     scope: EventReadScope,
     eventId: string,
-    params?: { page?: number; per_page?: number; search?: string },
+    params?: { search?: string; page?: number; per_page?: number },
   ): Promise<EventAttendeeList> => {
     const r = await unwrap<EventAttendeeList>(
       nnakApi.get(base(scope, eventId), { params }),

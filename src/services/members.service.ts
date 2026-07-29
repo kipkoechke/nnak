@@ -41,8 +41,6 @@ interface PendingResponse {
 /** Mirrors the `meta.supported_params` advertised by GET /admin/members —
  *  anything outside this set is ignored by the backend. */
 export interface MemberListQuery {
-  page?: number;
-  per_page?: number;
   search?: string;
   status?: string;
   member_category_id?: string;
@@ -51,6 +49,8 @@ export interface MemberListQuery {
   aging?: string;
   /** Filter by approval state. */
   approved?: boolean;
+  page?: number;
+  per_page?: number;
 }
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>

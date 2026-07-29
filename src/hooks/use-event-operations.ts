@@ -16,7 +16,7 @@ import type {
 /* ── Attendees ─────────────────────────────────────────────────────── */
 export const useEventAttendees = (
   eventId: string,
-  params?: { page?: number; per_page?: number; search?: string },
+  params?: { search?: string; page?: number; per_page?: number },
   scope: EventReadScope = "admin",
 ) =>
   useQuery({

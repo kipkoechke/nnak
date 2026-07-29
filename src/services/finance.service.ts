@@ -187,7 +187,7 @@ export const financeService = {
   },
 
   byproducts: async (
-    params?: { page?: number; per_page?: number; status?: string; branch_id?: string },
+    params?: { status?: string; branch_id?: string; page?: number; per_page?: number },
   ): Promise<Paginated<ByProductUploadRecord>> => {
     const r = await nnakApi.get<{
       success: boolean;

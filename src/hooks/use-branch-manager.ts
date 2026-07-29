@@ -18,7 +18,7 @@ export const useBranchDashboard = (params?: DateRangeParams) =>
   });
 
 export const useBranchMembers = (
-  params: { page?: number; per_page?: number; search?: string } = {},
+  params: { search?: string; page?: number; per_page?: number } = {},
   opts?: { enabled?: boolean },
 ) =>
   useQuery({

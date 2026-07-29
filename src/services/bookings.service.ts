@@ -44,7 +44,7 @@ const base = (scope: BookingScope) =>
 export const bookingsService = {
   list: async (
     scope: BookingScope,
-    params?: { page?: number; per_page?: number; status?: string },
+    params?: { status?: string; page?: number; per_page?: number },
   ): Promise<{ data: MyBooking[]; pagination?: NnakPagination }> => {
     const r = await nnakApi.get<{
       success: boolean;

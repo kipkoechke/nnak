@@ -23,7 +23,7 @@ export const useBookingScope = (): BookingScope => {
 
 export const useMyBookings = (
   scope: BookingScope,
-  params: { page?: number; per_page?: number; status?: string } = {},
+  params: { status?: string; page?: number; per_page?: number } = {},
   opts?: { enabled?: boolean },
 ) =>
   useQuery({
