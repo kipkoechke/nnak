@@ -62,22 +62,22 @@ export default function MembersPage() {
 
   const branchMembersQuery = useBranchMembers(
     {
+      search: search || undefined,
       page,
       per_page: 15,
-      search: search || undefined,
     },
     { enabled: isBranchManager },
   );
 
   const adminMembersQuery = useMembers(
     {
-      page,
-      per_page: 15,
       search: search || undefined,
       status: status || undefined,
       member_category_id: categoryId || undefined,
       branch_id: branchId || undefined,
       aging: aging || undefined,
+      page,
+      per_page: 15,
     },
     { enabled: !isBranchManager },
   );

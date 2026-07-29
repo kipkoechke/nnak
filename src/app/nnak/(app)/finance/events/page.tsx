@@ -22,9 +22,9 @@ export default function FinanceEventsPage() {
   const [search, setSearch] = useState("");
 
   const { data, isLoading } = usePublicEvents({
+    search: search.trim() || undefined,
     page,
     per_page: 15,
-    search: search.trim() || undefined,
   });
 
   const events = data?.data ?? [];

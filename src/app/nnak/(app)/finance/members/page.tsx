@@ -36,12 +36,12 @@ export default function FinanceMembersPage() {
   const [aging, setAging] = useState("");
 
   const { data, isLoading } = useFinanceMembers({
-    page,
-    per_page: 15,
     search: search || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
     aging: aging || undefined,
+    page,
+    per_page: 15,
   });
 
   const { data: branchesData } = useFinanceBranches({ per_page: 100 });

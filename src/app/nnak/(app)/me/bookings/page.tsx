@@ -29,9 +29,9 @@ export default function MyBookingsPage() {
   // Members and students have separate booking endpoints — pick by role.
   const scope = useBookingScope();
   const { data, isLoading } = useMyBookings(scope, {
+    status: status || undefined,
     page,
     per_page: 15,
-    status: status || undefined,
   });
 
   const bookings = data?.data ?? [];

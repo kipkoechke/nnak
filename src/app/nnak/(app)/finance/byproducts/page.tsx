@@ -20,9 +20,9 @@ export default function FinanceByproductsPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const { data, isLoading } = useFinanceByproducts({
+    status: status || undefined,
     page,
     per_page: 15,
-    status: status || undefined,
   });
   const uploads = data?.data ?? [];
   const pagination = data?.pagination;

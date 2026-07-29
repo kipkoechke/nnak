@@ -82,9 +82,9 @@ export default function EventsPage() {
 
   // `search` is an ilike on title, applied server-side.
   const { data, isLoading } = useEvents({
+    search: search.trim() || undefined,
     page,
     per_page: perPage,
-    search: search.trim() || undefined,
   });
 
   const events = useMemo(() => data?.data ?? [], [data]);

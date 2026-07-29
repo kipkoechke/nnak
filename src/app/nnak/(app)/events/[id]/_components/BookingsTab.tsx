@@ -75,10 +75,10 @@ export default function BookingsTab({ eventId }: { eventId: string }) {
   const fetchExportRows = () =>
     collectAllPages<EventBooking>((p) =>
       eventBookingService.list("admin", eventId, {
-        page: p,
-        per_page: 100,
         status: status || undefined,
         search: search.trim() || undefined,
+        page: p,
+        per_page: 100,
       }),
     );
 

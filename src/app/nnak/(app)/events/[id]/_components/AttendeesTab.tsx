@@ -64,8 +64,8 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useEventAttendees(eventId, {
-    page,
     search: search.trim() || undefined,
+    page,
   });
   const createAttendee = useCreateEventAttendee();
   const { data: packagesData } = useEventPackages(eventId);
@@ -212,9 +212,9 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
     collectAllPages<EventAttendee>((p) =>
       eventAttendeeService
         .list("admin", eventId, {
+          search: search.trim() || undefined,
           page: p,
           per_page: 100,
-          search: search.trim() || undefined,
         })
         // The attendees endpoint paginates inside `meta`, not `pagination`.
         .then((r) => ({ data: r.data, pagination: r.meta })),

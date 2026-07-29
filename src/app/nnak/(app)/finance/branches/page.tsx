@@ -16,9 +16,9 @@ export default function FinanceBranchesPage() {
   const [search, setSearch] = useState("");
 
   const { data, isLoading } = useFinanceBranches({
+    search: search || undefined,
     page,
     per_page: 20,
-    search: search || undefined,
   });
 
   const branches = data?.data ?? [];
@@ -52,9 +52,9 @@ export default function FinanceBranchesPage() {
   const fetchExportRows = () =>
     collectAllPages<FinanceBranch>((p) =>
       financeService.branches({
+        search: search || undefined,
         page: p,
         per_page: 100,
-        search: search || undefined,
       }),
     );
 

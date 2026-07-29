@@ -122,10 +122,10 @@ export default function AttendanceTab({ eventId }: { eventId: string }) {
   const fetchExportRows = () =>
     collectAllPages<AttendanceRecord>((p) =>
       eventBookingService.report("admin", eventId, {
-        page: p,
-        per_page: 100,
         type: typeFilter || undefined,
         agenda_id: agendaFilter || undefined,
+        page: p,
+        per_page: 100,
       }),
     );
 

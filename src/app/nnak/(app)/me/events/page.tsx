@@ -40,9 +40,9 @@ export default function MemberEventsPage() {
 
   // Members, students and the public all browse the same /events listing.
   const { data, isLoading } = usePublicEvents({
+    search: search || undefined,
     page,
     per_page: 12,
-    search: search || undefined,
   });
 
   const events = data?.data ?? [];

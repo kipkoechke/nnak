@@ -70,12 +70,12 @@ export default function FinanceRemittancesPage() {
   ];
 
   const { data, isLoading } = useFinanceRemittances({
-    page,
-    per_page: 15,
     category: category !== "all" ? category : undefined,
     branch_id: branchId || undefined,
     start_date: startDate,
     end_date: endDate,
+    page,
+    per_page: 15,
   });
 
   const { data: branchesData } = useFinanceBranches({ per_page: 100 });

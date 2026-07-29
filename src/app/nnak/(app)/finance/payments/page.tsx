@@ -54,14 +54,14 @@ export default function FinancePaymentsPage() {
   const [endDate, setEndDate] = useState("");
 
   const { data, isLoading } = useFinancePayments({
-    page,
-    per_page: 15,
     search: search || undefined,
     status: status || undefined,
     branch_id: branchId || undefined,
     payment_method: paymentMethod || undefined,
     start_date: startDate || undefined,
     end_date: endDate || undefined,
+    page,
+    per_page: 15,
   });
   const { data: branchesData } = useFinanceBranches({ per_page: 100 });
   const branches = branchesData?.data ?? [];

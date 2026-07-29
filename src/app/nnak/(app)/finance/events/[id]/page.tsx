@@ -139,10 +139,10 @@ function BookingsView({ eventId }: { eventId: string }) {
   const { data, isLoading } = useEventBookings(
     eventId,
     {
-      page,
-      per_page: 20,
       status: status || undefined,
       search: search.trim() || undefined,
+      page,
+      per_page: 20,
     },
     SCOPE,
   );
