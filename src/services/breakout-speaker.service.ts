@@ -2,7 +2,7 @@
 //   GET    .../breakout-rooms/{room}/breakout-speakers        list
 //   POST   .../breakout-rooms/{room}/breakout-speakers        link a speaker
 //   GET    .../breakout-rooms/{room}/breakout-speakers/{id}   detail
-//   PUT    .../breakout-rooms/{room}/breakout-speakers/{id}   update
+//   PATCH  .../breakout-rooms/{room}/breakout-speakers/{id}   update
 //   DELETE .../breakout-rooms/{room}/breakout-speakers/{id}   unlink
 import { nnakApi } from "@/lib/api";
 import type {
@@ -66,7 +66,7 @@ export const breakoutSpeakerService = {
     input: Partial<CreateBreakoutSpeakerInput>,
   ): Promise<BreakoutSpeaker> =>
     unwrap<BreakoutSpeaker>(
-      nnakApi.put(`${base(eventId, agendaId, breakoutRoomId)}/${id}`, input),
+      nnakApi.patch(`${base(eventId, agendaId, breakoutRoomId)}/${id}`, input),
     ),
 
   remove: async (

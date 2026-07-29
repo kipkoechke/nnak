@@ -2,7 +2,7 @@
 //   GET    .../agendas/{agenda}/agenda-speakers        list
 //   POST   .../agendas/{agenda}/agenda-speakers        link a speaker
 //   GET    .../agendas/{agenda}/agenda-speakers/{id}   detail
-//   PUT    .../agendas/{agenda}/agenda-speakers/{id}   update
+//   PATCH  .../agendas/{agenda}/agenda-speakers/{id}   update
 //   DELETE .../agendas/{agenda}/agenda-speakers/{id}   unlink
 import { nnakApi } from "@/lib/api";
 import type {
@@ -54,7 +54,7 @@ export const agendaSpeakerService = {
     input: Partial<CreateAgendaSpeakerInput>,
   ): Promise<AgendaSpeaker> =>
     unwrap<AgendaSpeaker>(
-      nnakApi.put(`${base(eventId, agendaId)}/${id}`, input),
+      nnakApi.patch(`${base(eventId, agendaId)}/${id}`, input),
     ),
 
   remove: async (eventId: string, agendaId: string, id: string) => {

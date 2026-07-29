@@ -2,7 +2,7 @@
 //   GET  /events/{event}/sponsors           list
 //   POST /events/{event}/sponsors           create
 //   GET  /events/{event}/sponsors/{id}      detail
-//   PUT   /events/{event}/sponsors/{id}     update
+//   PATCH  /events/{event}/sponsors/{id}     update
 //   DELETE /events/{event}/sponsors/{id}    delete
 import { nnakApi } from "@/lib/api";
 import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
@@ -53,15 +53,15 @@ export const sponsorService = {
     input: Partial<CreateSponsorInput>,
   ): Promise<Sponsor> =>
     hasFileValue(input)
-      ? // PHP does not parse an upload on a real PUT — spoof it.
+      ? // PHP does not parse an upload on a real PATCH — spoof it.
         unwrap<Sponsor>(
           nnakApi.post(
             `${base(eventId)}/${id}`,
-            toFormData(input, { method: "PUT" }),
+            toFormData(input, { method: "PATCH" }),
             MULTIPART_HEADERS,
           ),
         )
-      : unwrap<Sponsor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
+      : unwrap<Sponsor>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

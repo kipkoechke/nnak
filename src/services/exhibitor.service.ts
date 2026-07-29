@@ -2,7 +2,7 @@
 //   GET  /events/{event}/exhibitors         list
 //   POST /events/{event}/exhibitors         create
 //   GET  /events/{event}/exhibitors/{id}    detail
-//   PUT   /events/{event}/exhibitors/{id}   update
+//   PATCH  /events/{event}/exhibitors/{id}   update
 //   DELETE /events/{event}/exhibitors/{id}  delete
 import { nnakApi } from "@/lib/api";
 import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
@@ -53,15 +53,15 @@ export const exhibitorService = {
     input: Partial<CreateExhibitorInput>,
   ): Promise<Exhibitor> =>
     hasFileValue(input)
-      ? // PHP does not parse an upload on a real PUT — spoof it.
+      ? // PHP does not parse an upload on a real PATCH — spoof it.
         unwrap<Exhibitor>(
           nnakApi.post(
             `${base(eventId)}/${id}`,
-            toFormData(input, { method: "PUT" }),
+            toFormData(input, { method: "PATCH" }),
             MULTIPART_HEADERS,
           ),
         )
-      : unwrap<Exhibitor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
+      : unwrap<Exhibitor>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

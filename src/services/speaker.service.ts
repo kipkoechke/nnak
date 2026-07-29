@@ -2,7 +2,7 @@
 //   GET  /events/{event}/speakers           list (paginated)
 //   POST /events/{event}/speakers           create
 //   GET  /events/{event}/speakers/{id}      detail
-//   PUT   /events/{event}/speakers/{id}     update
+//   PATCH  /events/{event}/speakers/{id}     update
 //   DELETE /events/{event}/speakers/{id}    delete
 import { nnakApi } from "@/lib/api";
 import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
@@ -53,15 +53,15 @@ export const speakerService = {
     input: Partial<CreateSpeakerInput>,
   ): Promise<Speaker> =>
     hasFileValue(input)
-      ? // PHP does not parse an upload on a real PUT — spoof it.
+      ? // PHP does not parse an upload on a real PATCH — spoof it.
         unwrap<Speaker>(
           nnakApi.post(
             `${base(eventId)}/${id}`,
-            toFormData(input, { method: "PUT" }),
+            toFormData(input, { method: "PATCH" }),
             MULTIPART_HEADERS,
           ),
         )
-      : unwrap<Speaker>(nnakApi.put(`${base(eventId)}/${id}`, input)),
+      : unwrap<Speaker>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

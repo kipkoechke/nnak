@@ -5,7 +5,7 @@
  *   GET    /admin/member-categories            list
  *   POST   /admin/member-categories            create
  *   GET    /admin/member-categories/{category} show
- *   PUT    /admin/member-categories/{category} update
+ *   PATCH  /admin/member-categories/{category} update
  *   DELETE /admin/member-categories/{category} delete
  *
  * Demo sessions fall back to the local mock store so the seeded personas
@@ -157,7 +157,7 @@ export const categoriesService = {
   ): Promise<MemberCategory> => {
     if (isDemoSession()) return mockStore.updateCategory(id, body);
     const raw = await unwrap<RawCategory>(
-      nnakApi.put(`${BASE}/${id}`, toApiPayload(body)),
+      nnakApi.patch(`${BASE}/${id}`, toApiPayload(body)),
     );
     return normalizeCategory(raw);
   },

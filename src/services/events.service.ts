@@ -2,7 +2,7 @@
 //   GET    /admin/events              list (paginated)
 //   POST   /admin/events              create
 //   GET    /admin/events/{event}      detail
-//   PUT    /admin/events/{event}      update (all fields optional, + is_approved)
+//   PATCH  /admin/events/{event}      update (all fields optional, + is_approved)
 //   DELETE /admin/events/{event}      delete (204)
 import { nnakApi } from "@/lib/api";
 import {
@@ -50,15 +50,15 @@ export const eventsService = {
 
   update: async (id: string, input: UpdateEventInput): Promise<NnakEvent> =>
     hasFileValue(input)
-      ? // PHP does not parse an upload on a real PUT — spoof it.
+      ? // PHP does not parse an upload on a real PATCH — spoof it.
         unwrap<NnakEvent>(
           nnakApi.post(
             `/admin/events/${id}`,
-            toFormData(input, { method: "PUT" }),
+            toFormData(input, { method: "PATCH" }),
             MULTIPART_HEADERS,
           ),
         )
-      : unwrap<NnakEvent>(nnakApi.put(`/admin/events/${id}`, input)),
+      : unwrap<NnakEvent>(nnakApi.patch(`/admin/events/${id}`, input)),
 
   remove: async (id: string) => {
     await nnakApi.delete(`/admin/events/${id}`);

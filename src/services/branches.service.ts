@@ -56,12 +56,12 @@ export const nnakBranchesService = {
     return r.data?.data;
   },
 
-  /** Admin: PUT /admin/branches/{id} — edit branch details (not the manager). */
+  /** Admin: PATCH /admin/branches/{id} — edit branch details (not the manager). */
   update: async (
     id: string,
     body: import("@/types/nnak").UpdateBranchInput,
   ): Promise<Branch> => {
-    const r = await nnakApi.put<{ success: boolean; data: Branch }>(
+    const r = await nnakApi.patch<{ success: boolean; data: Branch }>(
       `/admin/branches/${id}`,
       body,
     );

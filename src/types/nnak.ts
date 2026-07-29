@@ -180,7 +180,7 @@ export interface EventLocationCoordinates {
   lng: number;
 }
 
-/** Admin event resource — GET/POST/PUT /admin/events. */
+/** Admin event resource — GET/POST/PATCH /admin/events. */
 export interface NnakEvent {
   id: string;
   code: string;
@@ -219,7 +219,7 @@ export interface CreateEventInput {
   metadata?: Record<string, unknown> | null;
 }
 
-/** PUT /admin/events/{event} — every field is `sometimes`, plus approval. */
+/** PATCH /admin/events/{event} — every field is `sometimes`, plus approval. */
 export type UpdateEventInput = Partial<CreateEventInput> & {
   is_approved?: boolean;
 };
@@ -680,7 +680,7 @@ export interface CreateBranchInput {
   branch_manager_phone?: string;
 }
 
-/** PUT /admin/branches/{id}. Manager is changed via its own endpoint. */
+/** PATCH /admin/branches/{id}. Manager is changed via its own endpoint. */
 export interface UpdateBranchInput {
   name?: string;
   employer_type?: EmployerType | string;
