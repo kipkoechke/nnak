@@ -212,8 +212,10 @@ export interface CreateEventInput {
   location?: string | null;
   location_coordinates?: EventLocationCoordinates | null;
   type?: string | null;
-  cover_image_url?: string | null;
-  banner_image_url?: string | null;
+  /** A picked File is uploaded in place of the URL, as `PATCH /profile`
+   *  accepts a file under `photo_url`. */
+  cover_image_url?: string | File | null;
+  banner_image_url?: string | File | null;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -221,6 +223,16 @@ export interface CreateEventInput {
 export type UpdateEventInput = Partial<CreateEventInput> & {
   is_approved?: boolean;
 };
+
+/**
+ * What the event form hands back — the read model minus the image fields,
+ * which the writes may carry as an uploaded File rather than a URL.
+ */
+export type EventUpsertInput = Omit<
+  Partial<NnakEvent>,
+  "cover_image_url" | "banner_image_url"
+> &
+  Partial<CreateEventInput> & { is_approved?: boolean };
 
 /** Row of the public GET /events listing. */
 export interface PublicEvent {
@@ -289,7 +301,8 @@ export interface CreateSpeakerInput {
   title?: string | null;
   bio?: string | null;
   organization?: string | null;
-  photo_url?: string | null;
+  /** A picked File is uploaded in place of the URL. */
+  photo_url?: string | File | null;
   social_links?: Record<string, string> | null;
 }
 
@@ -358,7 +371,8 @@ export interface Sponsor {
 
 export interface CreateSponsorInput {
   name: string;
-  logo_url?: string | null;
+  /** A picked File is uploaded in place of the URL. */
+  logo_url?: string | File | null;
   website?: string | null;
   tier?: string | null;
 }
@@ -378,7 +392,8 @@ export interface Exhibitor {
 export interface CreateExhibitorInput {
   name: string;
   description?: string | null;
-  logo_url?: string | null;
+  /** A picked File is uploaded in place of the URL. */
+  logo_url?: string | File | null;
   booth_number?: string | null;
 }
 

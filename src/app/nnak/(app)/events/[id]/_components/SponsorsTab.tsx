@@ -13,6 +13,7 @@ import {
   useSponsors,
   useUpdateSponsor,
 } from "@/hooks/use-sponsors";
+import ImageUpload from "@/components/common/ImageUpload";
 import type { Sponsor } from "@/types/nnak";
 import {
   AddBtn,
@@ -51,7 +52,7 @@ const TIER_TONE: Record<string, string> = {
   other: "bg-slate-50 text-slate-700 border-slate-200",
 };
 
-const empty = { name: "", website: "", tier: "Platinum", logo_url: "" };
+const empty = { name: "", website: "", tier: "Platinum" };
 
 export default function SponsorsTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useSponsors(eventId);
@@ -63,6 +64,10 @@ export default function SponsorsTab({ eventId }: { eventId: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
+  // Logos are uploaded, not linked. `logoUrl` is the stored image kept for
+  // preview; it is left alone when no new file is picked.
+  const [logoFile, setLogoFile] = useState<File | undefined>();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const sponsors = useMemo(() => data?.data ?? [], [data]);
 
@@ -83,12 +88,16 @@ export default function SponsorsTab({ eventId }: { eventId: string }) {
   const reset = () => {
     setForm(empty);
     setEditId(null);
+    setLogoFile(undefined);
+    setLogoUrl(null);
     setModalOpen(false);
   };
 
   const openNew = () => {
     setForm(empty);
     setEditId(null);
+    setLogoFile(undefined);
+    setLogoUrl(null);
     setModalOpen(true);
   };
 
@@ -98,19 +107,20 @@ export default function SponsorsTab({ eventId }: { eventId: string }) {
       name: s.name,
       website: s.website ?? "",
       tier: s.tier ?? "Other",
-      logo_url: s.logo_url ?? "",
     });
+    setLogoFile(undefined);
+    setLogoUrl(s.logo_url ?? null);
     setModalOpen(true);
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Only send the logo when a new one was picked; omitting it keeps the
+    // stored image.
+    const input = { ...form, ...(logoFile ? { logo_url: logoFile } : {}) };
     if (editId)
-      updateSponsor.mutate(
-        { eventId, id: editId, input: form },
-        { onSuccess: reset },
-      );
-    else createSponsor.mutate({ eventId, input: form }, { onSuccess: reset });
+      updateSponsor.mutate({ eventId, id: editId, input }, { onSuccess: reset });
+    else createSponsor.mutate({ eventId, input }, { onSuccess: reset });
   };
 
   const remove = async (s: Sponsor) => {
@@ -239,20 +249,19 @@ export default function SponsorsTab({ eventId }: { eventId: string }) {
               ))}
             </Select>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field
-              label="Website"
-              value={form.website}
-              onChange={(v) => setForm({ ...form, website: v })}
-              placeholder="https://…"
-            />
-            <Field
-              label="Logo URL"
-              value={form.logo_url}
-              onChange={(v) => setForm({ ...form, logo_url: v })}
-              placeholder="https://…"
-            />
-          </div>
+          <Field
+            label="Website"
+            value={form.website}
+            onChange={(v) => setForm({ ...form, website: v })}
+            placeholder="https://…"
+          />
+          <ImageUpload
+            label="Logo"
+            currentUrl={logoUrl}
+            file={logoFile}
+            onChange={setLogoFile}
+            helperText="A transparent PNG sits best on the sponsor wall."
+          />
           <FormActions
             onCancel={reset}
             saving={createSponsor.isPending || updateSponsor.isPending}

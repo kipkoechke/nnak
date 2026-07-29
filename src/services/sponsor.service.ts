@@ -5,6 +5,7 @@
 //   PUT   /events/{event}/sponsors/{id}     update
 //   DELETE /events/{event}/sponsors/{id}    delete
 import { nnakApi } from "@/lib/api";
+import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
 import type {
   ApiEnvelope,
   CreateSponsorInput,
@@ -35,17 +36,32 @@ export const sponsorService = {
   getById: async (eventId: string, id: string) =>
     unwrap<Sponsor>(nnakApi.get(`${base(eventId)}/${id}`)),
 
+  /** Goes out as multipart only when a logo file was picked. */
   create: async (
     eventId: string,
     input: CreateSponsorInput,
-  ): Promise<Sponsor> => unwrap<Sponsor>(nnakApi.post(base(eventId), input)),
+  ): Promise<Sponsor> =>
+    hasFileValue(input)
+      ? unwrap<Sponsor>(
+          nnakApi.post(base(eventId), toFormData(input), MULTIPART_HEADERS),
+        )
+      : unwrap<Sponsor>(nnakApi.post(base(eventId), input)),
 
   update: async (
     eventId: string,
     id: string,
     input: Partial<CreateSponsorInput>,
   ): Promise<Sponsor> =>
-    unwrap<Sponsor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
+    hasFileValue(input)
+      ? // PHP does not parse an upload on a real PUT — spoof it.
+        unwrap<Sponsor>(
+          nnakApi.post(
+            `${base(eventId)}/${id}`,
+            toFormData(input, { method: "PUT" }),
+            MULTIPART_HEADERS,
+          ),
+        )
+      : unwrap<Sponsor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

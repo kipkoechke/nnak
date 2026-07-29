@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import type { CreateEventInput, NnakEvent } from "@/types/nnak";
+import ImageUpload from "@/components/common/ImageUpload";
+import type { EventUpsertInput, NnakEvent } from "@/types/nnak";
 
 interface Props {
   initial?: Partial<NnakEvent>;
-  onSubmit: (
-    data: Partial<NnakEvent> & Partial<CreateEventInput>,
-  ) => Promise<void> | void;
+  onSubmit: (data: EventUpsertInput) => Promise<void> | void;
   submitting?: boolean;
 }
 
@@ -26,10 +25,12 @@ export default function EventForm({ initial, onSubmit, submitting }: Props) {
     location: initial?.location || "",
     lat: initial?.location_coordinates?.lat?.toString() ?? "",
     lng: initial?.location_coordinates?.lng?.toString() ?? "",
-    cover_image_url: initial?.cover_image_url || "",
-    banner_image_url: initial?.banner_image_url || "",
     metadata: initial?.metadata ? JSON.stringify(initial.metadata, null, 2) : "",
   });
+  // Images are uploaded, not linked. The existing URLs are kept for preview
+  // and re-sent untouched when no new file is picked.
+  const [coverFile, setCoverFile] = useState<File | undefined>();
+  const [bannerFile, setBannerFile] = useState<File | undefined>();
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
@@ -67,8 +68,10 @@ export default function EventForm({ initial, onSubmit, submitting }: Props) {
       location_coordinates: hasCoords
         ? { lat: Number(form.lat), lng: Number(form.lng) }
         : null,
-      cover_image_url: form.cover_image_url || null,
-      banner_image_url: form.banner_image_url || null,
+      // Only send an image field when there is something new to store;
+      // omitting it leaves whatever the event already has.
+      ...(coverFile ? { cover_image_url: coverFile } : {}),
+      ...(bannerFile ? { banner_image_url: bannerFile } : {}),
       metadata,
     });
   };
@@ -184,22 +187,20 @@ export default function EventForm({ initial, onSubmit, submitting }: Props) {
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <input
-          value={form.cover_image_url}
-          onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })}
-          placeholder="Cover image URL"
-          maxLength={500}
-          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ImageUpload
+          label="Cover image"
+          currentUrl={initial?.cover_image_url}
+          file={coverFile}
+          onChange={setCoverFile}
+          helperText="Shown on event cards and listings."
         />
-        <input
-          value={form.banner_image_url}
-          onChange={(e) =>
-            setForm({ ...form, banner_image_url: e.target.value })
-          }
-          placeholder="Banner image URL"
-          maxLength={500}
-          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+        <ImageUpload
+          label="Banner image"
+          currentUrl={initial?.banner_image_url}
+          file={bannerFile}
+          onChange={setBannerFile}
+          helperText="Wide image across the top of the event page."
         />
       </div>
       <div>

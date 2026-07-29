@@ -7,6 +7,7 @@ import {
   useExhibitors,
   useUpdateExhibitor,
 } from "@/hooks/use-exhibitors";
+import ImageUpload from "@/components/common/ImageUpload";
 import type { Exhibitor } from "@/types/nnak";
 import {
   AddBtn,
@@ -22,7 +23,7 @@ import {
   useConfirm,
 } from "./shared";
 
-const empty = { name: "", description: "", logo_url: "", booth_number: "" };
+const empty = { name: "", description: "", booth_number: "" };
 
 export default function ExhibitorsTab({ eventId }: { eventId: string }) {
   const { data, isLoading } = useExhibitors(eventId);
@@ -34,18 +35,26 @@ export default function ExhibitorsTab({ eventId }: { eventId: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
+  // Logos are uploaded, not linked. `logoUrl` is the stored image kept for
+  // preview; it is left alone when no new file is picked.
+  const [logoFile, setLogoFile] = useState<File | undefined>();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const exhibitors = data?.data ?? [];
 
   const reset = () => {
     setForm(empty);
     setEditId(null);
+    setLogoFile(undefined);
+    setLogoUrl(null);
     setModalOpen(false);
   };
 
   const openNew = () => {
     setForm(empty);
     setEditId(null);
+    setLogoFile(undefined);
+    setLogoUrl(null);
     setModalOpen(true);
   };
 
@@ -54,9 +63,10 @@ export default function ExhibitorsTab({ eventId }: { eventId: string }) {
     setForm({
       name: ex.name,
       description: ex.description ?? "",
-      logo_url: ex.logo_url ?? "",
       booth_number: ex.booth_number ?? "",
     });
+    setLogoFile(undefined);
+    setLogoUrl(ex.logo_url ?? null);
     setModalOpen(true);
   };
 
@@ -65,8 +75,10 @@ export default function ExhibitorsTab({ eventId }: { eventId: string }) {
     const input = {
       name: form.name,
       description: form.description || null,
-      logo_url: form.logo_url || null,
       booth_number: form.booth_number || null,
+      // Only send the logo when a new one was picked; omitting it keeps the
+      // stored image.
+      ...(logoFile ? { logo_url: logoFile } : {}),
     };
     if (editId)
       updateExhibitor.mutate(
@@ -174,11 +186,12 @@ export default function ExhibitorsTab({ eventId }: { eventId: string }) {
               placeholder="A12"
             />
           </div>
-          <Field
-            label="Logo URL"
-            value={form.logo_url}
-            onChange={(v) => setForm({ ...form, logo_url: v })}
-            placeholder="https://…"
+          <ImageUpload
+            label="Logo"
+            currentUrl={logoUrl}
+            file={logoFile}
+            onChange={setLogoFile}
+            helperText="A transparent PNG sits best on the exhibitor list."
           />
           <TextArea
             label="Description"

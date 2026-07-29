@@ -7,6 +7,7 @@ import {
   useSpeakers,
   useUpdateSpeaker,
 } from "@/hooks/use-speakers";
+import ImageUpload from "@/components/common/ImageUpload";
 import type { Speaker } from "@/types/nnak";
 import {
   AddBtn,
@@ -28,7 +29,6 @@ const empty = {
   title: "",
   organization: "",
   bio: "",
-  photo_url: "",
 };
 
 export default function SpeakersTab({ eventId }: { eventId: string }) {
@@ -41,18 +41,26 @@ export default function SpeakersTab({ eventId }: { eventId: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
+  // Photos are uploaded, not linked. `photoUrl` is the stored image kept for
+  // preview; it is left alone when no new file is picked.
+  const [photoFile, setPhotoFile] = useState<File | undefined>();
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const speakers = data?.data ?? [];
 
   const reset = () => {
     setForm(empty);
     setEditId(null);
+    setPhotoFile(undefined);
+    setPhotoUrl(null);
     setModalOpen(false);
   };
 
   const openNew = () => {
     setForm(empty);
     setEditId(null);
+    setPhotoFile(undefined);
+    setPhotoUrl(null);
     setModalOpen(true);
   };
 
@@ -63,19 +71,23 @@ export default function SpeakersTab({ eventId }: { eventId: string }) {
       title: s.title ?? "",
       organization: s.organization ?? "",
       bio: s.bio ?? "",
-      photo_url: s.photo_url ?? "",
     });
+    setPhotoFile(undefined);
+    setPhotoUrl(s.photo_url ?? null);
     setModalOpen(true);
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Only send the photo when a new one was picked; omitting it keeps the
+    // stored image.
+    const input = { ...form, ...(photoFile ? { photo_url: photoFile } : {}) };
     if (editId)
       updateSpeaker.mutate(
-        { eventId, id: editId, input: form },
+        { eventId, id: editId, input },
         { onSuccess: reset },
       );
-    else createSpeaker.mutate({ eventId, input: form }, { onSuccess: reset });
+    else createSpeaker.mutate({ eventId, input }, { onSuccess: reset });
   };
 
   const remove = async (s: Speaker) => {
@@ -177,11 +189,12 @@ export default function SpeakersTab({ eventId }: { eventId: string }) {
               onChange={(v) => setForm({ ...form, organization: v })}
             />
           </div>
-          <Field
-            label="Photo URL"
-            value={form.photo_url}
-            onChange={(v) => setForm({ ...form, photo_url: v })}
-            placeholder="https://…"
+          <ImageUpload
+            label="Photo"
+            currentUrl={photoUrl}
+            file={photoFile}
+            onChange={setPhotoFile}
+            helperText="Square headshots look best."
           />
           <TextArea
             label="Bio"

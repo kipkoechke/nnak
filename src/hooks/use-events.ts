@@ -4,7 +4,12 @@ import toast from "react-hot-toast";
 import { eventsService } from "@/services/events.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import type { CreateEventInput, NnakEvent, UpdateEventInput } from "@/types/nnak";
+import type {
+  CreateEventInput,
+  EventUpsertInput,
+  NnakEvent,
+  UpdateEventInput,
+} from "@/types/nnak";
 
 export const useEvents = (params?: {
   page?: number;
@@ -56,9 +61,7 @@ export const useUpsertEvent = () => {
   const updateMutation = useUpdateEvent();
 
   return {
-    mutateAsync: async (
-      data: Partial<NnakEvent> & Partial<CreateEventInput>,
-    ): Promise<NnakEvent> => {
+    mutateAsync: async (data: EventUpsertInput): Promise<NnakEvent> => {
       if (data.id) {
         const { id, ...input } = data;
         return updateMutation.mutateAsync({

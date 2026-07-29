@@ -5,6 +5,7 @@
 //   PUT   /events/{event}/exhibitors/{id}   update
 //   DELETE /events/{event}/exhibitors/{id}  delete
 import { nnakApi } from "@/lib/api";
+import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
 import type {
   ApiEnvelope,
   CreateExhibitorInput,
@@ -35,18 +36,32 @@ export const exhibitorService = {
   getById: async (eventId: string, id: string) =>
     unwrap<Exhibitor>(nnakApi.get(`${base(eventId)}/${id}`)),
 
+  /** Goes out as multipart only when a logo file was picked. */
   create: async (
     eventId: string,
     input: CreateExhibitorInput,
   ): Promise<Exhibitor> =>
-    unwrap<Exhibitor>(nnakApi.post(base(eventId), input)),
+    hasFileValue(input)
+      ? unwrap<Exhibitor>(
+          nnakApi.post(base(eventId), toFormData(input), MULTIPART_HEADERS),
+        )
+      : unwrap<Exhibitor>(nnakApi.post(base(eventId), input)),
 
   update: async (
     eventId: string,
     id: string,
     input: Partial<CreateExhibitorInput>,
   ): Promise<Exhibitor> =>
-    unwrap<Exhibitor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
+    hasFileValue(input)
+      ? // PHP does not parse an upload on a real PUT — spoof it.
+        unwrap<Exhibitor>(
+          nnakApi.post(
+            `${base(eventId)}/${id}`,
+            toFormData(input, { method: "PUT" }),
+            MULTIPART_HEADERS,
+          ),
+        )
+      : unwrap<Exhibitor>(nnakApi.put(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);
