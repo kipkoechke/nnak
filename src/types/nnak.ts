@@ -23,6 +23,10 @@ export type NnakRole =
 export type NnakMembershipCategory =
   | "student"
   | "individual"
+  /** Corporate / check-off members, billed monthly through their employer. */
+  | "checkoff"
+  | "lifetime"
+  | "honorary"
   | "moh"
   | "county"
   | "parastatal"
@@ -36,7 +40,8 @@ export type MemberStatus =
   | "inactive"
   | "archived";
 
-export type BillingFrequency = "monthly" | "annual";
+/** `annual` is the API's `yearly`; `one_time` covers lifetime and honorary. */
+export type BillingFrequency = "monthly" | "annual" | "one_time";
 
 export type PaymentMethod = "mpesa" | "byproduct" | "manual";
 
@@ -114,8 +119,14 @@ export interface MemberCategory {
   name: string;
   code: NnakMembershipCategory;
   billing_frequency: BillingFrequency;
+  /** What one billing cycle costs — the API's `subscription_fee`. The
+   *  annual/monthly split below is derived from it for the older screens. */
+  subscription_fee?: number;
   annual_fee: number;
   monthly_fee: number | null;
+  /** Months a lapsed member keeps benefits before the category expires. */
+  grace_period_months?: number;
+  is_active?: boolean;
   description?: string;
   created_at: string;
   updated_at: string;

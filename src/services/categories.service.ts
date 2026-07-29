@@ -42,21 +42,46 @@ type RawCategory = {
   annual_fee?: number | null;
   monthly_fee?: number | null;
   billing_frequency?: string;
+  grace_period_months?: number | null;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 };
 
+/** The API says `yearly`; every screen here says `annual`. Lifetime and
+ *  honorary tiers bill `one_time`. */
+const TO_UI_FREQUENCY: Record<string, BillingFrequency> = {
+  monthly: "monthly",
+  yearly: "annual",
+  annual: "annual",
+  one_time: "one_time",
+  one_off: "one_time",
+  lifetime: "one_time",
+};
+
+const TO_API_FREQUENCY: Record<BillingFrequency, string> = {
+  monthly: "monthly",
+  annual: "yearly",
+  one_time: "one_time",
+};
+
 const normalizeCategory = (raw: RawCategory): MemberCategory => {
-  const freq: BillingFrequency =
-    raw.billing_frequency === "monthly" ? "monthly" : "annual";
-  const fee = Number(raw.subscription_fee ?? raw.annual_fee ?? raw.monthly_fee ?? 0);
+  const freq = TO_UI_FREQUENCY[raw.billing_frequency ?? ""] ?? "annual";
+  const fee = Number(
+    raw.subscription_fee ?? raw.annual_fee ?? raw.monthly_fee ?? 0,
+  );
   return {
     id: raw.id,
     name: raw.name,
     code: raw.code as NnakMembershipCategory,
     billing_frequency: freq,
-    annual_fee: freq === "annual" ? fee : Number(raw.annual_fee ?? 0),
+    subscription_fee: fee,
+    // A one-off fee is charged in full, so it lands in the annual bucket the
+    // older subscription screens read.
+    annual_fee: freq === "monthly" ? Number(raw.annual_fee ?? 0) : fee,
     monthly_fee: freq === "monthly" ? fee : (raw.monthly_fee ?? null),
+    grace_period_months: raw.grace_period_months ?? undefined,
+    is_active: raw.is_active ?? true,
     description: raw.description,
     created_at: raw.created_at,
     updated_at: raw.updated_at,
@@ -69,17 +94,22 @@ const toApiPayload = (body: Partial<MemberCategory>) => {
   if (body.code !== undefined) out.code = body.code;
   if (body.description !== undefined) out.description = body.description;
   if (body.billing_frequency !== undefined) {
-    out.billing_frequency =
-      body.billing_frequency === "annual" ? "yearly" : "monthly";
+    out.billing_frequency = TO_API_FREQUENCY[body.billing_frequency];
   }
-  // The API keeps a single subscription_fee; pick the bucket that matches the
-  // chosen frequency (falling back to whichever value is present).
+  if (body.grace_period_months !== undefined) {
+    out.grace_period_months = body.grace_period_months;
+  }
+  if (body.is_active !== undefined) out.is_active = body.is_active;
+  // The API keeps a single subscription_fee; prefer it, else pick the bucket
+  // matching the chosen frequency.
   const fee =
-    body.billing_frequency === "monthly"
+    body.subscription_fee ??
+    (body.billing_frequency === "monthly"
       ? body.monthly_fee
-      : body.billing_frequency === "annual"
+      : body.billing_frequency === "annual" ||
+          body.billing_frequency === "one_time"
         ? body.annual_fee
-        : (body.annual_fee ?? body.monthly_fee);
+        : (body.annual_fee ?? body.monthly_fee));
   if (fee != null) out.subscription_fee = fee;
   return out;
 };
@@ -98,7 +128,10 @@ export type CreateCategoryInput = Omit<
 export const categoriesService = {
   list: async (): Promise<MemberCategory[]> => {
     if (isDemoSession()) return mockStore.listCategories();
-    const r = await nnakApi.get<CategoriesResponse>(BASE);
+    // The route paginates at 15; the register is small, so take it in one go.
+    const r = await nnakApi.get<CategoriesResponse>(BASE, {
+      params: { per_page: 100 },
+    });
     return (r.data?.data ?? []).map(normalizeCategory);
   },
 
