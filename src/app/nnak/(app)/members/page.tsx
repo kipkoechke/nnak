@@ -171,8 +171,11 @@ export default function MembersPage() {
       value: (m) => (m.profile?.subscription_active ? "Active" : "Inactive"),
     },
     {
-      header: "Subscription Expires",
-      value: (m) => m.profile?.subscription_expires_at ?? "",
+      header: "Coverage Ends",
+      value: (m) =>
+        m.profile?.coverage_end_date ??
+        m.profile?.subscription_expires_at ??
+        "",
     },
   ];
 

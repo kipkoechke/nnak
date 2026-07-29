@@ -44,6 +44,12 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
   const category = cats.find((c) => c.id === member.profile?.member_category_id);
   const branchName = member.profile?.branch?.name;
+  // The card and this panel both print coverage, not the older expiry field.
+  const coverageEnd =
+    member.profile?.coverage_end_date ??
+    member.current_coverage_end_date ??
+    member.profile?.subscription_expires_at ??
+    null;
 
   const collectAnnual = () => {
     if (!category) return;
@@ -94,7 +100,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <Field label="Category" value={category?.name || member.profile?.member_category?.name} />
             <Field label="Branch" value={branchName} />
             <Field label="Status" value={member.profile?.status || "—"} />
-            <Field label="Subscription expires" value={member.profile?.subscription_expires_at ? new Date(member.profile.subscription_expires_at).toLocaleDateString() : "—"} />
+            <Field label="Coverage ends" value={coverageEnd ? new Date(coverageEnd).toLocaleDateString() : "—"} />
           </div>
           {!isBranchManager && (
             <div className="pt-3 flex gap-2 flex-wrap">
@@ -125,7 +131,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           )}
         </div>
         {member.profile && (
-          <DigitalIdCard member={{ ...member, profile: member.profile }} category={category?.name} />
+          <DigitalIdCard
+            member={{ ...member, profile: member.profile }}
+            category={category?.name}
+            validUntil={coverageEnd}
+          />
         )}
       </div>
 
