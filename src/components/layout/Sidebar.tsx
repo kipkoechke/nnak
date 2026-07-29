@@ -13,7 +13,7 @@ import {
   MdShield,
   MdHistory,
   MdCategory,
-  MdFolderShared,
+  // MdFolderShared, // restore with the Data Exports menu item
   MdHowToReg,
   MdBadge,
   MdWorkOutline,
@@ -180,12 +180,12 @@ const STAFF_ITEMS: MenuItem[] = [
     href: "/nnak/ilm/audit",
     show: nnakCan.viewAuditLog,
   },
-  {
-    name: "Data Exports",
-    icon: MdFolderShared,
-    href: "/nnak/ilm/exports",
-    show: nnakCan.approveDataExport,
-  },
+  // {
+  //   name: "Data Exports",
+  //   icon: MdFolderShared,
+  //   href: "/nnak/ilm/exports",
+  //   show: nnakCan.approveDataExport,
+  // },
   {
     name: "Erasure",
     icon: MdShield,
