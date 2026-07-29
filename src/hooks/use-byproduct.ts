@@ -34,6 +34,8 @@ const apiErrMsg = (e: unknown, fb: string) =>
 export const useByProductApiList = (params?: {
   page?: number;
   per_page?: number;
+  status?: string;
+  branch_id?: string;
 }) =>
   useQuery({
     // Key on the params so changing page actually refetches.

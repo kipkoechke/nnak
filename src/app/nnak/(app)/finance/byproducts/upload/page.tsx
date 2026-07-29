@@ -5,6 +5,7 @@ import PageHeader from "@/components/common/PageHeader";
 import {
   useFinanceUploadByproduct,
   useFinanceDownloadByproductTemplate,
+  useFinanceBranches,
 } from "@/hooks/use-finance";
 import { MdUpload, MdClose } from "react-icons/md";
 
@@ -23,12 +24,20 @@ export default function FinanceByproductUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [startDate, setStartDate] = useState(monthsAgoIso(1));
   const [endDate, setEndDate] = useState(todayIso());
+  const [branchId, setBranchId] = useState("");
+  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
+  const branchOptions = branchesData?.data ?? [];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
     const created = await uploadMutation
-      .mutateAsync({ file, start_date: startDate, end_date: endDate })
+      .mutateAsync({
+        file,
+        start_date: startDate,
+        end_date: endDate,
+        branch_id: branchId || undefined,
+      })
       .catch(() => null);
     if (!created) return;
     setFile(null);
@@ -85,6 +94,28 @@ export default function FinanceByproductUploadPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
             />
           </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Branch <span className="text-slate-400">(optional)</span>
+          </label>
+          <select
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">Take the branch from each member</option>
+            {branchOptions.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Rows for members who have no branch are reinstated to the branch
+            picked here instead of being skipped.
+          </p>
         </div>
 
         <div className="mt-4">

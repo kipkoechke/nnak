@@ -117,7 +117,7 @@ export default function SponsorsTab({ eventId }: { eventId: string }) {
     e.preventDefault();
     // Only send the logo when a new one was picked; omitting it keeps the
     // stored image.
-    const input = { ...form, ...(logoFile ? { logo_url: logoFile } : {}) };
+    const input = { ...form, ...(logoFile ? { logo: logoFile } : {}) };
     if (editId)
       updateSponsor.mutate({ eventId, id: editId, input }, { onSuccess: reset });
     else createSponsor.mutate({ eventId, input }, { onSuccess: reset });

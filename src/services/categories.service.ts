@@ -88,6 +88,17 @@ const normalizeCategory = (raw: RawCategory): MemberCategory => {
   };
 };
 
+/** The API keeps a single subscription_fee; prefer it, else pick the bucket
+ *  matching the chosen frequency. */
+const feeOf = (body: Partial<MemberCategory>) =>
+  body.subscription_fee ??
+  (body.billing_frequency === "monthly"
+    ? body.monthly_fee
+    : body.billing_frequency === "annual" ||
+        body.billing_frequency === "one_time"
+      ? body.annual_fee
+      : (body.annual_fee ?? body.monthly_fee));
+
 const toApiPayload = (body: Partial<MemberCategory>) => {
   const out: Record<string, unknown> = {};
   if (body.name !== undefined) out.name = body.name;
@@ -100,16 +111,23 @@ const toApiPayload = (body: Partial<MemberCategory>) => {
     out.grace_period_months = body.grace_period_months;
   }
   if (body.is_active !== undefined) out.is_active = body.is_active;
-  // The API keeps a single subscription_fee; prefer it, else pick the bucket
-  // matching the chosen frequency.
-  const fee =
-    body.subscription_fee ??
-    (body.billing_frequency === "monthly"
-      ? body.monthly_fee
-      : body.billing_frequency === "annual" ||
-          body.billing_frequency === "one_time"
-        ? body.annual_fee
-        : (body.annual_fee ?? body.monthly_fee));
+  const fee = feeOf(body);
+  if (fee != null) out.subscription_fee = fee;
+  return out;
+};
+
+/**
+ * PATCH only accepts `name`, `subscription_fee` and `billing_frequency` — the
+ * code is fixed once a category exists, and anything else is rejected, so the
+ * update payload is built separately rather than filtered after the fact.
+ */
+const toUpdatePayload = (body: Partial<MemberCategory>) => {
+  const out: Record<string, unknown> = {};
+  if (body.name !== undefined) out.name = body.name;
+  if (body.billing_frequency !== undefined) {
+    out.billing_frequency = TO_API_FREQUENCY[body.billing_frequency];
+  }
+  const fee = feeOf(body);
   if (fee != null) out.subscription_fee = fee;
   return out;
 };
@@ -157,7 +175,7 @@ export const categoriesService = {
   ): Promise<MemberCategory> => {
     if (isDemoSession()) return mockStore.updateCategory(id, body);
     const raw = await unwrap<RawCategory>(
-      nnakApi.patch(`${BASE}/${id}`, toApiPayload(body)),
+      nnakApi.patch(`${BASE}/${id}`, toUpdatePayload(body)),
     );
     return normalizeCategory(raw);
   },

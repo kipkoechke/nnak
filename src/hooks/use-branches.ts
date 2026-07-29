@@ -106,3 +106,54 @@ export const useChangeBranchManager = () => {
     onError: (e) => toast.error(extractApiError(e, "Could not change manager")),
   });
 };
+
+/** Detach a member from a branch — they become an individual and are emailed
+ *  the reason. */
+export const useRemoveBranchMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      branchId,
+      userId,
+      reason,
+    }: {
+      branchId: string;
+      userId: string;
+      reason: string;
+    }) => nnakBranchesService.removeMember(branchId, { user_id: userId, reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member removed from the branch");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not remove the member")),
+  });
+};
+
+/** Put a member back into a branch. */
+export const useReinstateBranchMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      branchId,
+      userId,
+      reason,
+    }: {
+      branchId: string;
+      userId: string;
+      reason?: string;
+    }) =>
+      nnakBranchesService.reinstateMember(branchId, {
+        user_id: userId,
+        reason,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member reinstated to the branch");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not reinstate the member")),
+  });
+};

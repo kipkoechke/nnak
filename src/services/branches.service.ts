@@ -101,6 +101,25 @@ export const nnakBranchesService = {
     return r.data?.data;
   },
 
+  /** Admin: POST /admin/branches/{branch}/remove-member — detaches a member
+   *  from the branch, turning them into an individual. The member is emailed
+   *  the reason, so it is required. */
+  removeMember: async (
+    branchId: string,
+    body: { user_id: string; reason: string },
+  ): Promise<void> => {
+    await nnakApi.post(`/admin/branches/${branchId}/remove-member`, body);
+  },
+
+  /** Admin: POST /admin/branches/{branch}/reinstate-member — puts a member
+   *  back into the branch and emails them. */
+  reinstateMember: async (
+    branchId: string,
+    body: { user_id: string; reason?: string },
+  ): Promise<void> => {
+    await nnakApi.post(`/admin/branches/${branchId}/reinstate-member`, body);
+  },
+
   /** GET /admin/branches/{id} — single branch detail. */
   getById: async (id: string): Promise<Branch | null> => {
     if (isDemoSession()) {

@@ -14,6 +14,7 @@ import {
   MdHistory,
   MdCategory,
   // MdFolderShared, // restore with the Data Exports menu item
+  MdEventNote,
   MdHowToReg,
   MdBadge,
   MdWorkOutline,
@@ -80,6 +81,12 @@ const STAFF_ITEMS: MenuItem[] = [
     name: "Events",
     icon: MdEvent,
     href: "/nnak/events",
+    show: nnakCan.manageEvents,
+  },
+  {
+    name: "Calendar",
+    icon: MdEventNote,
+    href: "/nnak/calendar",
     show: nnakCan.manageEvents,
   },
   {

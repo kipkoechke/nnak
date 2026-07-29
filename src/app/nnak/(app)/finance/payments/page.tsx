@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { MdSearch, MdPayments } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import { filterOptions, humanizeFilter } from "@/lib/available-filters";
 import Pagination from "@/components/common/Pagination";
 import DownloadButton from "@/components/common/DownloadButton";
 import { useFinancePayments, useFinanceBranches } from "@/hooks/use-finance";
@@ -26,6 +27,22 @@ const fmtDate = (s?: string | null) =>
     : "—";
 
 const fmtKes = (n: number) => `KES ${Number(n).toLocaleString()}`;
+
+/** Used until the route advertises its own options in meta. */
+const STATUS_FALLBACK = [
+  { value: "", label: "All statuses" },
+  { value: "paid", label: "Paid" },
+  { value: "pending", label: "Pending" },
+  { value: "overdue", label: "Overdue" },
+];
+
+const METHOD_FALLBACK = [
+  { value: "", label: "All methods" },
+  { value: "mpesa", label: "M-Pesa" },
+  { value: "check_off", label: "Check-off" },
+  { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "manual", label: "Manual" },
+];
 
 export default function FinancePaymentsPage() {
   const [page, setPage] = useState(1);
@@ -52,6 +69,16 @@ export default function FinancePaymentsPage() {
   const payments = data?.data ?? [];
   const pagination = data?.pagination;
   const summary = data?.summary;
+
+  // The route advertises the statuses and payment methods it accepts.
+  const available = data?.listing?.available_filters;
+  const statusOptions = filterOptions(available?.status, STATUS_FALLBACK, "All statuses");
+  const methodOptions = filterOptions(
+    available?.payment_method,
+    METHOD_FALLBACK,
+    "All methods",
+    (v) => (v === "mpesa" ? "M-Pesa" : humanizeFilter(v)),
+  );
 
   const exportColumns: ExcelColumn<FinancePayment>[] = [
     { header: "Invoice No.", value: (p) => p.invoice_number },
@@ -141,10 +168,9 @@ export default function FinancePaymentsPage() {
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="">All statuses</option>
-          <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
-          <option value="overdue">Overdue</option>
+          {statusOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
         <select
           value={branchId}
@@ -161,11 +187,9 @@ export default function FinancePaymentsPage() {
           onChange={(e) => { setPaymentMethod(e.target.value); setPage(1); }}
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="">All methods</option>
-          <option value="mpesa">M-Pesa</option>
-          <option value="check_off">Check-off</option>
-          <option value="bank_transfer">Bank Transfer</option>
-          <option value="manual">Manual</option>
+          {methodOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
         <div className="flex items-center gap-1">
           <input

@@ -1,4 +1,5 @@
 "use client";
+import { filterOptions, humanizeFilter } from "@/lib/available-filters";
 import { useMemo, useState } from "react";
 import { MdSwapHoriz } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
@@ -61,6 +62,13 @@ export default function FinanceRemittancesPage() {
   const [startDate, setStartDate] = useState(init.start);
   const [endDate, setEndDate] = useState(init.end);
 
+  // The route advertises the categories it accepts.
+  const CATEGORY_FALLBACK = [
+    { value: "", label: "All categories" },
+    { value: "mpesa", label: "M-Pesa" },
+    { value: "batch", label: "Batch" },
+  ];
+
   const { data, isLoading } = useFinanceRemittances({
     page,
     per_page: 15,
@@ -72,6 +80,12 @@ export default function FinanceRemittancesPage() {
 
   const { data: branchesData } = useFinanceBranches({ per_page: 100 });
   const branches = branchesData?.data ?? [];
+  const categoryOptions = filterOptions(
+    data?.listing?.available_filters?.category,
+    CATEGORY_FALLBACK,
+    "All categories",
+    (v) => (v === "mpesa" ? "M-Pesa" : humanizeFilter(v)),
+  );
 
   const remittances = data?.data ?? [];
   const meta = data?.meta;
@@ -163,9 +177,11 @@ export default function FinanceRemittancesPage() {
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="all">All categories</option>
-          <option value="mpesa">M-Pesa</option>
-          <option value="batch">Batch</option>
+          {categoryOptions.map((o) => (
+            <option key={o.value || "all"} value={o.value || "all"}>
+              {o.label}
+            </option>
+          ))}
         </select>
         <select
           value={branchId}

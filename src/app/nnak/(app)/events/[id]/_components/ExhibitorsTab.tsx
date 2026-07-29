@@ -78,7 +78,7 @@ export default function ExhibitorsTab({ eventId }: { eventId: string }) {
       booth_number: form.booth_number || null,
       // Only send the logo when a new one was picked; omitting it keeps the
       // stored image.
-      ...(logoFile ? { logo_url: logoFile } : {}),
+      ...(logoFile ? { logo: logoFile } : {}),
     };
     if (editId)
       updateExhibitor.mutate(

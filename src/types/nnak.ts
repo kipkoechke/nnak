@@ -303,8 +303,9 @@ export interface CreateSpeakerInput {
   title?: string | null;
   bio?: string | null;
   organization?: string | null;
-  /** A picked File is uploaded in place of the URL. */
-  photo_url?: string | File | null;
+  photo_url?: string | null;
+  /** Uploaded file; the API stores it and fills `photo_url` from it. */
+  photo?: File | null;
   social_links?: Record<string, string> | null;
 }
 
@@ -373,8 +374,9 @@ export interface Sponsor {
 
 export interface CreateSponsorInput {
   name: string;
-  /** A picked File is uploaded in place of the URL. */
-  logo_url?: string | File | null;
+  logo_url?: string | null;
+  /** Uploaded file; the API stores it and fills `logo_url` from it. */
+  logo?: File | null;
   website?: string | null;
   tier?: string | null;
 }
@@ -394,8 +396,9 @@ export interface Exhibitor {
 export interface CreateExhibitorInput {
   name: string;
   description?: string | null;
-  /** A picked File is uploaded in place of the URL. */
-  logo_url?: string | File | null;
+  logo_url?: string | null;
+  /** Uploaded file; the API stores it and fills `logo_url` from it. */
+  logo?: File | null;
   booth_number?: string | null;
 }
 
@@ -1152,11 +1155,16 @@ export interface ByProductUploadInput {
   file: File;
   start_date: string; // YYYY-MM-DD
   end_date: string; // YYYY-MM-DD
+  /** Optional. Rows for members without a branch are reinstated to this one
+   *  instead of being skipped. */
+  branch_id?: string | null;
 }
 export interface ByProductUploadRecord {
   id: string;
   uploaded_by?: string;
   branch_id?: string | null;
+  /** status()/upload()/index() now return the branch inline. */
+  branch?: { id: string | null; name: string } | null;
   file_name?: string;
   file_path?: string;
   status: string;
@@ -1861,4 +1869,42 @@ export interface BookingPaymentInit {
   invoice_id: string;
   amount: number;
   phone: string;
+}
+
+// ── Calendar (GET /calendar, /admin/calendar CRUD) ─────────────────
+/** Calendar entries are distinct from events; events appear alongside them. */
+export type CalendarEntryType = "meeting" | "activity" | "holiday" | "general";
+
+export interface CalendarEntry {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: CalendarEntryType | string;
+  start_date: string;
+  end_date?: string | null;
+  location?: string | null;
+  is_all_day?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * A day on the public calendar. The route merges approved events with
+ * calendar entries, so an item is flagged with where it came from.
+ */
+export interface CalendarItem extends CalendarEntry {
+  /** `event` items are read-only here — they are managed under Events. */
+  source: "event" | "calendar" | string;
+  /** Present on merged event rows so the UI can link through. */
+  event_id?: string | null;
+}
+
+export interface CreateCalendarEntryInput {
+  title: string;
+  type: CalendarEntryType | string;
+  start_date: string;
+  end_date?: string | null;
+  description?: string | null;
+  location?: string | null;
+  is_all_day?: boolean;
 }

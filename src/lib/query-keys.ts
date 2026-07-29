@@ -216,6 +216,11 @@ export const nqk = {
       list: (p?: Record<string, unknown>) => ["nnak", "finance", "remittances", "list", p ?? {}] as const,
     },
   },
+  calendar: {
+    all: ["nnak", "calendar"] as const,
+    list: (p?: Record<string, unknown>) =>
+      ["nnak", "calendar", "list", p ?? {}] as const,
+  },
   institutions: {
     all: ["nnak", "institutions"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "institutions", "list", p ?? {}] as const,

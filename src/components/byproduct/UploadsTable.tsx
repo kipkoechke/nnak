@@ -31,6 +31,7 @@ export default function UploadsTable({
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-3 py-2">File</th>
+              <th className="px-3 py-2">Branch</th>
               <th className="px-3 py-2">Period</th>
               <th className="px-3 py-2">Total</th>
               <th className="px-3 py-2">Processed</th>
@@ -44,7 +45,7 @@ export default function UploadsTable({
             {isLoading && uploads.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-3 py-6 text-center text-slate-500 text-sm"
                 >
                   Loading…
@@ -54,7 +55,7 @@ export default function UploadsTable({
             {!isLoading && uploads.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-3 py-6 text-center text-slate-500 text-sm"
                 >
                   No uploads yet
@@ -74,6 +75,7 @@ export default function UploadsTable({
                     {u.file_name || "—"}
                   </Link>
                 </td>
+                <td className="px-3 py-2 text-xs">{u.branch?.name || "—"}</td>
                 <td className="px-3 py-2 text-xs whitespace-nowrap">
                   {new Date(u.start_date).toLocaleDateString()} —{" "}
                   {new Date(u.end_date).toLocaleDateString()}

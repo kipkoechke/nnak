@@ -1,4 +1,5 @@
 "use client";
+import { categoryLabel } from "@/lib/member-category";
 import { useState } from "react";
 import Link from "next/link";
 import { MdPeople, MdSearch } from "react-icons/md";
@@ -54,7 +55,7 @@ export default function FinanceMembersPage() {
     { header: "Email", value: (m) => m.email },
     { header: "Membership No.", value: (m) => m.membership_number },
     { header: "NCK No.", value: (m) => m.nck_number ?? "" },
-    { header: "Type", value: (m) => m.membership_type },
+    { header: "Type", value: (m) => categoryLabel(m.membership_type) },
     { header: "Chapter", value: (m) => m.chapter },
     { header: "Branch", value: (m) => m.branch_name ?? "" },
     { header: "Aging (months)", value: (m) => m.aging_months ?? "" },
@@ -160,7 +161,7 @@ export default function FinanceMembersPage() {
                     <div className="text-xs text-slate-500">{m.email}</div>
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{m.membership_number}</td>
-                  <td className="px-3 py-2 text-xs">{m.membership_type}</td>
+                  <td className="px-3 py-2 text-xs">{categoryLabel(m.membership_type)}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 max-w-[140px] truncate">
                     {m.branch_name || "—"}
                   </td>

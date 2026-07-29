@@ -7,6 +7,7 @@ import Pagination from "@/components/common/Pagination";
 import DownloadButton from "@/components/common/DownloadButton";
 import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import {
+  useCreateAdminMember,
   useImportMembers,
   useMembers,
   useSetMemberStatus,
@@ -18,11 +19,12 @@ import { useCategories } from "@/hooks/use-categories";
 import { useNnakBranches } from "@/hooks/use-branches";
 import { useNnakMe } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
+import { filterOptions, type ListingMeta } from "@/lib/available-filters";
 import { ModalShell } from "@/components/common/Modal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 
-const STATUS_OPTIONS = [
+const STATUS_FALLBACK = [
   { value: "", label: "All statuses" },
   ...["pending", "active", "suspended", "inactive", "archived"].map((s) => ({
     value: s,
@@ -30,15 +32,21 @@ const STATUS_OPTIONS = [
   })),
 ];
 
-/** Aging buckets (months since last coverage) supported by GET /admin/members. */
-const AGING_OPTIONS = [
+/** Aging buckets (months since last coverage). Used only until the route
+ *  advertises its own in `meta.available_filters.aging`. */
+const AGING_FALLBACK = [
   { value: "", label: "All ages" },
-  { value: "0", label: "Current", description: "No months outstanding" },
-  { value: "1-3", label: "1 – 3 months", description: "Recently lapsed" },
-  { value: "4-6", label: "4 – 6 months" },
-  { value: "7-12", label: "7 – 12 months" },
+  { value: "0-3", label: "0 – 3 months", description: "Recently lapsed" },
+  { value: "3-6", label: "3 – 6 months" },
+  { value: "6-12", label: "6 – 12 months" },
   { value: "12+", label: "Over 12 months", description: "Long overdue" },
 ];
+
+/** "0-3" → "0 – 3 months"; "12+" → "Over 12 months". */
+const agingLabel = (value: string) =>
+  value.endsWith("+")
+    ? `Over ${value.slice(0, -1)} months`
+    : `${value.replace("-", " – ")} months`;
 
 export default function MembersPage() {
   const [page, setPage] = useState(1);
@@ -77,6 +85,22 @@ export default function MembersPage() {
   const { data, isLoading } = isBranchManager
     ? branchMembersQuery
     : adminMembersQuery;
+
+  // The route advertises which statuses and aging buckets it accepts; fall
+  // back to the built-in lists on deploys that do not send them yet.
+  const listingMeta = (adminMembersQuery.data as { listing?: ListingMeta })
+    ?.listing;
+  const statusOptions = filterOptions(
+    listingMeta?.available_filters?.status,
+    STATUS_FALLBACK,
+    "All statuses",
+  );
+  const agingOptions = filterOptions(
+    listingMeta?.available_filters?.aging,
+    AGING_FALLBACK,
+    "All ages",
+    agingLabel,
+  );
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
@@ -99,17 +123,61 @@ export default function MembersPage() {
     [branches],
   );
 
+  // Direct admin creation for the one-off tiers — no OTP, no subscription.
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    identification_number: "",
+    member_category_id: "",
+    email: "",
+    phone: "",
+  });
+  const createMember = useCreateAdminMember();
+  /** The endpoint exists for the tiers that are not billed on a cycle. */
+  const oneOffCategories = useMemo(
+    () => cats.filter((c) => c.billing_frequency === "one_time"),
+    [cats],
+  );
+
+  const submitCreate = () => {
+    const { name, identification_number, member_category_id } = createForm;
+    if (!name.trim() || !identification_number.trim() || !member_category_id)
+      return;
+    createMember.mutate(
+      {
+        name: name.trim(),
+        identification_number: identification_number.trim(),
+        member_category_id,
+        email: createForm.email.trim() || undefined,
+        phone: createForm.phone.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowCreate(false);
+          setCreateForm({
+            name: "",
+            identification_number: "",
+            member_category_id: "",
+            email: "",
+            phone: "",
+          });
+        },
+      },
+    );
+  };
+
   const [showImport, setShowImport] = useState(false);
   const [importBranch, setImportBranch] = useState("");
   const [importCategory, setImportCategory] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
 
   const submitImport = () => {
-    if (!importFile || !importBranch) return;
+    if (!importFile) return;
     importMembers.mutate(
       {
         file: importFile,
-        branch_id: importBranch,
+        // Optional — individual imports are not branch-scoped.
+        branch_id: importBranch || undefined,
         member_category_code: importCategory || undefined,
       },
       {
@@ -123,13 +191,19 @@ export default function MembersPage() {
     );
   };
 
+  /** The template shape follows the category: `individual` adds the
+   *  "Active Until" column that drives the paid subscription. */
   const downloadTemplate = async () => {
-    const blob = await membersService.importTemplate().catch(() => null);
+    const blob = await membersService
+      .importTemplate(importCategory || undefined)
+      .catch(() => null);
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "members-import-template.xlsx";
+    a.download = importCategory
+      ? `members-import-template-${importCategory}.xlsx`
+      : "members-import-template.xlsx";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -230,6 +304,14 @@ export default function MembersPage() {
                 </button>
               </>
             )}
+            {canImport && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-1 border border-primary text-primary px-3 py-1.5 rounded-lg text-sm hover:bg-primary-subtle"
+              >
+                <MdAdd className="w-4 h-4" /> Lifetime / Honorary
+              </button>
+            )}
             <Link
               href="/nnak/members/new"
               className="inline-flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg text-sm"
@@ -260,7 +342,7 @@ export default function MembersPage() {
         {!isBranchManager && (
           <>
             <SearchableSelect
-              options={STATUS_OPTIONS}
+              options={statusOptions}
               value={status}
               onChange={(v) => {
                 setStatus(v);
@@ -290,7 +372,7 @@ export default function MembersPage() {
               searchPlaceholder="Search branches…"
             />
             <SearchableSelect
-              options={AGING_OPTIONS}
+              options={agingOptions}
               value={aging}
               onChange={(v) => {
                 setAging(v);
@@ -428,6 +510,122 @@ export default function MembersPage() {
         />
       </ModalShell>
 
+      <ModalShell isOpen={showCreate} onClose={() => setShowCreate(false)}>
+        <div className="p-5 space-y-4 w-full max-w-md">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Add Lifetime / Honorary Member
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Created straight away — no OTP, approved on the spot, and no
+              subscription or invoice is raised.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={createForm.member_category_id}
+              onChange={(e) =>
+                setCreateForm({
+                  ...createForm,
+                  member_category_id: e.target.value,
+                })
+              }
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              <option value="">Select category…</option>
+              {(oneOffCategories.length ? oneOffCategories : cats).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Full name <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={createForm.name}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, name: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              ID number <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={createForm.identification_number}
+              onChange={(e) =>
+                setCreateForm({
+                  ...createForm,
+                  identification_number: e.target.value,
+                })
+              }
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={createForm.email}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, email: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Phone
+              </label>
+              <input
+                value={createForm.phone}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, phone: e.target.value })
+                }
+                placeholder="2547…"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={() => setShowCreate(false)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitCreate}
+              disabled={
+                createMember.isPending ||
+                !createForm.name.trim() ||
+                !createForm.identification_number.trim() ||
+                !createForm.member_category_id
+              }
+              className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              {createMember.isPending ? "Creating…" : "Create member"}
+            </button>
+          </div>
+        </div>
+      </ModalShell>
+
       <ModalShell isOpen={showImport} onClose={() => setShowImport(false)}>
         <div className="p-5 space-y-4 w-full max-w-md">
           <div>
@@ -435,8 +633,8 @@ export default function MembersPage() {
               Import Members
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Download the template, fill it in, then upload it here. All rows
-              are imported into the selected branch.
+              Pick the category first — the template matches it — then fill it
+              in and upload it here.
             </p>
           </div>
 
@@ -449,35 +647,50 @@ export default function MembersPage() {
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
-              Branch <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={importBranch}
-              onChange={(e) => setImportBranch(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">Select branch…</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
               Member category (optional)
             </label>
             <select
               value={importCategory}
-              onChange={(e) => setImportCategory(e.target.value)}
+              onChange={(e) => {
+                setImportCategory(e.target.value);
+                // Individual imports are never branch-scoped.
+                if (e.target.value === "individual") setImportBranch("");
+              }}
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
             >
               <option value="">Use category from file</option>
               {cats.map((c) => (
                 <option key={c.id} value={c.code}>
                   {c.name}
+                </option>
+              ))}
+            </select>
+            {importCategory === "individual" && (
+              <p className="text-[11px] text-slate-500 mt-1">
+                Individual rows need an <strong>Active Until</strong> date; each
+                one gets a paid subscription, invoice and payment, and no
+                branch.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Branch{" "}
+              <span className="text-slate-400">
+                {importCategory === "individual" ? "(not used)" : "(optional)"}
+              </span>
+            </label>
+            <select
+              value={importBranch}
+              onChange={(e) => setImportBranch(e.target.value)}
+              disabled={importCategory === "individual"}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm disabled:bg-slate-100 disabled:text-slate-500"
+            >
+              <option value="">No branch</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
                 </option>
               ))}
             </select>
@@ -507,7 +720,7 @@ export default function MembersPage() {
             </button>
             <button
               onClick={submitImport}
-              disabled={!importFile || !importBranch || importMembers.isPending}
+              disabled={!importFile || importMembers.isPending}
               className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
               {importMembers.isPending ? "Importing…" : "Import"}

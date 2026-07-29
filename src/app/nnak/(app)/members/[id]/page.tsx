@@ -11,6 +11,7 @@ import {
 import { useBranchMember } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
 import { useNnakMe } from "@/hooks/use-auth";
+import { useNnakBranches, useReinstateBranchMember } from "@/hooks/use-branches";
 import { useStkPush } from "@/hooks/use-payments";
 import { ModalShell } from "@/components/common/Modal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
@@ -38,6 +39,26 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const convertStudent = useConvertStudent();
   const stk = useStkPush();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
+
+  // A member with no branch can be put back into one; the API emails them.
+  const reinstate = useReinstateBranchMember();
+  const [showReinstate, setShowReinstate] = useState(false);
+  const [reinstateBranch, setReinstateBranch] = useState("");
+  const { data: branches = [] } = useNnakBranches({
+    enabled: !isBranchManager && showReinstate,
+  });
+
+  const submitReinstate = async () => {
+    if (!reinstateBranch) return;
+    const ok = await reinstate
+      .mutateAsync({ branchId: reinstateBranch, userId: id })
+      .then(() => true)
+      .catch(() => false);
+    if (ok) {
+      setShowReinstate(false);
+      setReinstateBranch("");
+    }
+  };
 
   if (isLoading) return <div className="p-4 text-sm text-slate-500">Loading…</div>;
   if (!member) return <div className="p-4 text-sm text-slate-500">Member not found</div>;
@@ -109,6 +130,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               )}
               {member.profile?.status === "active" && (
                 <button onClick={() => setShowSuspendModal(true)} className="bg-red-600 text-white text-xs px-3 py-1.5 rounded">Suspend</button>
+              )}
+              {!member.profile?.branch_id && (
+                <button
+                  onClick={() => setShowReinstate(true)}
+                  className="bg-slate-700 text-white text-xs px-3 py-1.5 rounded"
+                >
+                  Assign to branch
+                </button>
               )}
               {member.role === "student" && (
                 <button
@@ -252,6 +281,46 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </>
       )}
+
+      <ModalShell isOpen={showReinstate} onClose={() => setShowReinstate(false)}>
+        <div className="p-5 space-y-4 w-full max-w-md">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Assign {member.name} to a branch
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              The member is reinstated to the branch and emailed about it.
+            </p>
+          </div>
+          <select
+            value={reinstateBranch}
+            onChange={(e) => setReinstateBranch(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            <option value="">Select a branch…</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowReinstate(false)}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitReinstate}
+              disabled={!reinstateBranch || reinstate.isPending}
+              className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold disabled:opacity-50"
+            >
+              {reinstate.isPending ? "Assigning…" : "Assign"}
+            </button>
+          </div>
+        </div>
+      </ModalShell>
 
       <ModalShell isOpen={showSuspendModal} onClose={() => setShowSuspendModal(false)}>
         <DeleteConfirmationModal

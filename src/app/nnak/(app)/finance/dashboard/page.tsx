@@ -1,4 +1,5 @@
 "use client";
+import { categoryLabel } from "@/lib/member-category";
 import { useMemo, useState } from "react";
 import {
   MdPeople,
@@ -389,7 +390,7 @@ export default function FinanceDashboardPage() {
                             <div className="text-xs text-slate-500">{m.email}</div>
                           </td>
                           <td className="px-3 py-2 font-mono text-xs">{m.membership_number}</td>
-                          <td className="px-3 py-2 text-xs">{m.membership_type}</td>
+                          <td className="px-3 py-2 text-xs">{categoryLabel(m.membership_type)}</td>
                           <td className="px-3 py-2 text-xs text-slate-600">{m.branch_name || "—"}</td>
                           <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(m.created_at)}</td>
                         </tr>

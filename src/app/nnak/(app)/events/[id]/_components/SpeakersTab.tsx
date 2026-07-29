@@ -81,7 +81,7 @@ export default function SpeakersTab({ eventId }: { eventId: string }) {
     e.preventDefault();
     // Only send the photo when a new one was picked; omitting it keeps the
     // stored image.
-    const input = { ...form, ...(photoFile ? { photo_url: photoFile } : {}) };
+    const input = { ...form, ...(photoFile ? { photo: photoFile } : {}) };
     if (editId)
       updateSpeaker.mutate(
         { eventId, id: editId, input },

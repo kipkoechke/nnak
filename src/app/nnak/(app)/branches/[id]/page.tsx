@@ -6,8 +6,10 @@ import {
   useBranch,
   useAdminBranchMembers,
   useChangeBranchManager,
+  useRemoveBranchMember,
 } from "@/hooks/use-branches";
-import { MdClose, MdSwapHoriz } from "react-icons/md";
+import { ModalShell } from "@/components/common/Modal";
+import { MdClose, MdPersonRemove, MdSwapHoriz } from "react-icons/md";
 
 export default function BranchDetailPage({
   params,
@@ -24,6 +26,31 @@ export default function BranchDetailPage({
   );
   const changeManager = useChangeBranchManager();
   const managerCandidates = membersData?.data ?? [];
+
+  // Removing a member detaches them from the branch and emails them the
+  // reason, so it is confirmed and the reason is required.
+  const removeMember = useRemoveBranchMember();
+  const [removeFor, setRemoveFor] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const [removeReason, setRemoveReason] = useState("");
+
+  const submitRemove = async () => {
+    if (!removeFor || !removeReason.trim()) return;
+    const ok = await removeMember
+      .mutateAsync({
+        branchId: id,
+        userId: removeFor.userId,
+        reason: removeReason.trim(),
+      })
+      .then(() => true)
+      .catch(() => false);
+    if (ok) {
+      setRemoveFor(null);
+      setRemoveReason("");
+    }
+  };
 
   const handleChangeManager = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +126,7 @@ export default function BranchDetailPage({
                 <th className="px-3 py-2 hidden md:table-cell">Category</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2 text-right">Pending (KES)</th>
+                <th className="px-3 py-2 w-24" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -129,6 +157,19 @@ export default function BranchDetailPage({
                     {m.pending_invoices_total
                       ? `KES ${Number(m.pending_invoices_total).toLocaleString()}`
                       : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() =>
+                        setRemoveFor({
+                          userId: m.user_id,
+                          name: m.name || "this member",
+                        })
+                      }
+                      className="inline-flex items-center gap-1 text-xs text-red-600 font-medium hover:underline"
+                    >
+                      <MdPersonRemove className="w-4 h-4" /> Remove
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -206,6 +247,56 @@ export default function BranchDetailPage({
           </form>
         </div>
       )}
+
+      <ModalShell
+        isOpen={!!removeFor}
+        onClose={() => {
+          setRemoveFor(null);
+          setRemoveReason("");
+        }}
+      >
+        <div className="p-5 space-y-4 w-full max-w-md">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Remove {removeFor?.name} from {branch.name}?
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              They become an individual member and are emailed the reason
+              below. An admin can reinstate them to a branch later.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={removeReason}
+              onChange={(e) => setRemoveReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Left the institution"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setRemoveFor(null);
+                setRemoveReason("");
+              }}
+              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitRemove}
+              disabled={!removeReason.trim() || removeMember.isPending}
+              className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+            >
+              {removeMember.isPending ? "Removing…" : "Remove member"}
+            </button>
+          </div>
+        </div>
+      </ModalShell>
     </div>
   );
 }

@@ -105,7 +105,8 @@ export default function CategoriesPage() {
           <div className="text-sm font-semibold">{editing ? "Edit" : "New"} Category</div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="Name" required className="px-3 py-2 border border-slate-300 rounded-md text-sm" />
-            <select value={form.code} onChange={(e) => setForm({...form, code: e.target.value as NnakMembershipCategory})} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
+            {/* The code is fixed once the category exists — PATCH rejects it. */}
+            <select value={form.code} disabled={!!editing} onChange={(e) => setForm({...form, code: e.target.value as NnakMembershipCategory})} className="px-3 py-2 border border-slate-300 rounded-md text-sm disabled:bg-slate-100 disabled:text-slate-500">
               {CATEGORY_CODES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={form.billing_frequency} onChange={(e) => setForm({...form, billing_frequency: e.target.value as BillingFrequency})} className="px-3 py-2 border border-slate-300 rounded-md text-sm">
@@ -123,16 +124,30 @@ export default function CategoriesPage() {
                   : "Annual fee (KES)"}
               <input type="number" min="0" step="1" value={form.fee} onChange={(e) => setForm({...form, fee: Number(e.target.value)})} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900" />
             </label>
-            <label className="text-xs text-slate-500">
-              Grace period (months)
-              <input type="number" min="0" step="1" value={form.grace_period_months} onChange={(e) => setForm({...form, grace_period_months: Number(e.target.value)})} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900" />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 self-end pb-2">
-              <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({...form, is_active: e.target.checked})} className="accent-primary" />
-              Active
-            </label>
+            {/* Grace period and the active flag are only settable at creation
+                time; PATCH takes name, fee and frequency alone. */}
+            {!editing && (
+              <>
+                <label className="text-xs text-slate-500">
+                  Grace period (months)
+                  <input type="number" min="0" step="1" value={form.grace_period_months} onChange={(e) => setForm({...form, grace_period_months: Number(e.target.value)})} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900" />
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700 self-end pb-2">
+                  <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({...form, is_active: e.target.checked})} className="accent-primary" />
+                  Active
+                </label>
+              </>
+            )}
           </div>
-          <textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} placeholder="Description" rows={2} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" />
+          {!editing && (
+            <textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} placeholder="Description" rows={2} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" />
+          )}
+          {editing && (
+            <p className="text-[11px] text-slate-500">
+              Only the name, fee and billing frequency can be changed after a
+              category is created.
+            </p>
+          )}
           <div className="flex gap-2">
             <button type="submit" disabled={create.isPending || update.isPending} className="bg-primary text-white text-sm px-4 py-2 rounded disabled:opacity-50">{editing ? "Update" : "Create"}</button>
             <button type="button" onClick={closeForm} className="px-4 py-2 border rounded text-sm">Cancel</button>

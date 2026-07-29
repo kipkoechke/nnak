@@ -16,6 +16,7 @@
 //   GET  /finance/payments
 //   GET  /finance/remittances
 import { nnakApi } from "@/lib/api";
+import type { ListingMeta } from "@/lib/available-filters";
 import { normalizePagination } from "@/lib/pagination";
 import type {
   ApiEnvelope,
@@ -65,6 +66,8 @@ interface Paginated<T> {
   data: T[];
   pagination?: NnakPagination;
   meta?: BatchListMeta | Record<string, unknown>;
+  /** `supported_params` / `available_filters` advertised by the route. */
+  listing?: ListingMeta;
 }
 
 interface FinanceMembersFilters {
@@ -147,8 +150,13 @@ export const financeService = {
       success: boolean;
       data: FinanceMember[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/members", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   memberDetail: async (id: string): Promise<FinanceMemberDetail | null> => {
@@ -162,8 +170,13 @@ export const financeService = {
       success: boolean;
       data: FinanceBranch[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/branches", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   branchDetail: async (id: string): Promise<FinanceBranchDetail | null> => {
@@ -180,8 +193,13 @@ export const financeService = {
       success: boolean;
       data: ByProductUploadRecord[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/byproducts", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   byproductTemplate: async (): Promise<Blob> => {
@@ -212,6 +230,8 @@ export const financeService = {
     fd.append("file", input.file);
     fd.append("start_date", input.start_date);
     fd.append("end_date", input.end_date);
+    // Optional — members with no branch are reinstated to it when given.
+    if (input.branch_id) fd.append("branch_id", input.branch_id);
     return unwrap<ByProductUploadRecord>(
       nnakApi.post("/finance/byproduct/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -299,17 +319,19 @@ export const financeService = {
     data: FinancePayment[];
     pagination?: NnakPagination;
     summary?: FinancePaymentsSummary;
+    listing?: ListingMeta;
   }> => {
     const r = await nnakApi.get<{
       success: boolean;
       data: FinancePayment[];
       pagination?: NnakPagination;
-      meta?: { summary?: FinancePaymentsSummary };
+      meta?: ListingMeta & { summary?: FinancePaymentsSummary };
     }>("/finance/payments", { params });
     return {
       data: r.data?.data ?? [],
       pagination: r.data?.pagination,
       summary: r.data?.meta?.summary,
+      listing: r.data?.meta,
     };
   },
 
@@ -319,13 +341,15 @@ export const financeService = {
     data: FinanceRemittanceItem[];
     meta?: FinanceRemittanceMeta;
     pagination?: NnakPagination;
+    listing?: ListingMeta;
   }> => {
     const r = await nnakApi.get<{
       success: boolean;
       pagination?: NnakPagination;
+      meta?: ListingMeta;
       data: {
         data: RawRemittanceItem[];
-        meta?: FinanceRemittanceMeta;
+        meta?: FinanceRemittanceMeta & ListingMeta;
         pagination?: NnakPagination;
       };
     }>("/finance/remittances", { params });
@@ -340,6 +364,7 @@ export const financeService = {
       meta: body?.meta,
       // Seen both inside `data` and on the envelope, depending on the route.
       pagination: body?.pagination ?? r.data?.pagination,
+      listing: r.data?.meta ?? body?.meta,
     };
   },
 };

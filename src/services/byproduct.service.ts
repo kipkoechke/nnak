@@ -11,6 +11,7 @@
  */
 import { nnakApi } from "@/lib/api";
 import { isDemoSession } from "@/lib/demo-token";
+import type { ListingMeta } from "@/lib/available-filters";
 import { mockStore } from "@/lib/mock-store";
 import type {
   ApiEnvelope,
@@ -23,6 +24,7 @@ interface ListResponse {
   success: boolean;
   data: ByProductUploadRecord[];
   pagination?: NnakPagination;
+  meta?: ListingMeta;
 }
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
@@ -30,10 +32,21 @@ const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
 
 export const byProductService = {
   // ── Real API ───────────────────────────────────────────────────────
-  apiList: async (params?: { page?: number; per_page?: number }) => {
-    if (isDemoSession()) return { data: [], pagination: undefined };
+  apiList: async (params?: {
+    page?: number;
+    per_page?: number;
+    status?: string;
+    branch_id?: string;
+  }) => {
+    if (isDemoSession())
+      return { data: [], pagination: undefined, listing: undefined };
     const r = await nnakApi.get<ListResponse>("/admin/byproduct", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      /** `available_filters.status` drives the status dropdown. */
+      listing: r.data?.meta,
+    };
   },
   /** The detail endpoint reports counts as `renewed` / `skipped`, while the
    *  list uses `processed_rows` / `skipped_count`. Normalise onto the list's
@@ -63,6 +76,8 @@ export const byProductService = {
     fd.append("file", input.file);
     fd.append("start_date", input.start_date);
     fd.append("end_date", input.end_date);
+    // Optional — members with no branch are reinstated to it when given.
+    if (input.branch_id) fd.append("branch_id", input.branch_id);
     return unwrap<ByProductUploadRecord>(
       nnakApi.post("/admin/byproduct/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
