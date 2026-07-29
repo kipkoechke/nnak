@@ -95,6 +95,8 @@ export interface NnakProfile {
   member_category_name?: string | null;
   /** /member/dashboard surfaces these too. */
   subscription_active?: boolean;
+  /** Last day the membership is covered — what the digital ID prints. */
+  coverage_end_date?: string | null;
   active_subscription?: unknown | null;
   /** Matches /employer-types API values (MOH | Parastatal | Private | FBO | Other).
    *  Falls back to plain string so legacy mock data and future values still type-check. */

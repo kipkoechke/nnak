@@ -153,6 +153,9 @@ const normalizeMember = (raw: unknown): MemberRecord => {
     approved_at: val("approved_at") ?? null,
     status: (val("status") ?? (approved ? "active" : "pending")) as string,
     subscription_active: subActive,
+    // What the digital ID prints as "Valid until".
+    coverage_end_date:
+      val("coverage_end_date") ?? val("current_coverage_end_date") ?? null,
     subscription_expires_at:
       val("subscription_ends_on") ?? val("subscription_expires_at") ?? null,
     active_subscription: row.active_subscription ?? null,
