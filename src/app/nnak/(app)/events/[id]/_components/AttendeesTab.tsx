@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
-import { MdCheckCircle, MdConfirmationNumber } from "react-icons/md";
+import { MdCheckCircle, MdConfirmationNumber, MdQrCode2 } from "react-icons/md";
+import TicketPass from "@/components/events/TicketPass";
+import { useEvent } from "@/hooks/use-events";
 import {
   useCreateEventAttendee,
   useEventAttendees,
@@ -72,6 +74,9 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [packageId, setPackageId] = useState("");
+  // The attendee whose ticket QR is on screen.
+  const [ticketFor, setTicketFor] = useState<EventAttendee | null>(null);
+  const { data: event } = useEvent(eventId);
 
   const attendees = useMemo(() => data?.data ?? [], [data]);
   const meta = data?.meta;
@@ -161,7 +166,20 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
       key: "ticket",
       header: "Ticket",
       className: "font-mono text-xs text-slate-600",
-      render: (a) => a.ticket_number || "—",
+      render: (a) =>
+        a.ticket_number ? (
+          <button
+            type="button"
+            onClick={() => setTicketFor(a)}
+            title="Show the ticket QR code"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            <MdQrCode2 className="w-4 h-4 shrink-0" />
+            {a.ticket_number}
+          </button>
+        ) : (
+          "—"
+        ),
     },
     {
       key: "sent",
@@ -300,6 +318,27 @@ export default function AttendeesTab({ eventId }: { eventId: string }) {
           </div>
         </div>
       )}
+
+      <Modal
+        open={!!ticketFor}
+        onClose={() => setTicketFor(null)}
+        title="Ticket"
+        description="Scan this at the door, or send the PDF to the attendee."
+      >
+        {ticketFor?.ticket_number && (
+          <TicketPass
+            data={{
+              ticketNumber: ticketFor.ticket_number,
+              attendeeName: ticketFor.name,
+              eventTitle: event?.title,
+              eventDate: event?.start_date,
+              venue: event?.location,
+              packageName: ticketFor.package_name,
+              bookingReference: ticketFor.booking_reference,
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal
         open={modalOpen}

@@ -2,8 +2,16 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MdCalendarToday, MdBookmarks, MdLocationOn, MdConfirmationNumber } from "react-icons/md";
+import {
+  MdCalendarToday,
+  MdBookmarks,
+  MdLocationOn,
+  MdConfirmationNumber,
+  MdQrCode2,
+} from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
+import { ModalShell } from "@/components/common/Modal";
+import TicketPass from "@/components/events/TicketPass";
 import {
   useBooking,
   useCancelBooking,
@@ -43,6 +51,12 @@ export default function MyBookingDetailPage({
   const payBooking = usePayBooking();
   const cancelBooking = useCancelBooking();
   const [payPhone, setPayPhone] = useState("");
+  // The attendee whose ticket QR is on screen.
+  const [ticketFor, setTicketFor] = useState<{
+    id: string;
+    name: string;
+    ticket_number?: string | null;
+  } | null>(null);
   // Poll while an STK push is in flight so the status flips without a refresh.
   const { data: booking, isLoading } = useBooking(id, {
     poll: payBooking.isSuccess,
@@ -292,15 +306,44 @@ export default function MyBookingDetailPage({
                   </div>
                 </div>
                 {a.ticket_number && (
-                  <span className="font-mono text-xs text-slate-500 shrink-0">
-                    #{a.ticket_number}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setTicketFor(a)}
+                    className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-primary border border-primary/30 rounded-lg px-2.5 py-1.5 hover:bg-primary/5"
+                  >
+                    <MdQrCode2 className="w-4 h-4" /> Ticket
+                  </button>
                 )}
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      <ModalShell
+        isOpen={!!ticketFor}
+        onClose={() => setTicketFor(null)}
+        size="lg"
+      >
+        {ticketFor?.ticket_number && (
+          <div className="p-2">
+            <h3 className="text-base font-semibold text-slate-900 mb-3">
+              Your ticket
+            </h3>
+            <TicketPass
+              data={{
+                ticketNumber: ticketFor.ticket_number,
+                attendeeName: ticketFor.name,
+                eventTitle: booking.event?.title ?? booking.event_title,
+                eventDate: booking.event?.start_date,
+                venue: booking.event?.location,
+                packageName: booking.package_name,
+                bookingReference: booking.reference_code,
+              }}
+            />
+          </div>
+        )}
+      </ModalShell>
 
       {/* Browse more events */}
       <div className="flex justify-center">
