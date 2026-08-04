@@ -35,9 +35,20 @@ export const byProductService = {
     const r = await nnakApi.get<ListResponse>("/admin/byproduct", { params });
     return { data: r.data?.data ?? [], pagination: r.data?.pagination };
   },
+  /** The detail endpoint reports counts as `renewed` / `skipped`, while the
+   *  list uses `processed_rows` / `skipped_count`. Normalise onto the list's
+   *  names so the UI reads one shape. */
   apiGet: async (id: string): Promise<ByProductUploadRecord | null> => {
     if (isDemoSession()) return null;
-    return unwrap<ByProductUploadRecord>(nnakApi.get(`/admin/byproduct/${id}`));
+    const raw = await unwrap<ByProductUploadRecord>(
+      nnakApi.get(`/admin/byproduct/${id}`),
+    );
+    if (!raw) return null;
+    return {
+      ...raw,
+      processed_rows: raw.processed_rows ?? raw.renewed,
+      skipped_count: raw.skipped_count ?? raw.skipped,
+    };
   },
   /** Downloads the template — backend returns a binary stream; this
    *  resolves to a Blob the UI can save with createObjectURL. */

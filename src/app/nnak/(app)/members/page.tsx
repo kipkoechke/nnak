@@ -1,14 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MdAdd, MdSearch, MdUploadFile, MdDownload } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import {
-  useApproveMember,
   useImportMembers,
   useMembers,
-  useRejectMember,
   useSetMemberStatus,
 } from "@/hooks/use-members";
 import { membersService } from "@/services/members.service";
@@ -19,14 +17,25 @@ import { useNnakMe } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
 import { ModalShell } from "@/components/common/Modal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
 
-const STATUS_COLOR: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  pending: "bg-amber-50 text-amber-700 border-amber-200",
-  suspended: "bg-red-50 text-red-700 border-red-200",
-  inactive: "bg-slate-50 text-slate-700 border-slate-200",
-  archived: "bg-slate-100 text-slate-500 border-slate-300",
-};
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  ...["pending", "active", "suspended", "inactive", "archived"].map((s) => ({
+    value: s,
+    label: s.charAt(0).toUpperCase() + s.slice(1),
+  })),
+];
+
+/** Aging buckets (months since last coverage) supported by GET /admin/members. */
+const AGING_OPTIONS = [
+  { value: "", label: "All ages" },
+  { value: "0", label: "Current", description: "No months outstanding" },
+  { value: "1-3", label: "1 – 3 months", description: "Recently lapsed" },
+  { value: "4-6", label: "4 – 6 months" },
+  { value: "7-12", label: "7 – 12 months" },
+  { value: "12+", label: "Over 12 months", description: "Long overdue" },
+];
 
 export default function MembersPage() {
   const [page, setPage] = useState(1);
@@ -34,6 +43,7 @@ export default function MembersPage() {
   const [status, setStatus] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [aging, setAging] = useState("");
 
   const { data: me } = useNnakMe();
   const isBranchManager =
@@ -54,8 +64,9 @@ export default function MembersPage() {
       per_page: 15,
       search: search || undefined,
       status: status || undefined,
-      category_id: categoryId || undefined,
+      member_category_id: categoryId || undefined,
       branch_id: branchId || undefined,
+      aging: aging || undefined,
     },
     { enabled: !isBranchManager },
   );
@@ -66,12 +77,24 @@ export default function MembersPage() {
   const { data: cats = [] } = useCategories();
   const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
-  const approve = useApproveMember();
-  const reject = useRejectMember();
   const importMembers = useImportMembers();
-  const canApprove = !isBranchManager && nnakCan.approveMembers(me);
+  const canManageStatus = !isBranchManager && nnakCan.approveMembers(me);
   const canImport = !isBranchManager && nnakCan.manageMembers(me);
 
+  const categoryOptions = useMemo(
+    () => [
+      { value: "", label: "All categories" },
+      ...cats.map((c) => ({ value: c.id, label: c.name })),
+    ],
+    [cats],
+  );
+  const branchOptions = useMemo(
+    () => [
+      { value: "", label: "All branches" },
+      ...branches.map((b) => ({ value: b.id, label: b.name })),
+    ],
+    [branches],
+  );
   const [showImport, setShowImport] = useState(false);
   const [importBranch, setImportBranch] = useState("");
   const [importCategory, setImportCategory] = useState("");
@@ -108,7 +131,7 @@ export default function MembersPage() {
   };
 
   const [confirmAction, setConfirmAction] = useState<{
-    type: "suspend" | "reject";
+    type: "suspend";
     memberId: string;
     memberName: string;
   } | null>(null);
@@ -147,7 +170,7 @@ export default function MembersPage() {
       />
 
       <div
-        className={`bg-white border border-slate-200 rounded-lg p-3 grid gap-2 ${isBranchManager ? "grid-cols-1" : "grid-cols-2 md:grid-cols-4"}`}
+        className={`bg-white border border-slate-200 rounded-lg p-3 grid gap-2 items-end ${isBranchManager ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5"}`}
       >
         <div
           className={`relative ${isBranchManager ? "" : "col-span-2 md:col-span-1"}`}
@@ -165,53 +188,46 @@ export default function MembersPage() {
         </div>
         {!isBranchManager && (
           <>
-            <select
+            <SearchableSelect
+              options={STATUS_OPTIONS}
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
+              onChange={(v) => {
+                setStatus(v);
                 setPage(1);
               }}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">All statuses</option>
-              {["pending", "active", "suspended", "inactive", "archived"].map(
-                (s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ),
-              )}
-            </select>
-            <select
+              placeholder="All statuses"
+              searchPlaceholder="Search statuses…"
+            />
+            <SearchableSelect
+              options={categoryOptions}
               value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
+              onChange={(v) => {
+                setCategoryId(v);
                 setPage(1);
               }}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">All categories</option>
-              {cats.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <select
+              placeholder="All categories"
+              searchPlaceholder="Search categories…"
+            />
+            <SearchableSelect
+              options={branchOptions}
               value={branchId}
-              onChange={(e) => {
-                setBranchId(e.target.value);
+              onChange={(v) => {
+                setBranchId(v);
                 setPage(1);
               }}
-              className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            >
-              <option value="">All branches</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
+              placeholder="All branches"
+              searchPlaceholder="Search branches…"
+            />
+            <SearchableSelect
+              options={AGING_OPTIONS}
+              value={aging}
+              onChange={(v) => {
+                setAging(v);
+                setPage(1);
+              }}
+              placeholder="All ages"
+              searchPlaceholder="Search aging…"
+            />
           </>
         )}
       </div>
@@ -235,9 +251,8 @@ export default function MembersPage() {
                     </th>
                     <th className="px-4 py-2 hidden md:table-cell">Category</th>
                     <th className="px-4 py-2 hidden lg:table-cell">Branch</th>
-                    <th className="px-4 py-2">Approval</th>
                     <th className="px-4 py-2">Subscription</th>
-                    <th className="px-4 py-2 w-32">Actions</th>
+                    <th className="px-4 py-2 w-48">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -270,21 +285,6 @@ export default function MembersPage() {
                       </td>
                       <td className="px-4 py-2">
                         {(() => {
-                          const isApproved =
-                            m.profile?.is_approved ??
-                            m.profile?.status === "active";
-                          const s = isApproved ? "active" : "pending";
-                          return (
-                            <span
-                              className={`px-2 py-0.5 text-[11px] rounded-full border ${STATUS_COLOR[s]}`}
-                            >
-                              {s}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-2">
-                        {(() => {
                           const subActive =
                             m.profile?.subscription_active ?? false;
                           return (
@@ -297,46 +297,28 @@ export default function MembersPage() {
                         })()}
                       </td>
                       <td className="px-4 py-2">
-                        {canApprove &&
-                          m.profile &&
-                          !(m.profile.is_approved ?? false) && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                disabled={approve.isPending || reject.isPending}
-                                onClick={() => approve.mutate(m.profile!.id)}
-                                className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md hover:bg-emerald-100 disabled:opacity-50 font-medium"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                disabled={approve.isPending || reject.isPending}
-                                onClick={() =>
-                                  setConfirmAction({
-                                    type: "reject",
-                                    memberId: m.profile!.id,
-                                    memberName: m.name,
-                                  })
-                                }
-                                className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-md hover:bg-red-100 disabled:opacity-50 font-medium"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                        {canApprove && m.profile?.is_approved && (
-                          <button
-                            onClick={() =>
-                              setConfirmAction({
-                                type: "suspend",
-                                memberId: m.id,
-                                memberName: m.name,
-                              })
-                            }
-                            className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/nnak/members/${m.profile?.id || m.id}`}
+                            className="text-xs text-primary hover:underline font-medium whitespace-nowrap"
                           >
-                            Suspend
-                          </button>
-                        )}
+                            View details
+                          </Link>
+                          {canManageStatus && m.profile?.is_approved && (
+                            <button
+                              onClick={() =>
+                                setConfirmAction({
+                                  type: "suspend",
+                                  memberId: m.id,
+                                  memberName: m.name,
+                                })
+                              }
+                              className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-md hover:bg-amber-100 font-medium"
+                            >
+                              Suspend
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -360,28 +342,16 @@ export default function MembersPage() {
         <DeleteConfirmationModal
           itemName={confirmAction?.memberName ?? ""}
           itemType="member"
-          title={
-            confirmAction?.type === "suspend"
-              ? "Suspend Member"
-              : "Reject Member"
-          }
-          message={
-            confirmAction?.type === "suspend"
-              ? `Are you sure you want to suspend "${confirmAction?.memberName}"?`
-              : `Are you sure you want to reject "${confirmAction?.memberName}"? This action cannot be undone.`
-          }
-          confirmLabel={
-            confirmAction?.type === "suspend" ? "Suspend" : "Reject"
-          }
-          isDeleting={setStatusM.isPending || reject.isPending}
+          title="Suspend Member"
+          message={`Are you sure you want to suspend "${confirmAction?.memberName}"?`}
+          confirmLabel="Suspend"
+          isDeleting={setStatusM.isPending}
           onConfirm={() => {
             if (!confirmAction) return;
-            if (confirmAction.type === "suspend")
-              setStatusM.mutate({
-                id: confirmAction.memberId,
-                status: "suspended",
-              });
-            else reject.mutate(confirmAction.memberId);
+            setStatusM.mutate({
+              id: confirmAction.memberId,
+              status: "suspended",
+            });
             setConfirmAction(null);
           }}
         />

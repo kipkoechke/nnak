@@ -1,12 +1,24 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
+import { InputField } from "@/components/common/InputField";
+import { PhoneInputField } from "@/components/common/PhoneInputField";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
 import {
   useNnakMe,
   useNnakChangePassword,
   useNnakUpdateProfile,
   useNnakUpdateProfilePicture,
 } from "@/hooks/use-auth";
+import {
+  useChapters,
+  useProfessionalCadres,
+  useProfessionalQualifications,
+} from "@/hooks/use-enums";
+import { profileSchema, type ProfileFormValues } from "@/schemas/auth.schema";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
 import {
   MdModeEditOutline,
@@ -24,6 +36,17 @@ const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    {children}
+  </h4>
+);
+
+/** Same two-stage split registration uses for the equivalent fields. */
+const STEPS = [
+  { id: 1, label: "Personal Details" },
+  { id: 2, label: "Professional" },
+] as const;
 export default function ProfileSettingsPage() {
   const { data: me, isLoading } = useNnakMe();
   const changePassword = useNnakChangePassword();
@@ -31,6 +54,13 @@ export default function ProfileSettingsPage() {
   const updatePicture = useNnakUpdateProfilePicture();
   const photoRef = useRef<HTMLInputElement | null>(null);
 
+  const { data: chapters = [] } = useChapters();
+  const { data: cadres = [] } = useProfessionalCadres();
+  const { data: qualifications = [] } = useProfessionalQualifications();
+  const chapterOptions = useMemo(
+    () => chapters.map((c) => ({ value: c.value, label: c.label })),
+    [chapters],
+  );
   const onPhotoPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) updatePicture.mutate(file);
@@ -38,36 +68,79 @@ export default function ProfileSettingsPage() {
   };
 
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    county: "",
-    designation: "",
-    place_of_work: "",
+  const [step, setStep] = useState<1 | 2>(1);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    trigger,
+    reset: resetForm,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      professional_cadre: "",
+      professional_qualification: "",
+      chapter: "",
+    },
+  });
   });
 
   // Seed the form from the loaded profile, and re-seed whenever the
   // canonical data changes (e.g. after a successful save).
   useEffect(() => {
     if (!me) return;
-    setForm({
+    resetForm({
       name: me.name ?? "",
       phone: me.profile?.phone ?? "",
-      county: me.profile?.county ?? "",
-      designation: me.profile?.designation ?? "",
-      place_of_work: me.profile?.employer_name ?? "",
+      professional_cadre:
+        me.profile?.professional_cadre ?? me.profile?.designation ?? "",
+      professional_qualification: me.profile?.professional_qualification ?? "",
+      chapter: me.profile?.chapter ?? "",
     });
-  }, [me]);
+  }, [me, resetForm]);
 
-  const saveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
+  const step1Fields: (keyof ProfileFormValues)[] = ["name", "phone"];
+
+  const handleNext = async (
+    target: 2,
+    fields: (keyof ProfileFormValues)[],
+  ) => {
+    const valid = await trigger(fields);
+    if (valid) setStep(target);
+    else {
+      const first = fields.find((f) => errors[f]);
+      if (first)
+        toast.error(
+          (errors[first]?.message as string) ||
+            "Please fix the highlighted field",
+        );
+    }
+  };
+
+  const beginEdit = () => {
+    setStep(1);
+    setIsEditing(true);
+  };
+
+  const saveProfile = (values: ProfileFormValues) => {
     updateProfile.mutate(
       {
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        county: form.county.trim(),
-        designation: form.designation.trim(),
-        place_of_work: form.place_of_work.trim(),
+        name: values.name.trim(),
+        // The API rejects a leading "+" — match what registration sends.
+        phone: values.phone.replace(/^\+/, ""),
+        // The backend stores the cadre in `designation`, as registration does.
+        designation: values.professional_cadre || undefined,
+        professional_qualification:
+          values.professional_qualification || undefined,
+        chapter: values.chapter || undefined,
+      },
+      { onSuccess: () => setIsEditing(false) },
+    );
+  };
       },
       { onSuccess: () => setIsEditing(false) },
     );
@@ -172,7 +245,7 @@ export default function ProfileSettingsPage() {
           {!isEditing && (
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
+              onClick={beginEdit}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary-muted rounded-md px-3 py-1.5 hover:bg-primary-subtle shrink-0"
             >
               <MdModeEditOutline className="w-4 h-4" /> Edit Profile
@@ -181,73 +254,191 @@ export default function ProfileSettingsPage() {
         </div>
 
         {isEditing ? (
-          <form onSubmit={saveProfile} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <TextField
-                label="Full Name"
-                value={form.name}
-                onChange={(v) => setForm((f) => ({ ...f, name: v }))}
-              />
-              <TextField
-                label="Phone"
-                value={form.phone}
-                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
-              />
-              {!staff && (
-                <>
-                  <TextField
-                    label="County"
-                    value={form.county}
-                    onChange={(v) => setForm((f) => ({ ...f, county: v }))}
-                  />
-                  <TextField
-                    label="Designation"
-                    value={form.designation}
-                    onChange={(v) => setForm((f) => ({ ...f, designation: v }))}
-                  />
-                  <TextField
-                    label="Place of Work"
-                    value={form.place_of_work}
-                    onChange={(v) =>
-                      setForm((f) => ({ ...f, place_of_work: v }))
-                    }
-                  />
-                </>
-              )}
-            </div>
-            {/* Read-only identity fields cannot be self-edited (members only). */}
+          /* Fields mirror the registration form — same components, grouping
+             and validation so the two screens read identically. */
+          <form
+            onSubmit={handleSubmit(saveProfile, (errs) => {
+              const first = Object.values(errs)[0];
+              toast.error(
+                (first?.message as string) ||
+                  "Please fix the highlighted fields",
+              );
+            })}
+            className="space-y-5"
+          >
+            {/* Step indicator — mirrors the registration form. Staff have
+                only the personal fields, so they get a single-step form. */}
             {!staff && (
-              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-                <Item
-                  label="Membership Number"
-                  value={profile?.membership_number}
-                />
-                <Item label="Account Number" value={profile?.account_number} />
-                <Item label="NCK Number" value={profile?.nck_number} />
-                <Item
-                  label="ID Number"
-                  value={profile?.identification_number}
-                />
-              </dl>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  {STEPS.map((s) => (
+                    <div
+                      key={s.id}
+                      className={`flex-1 h-1 rounded-full ${
+                        step >= s.id ? "bg-primary" : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs">
+                  {STEPS.map((s) => (
+                    <span
+                      key={s.id}
+                      className={
+                        step === s.id
+                          ? "text-primary font-semibold"
+                          : step > s.id
+                            ? "text-slate-700"
+                            : "text-slate-400"
+                      }
+                    >
+                      {s.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {/* Step 1 — Personal Details */}
+            {(staff || step === 1) && (
+              <div className="space-y-4">
+                <SectionTitle>Personal Details</SectionTitle>
+                <InputField
+                  label="Full Name"
+                  type="text"
+                  placeholder="e.g. Jane Achieng Omondi"
+                  register={register("name")}
+                  error={errors.name?.message}
+                  required
+                />
+                <Controller
+                  control={control}
+                  name="phone"
+                  render={({ field }) => (
+                    <PhoneInputField
+                      label="Phone"
+                      required
+                      value={field.value}
+                      onChange={field.onChange}
+                      defaultCountry="KE"
+                      error={errors.phone?.message}
+                    />
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Step 2 — Professional */}
+            {!staff && step === 2 && (
+              <div className="space-y-4">
+                <SectionTitle>Professional</SectionTitle>
+                <Controller
+                  control={control}
+                  name="professional_cadre"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Professional Cadre"
+                      options={cadres}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select cadre"
+                      error={errors.professional_cadre?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="professional_qualification"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Highest Professional Qualification"
+                      options={qualifications}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select qualification"
+                      error={errors.professional_qualification?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="chapter"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Chapter of Interest"
+                      options={chapterOptions}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select chapter"
+                      searchPlaceholder="Search chapters…"
+                      error={errors.chapter?.message}
+                    />
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Read-only identity fields cannot be self-edited (members only). */}
+            {!staff && step === 2 && (
+              <div className="space-y-3">
+                <SectionTitle>Membership Identity</SectionTitle>
+                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <Item
+                    label="Membership Number"
+                    value={profile?.membership_number}
+                  />
+                  <Item
+                    label="Account Number"
+                    value={profile?.account_number}
+                  />
+                  <Item label="NCK Number" value={profile?.nck_number} />
+                  <Item
+                    label="ID Number"
+                    value={profile?.identification_number}
+                  />
+                </dl>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setIsEditing(false)}
+                onClick={() =>
+                  !staff && step === 2 ? setStep(1) : setIsEditing(false)
+                }
                 disabled={updateProfile.isPending}
                 className="px-4 py-2 text-sm font-semibold text-slate-600 rounded-md hover:bg-slate-100 disabled:opacity-50"
               >
-                Cancel
+                {!staff && step === 2 ? "Back" : "Cancel"}
               </button>
-              <button
-                type="submit"
-                disabled={
-                  updateProfile.isPending || form.name.trim().length === 0
-                }
-                className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
-              >
-                {updateProfile.isPending ? "Saving…" : "Save Changes"}
-              </button>
+              {/* Distinct keys keep these as separate DOM nodes. Sharing one
+                  node would let React patch `type` from button -> submit while
+                  the click is still resolving, firing a save on "Continue". */}
+              {!staff && step === 1 ? (
+                <button
+                  key="continue"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNext(2, step1Fields);
+                  }}
+                  className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  key="save"
+                  type="submit"
+                  disabled={updateProfile.isPending}
+                  className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {updateProfile.isPending ? "Saving…" : "Save Changes"}
+                </button>
+              )}
+            </div>
+          </form>
+        ) : (
             </div>
           </form>
         ) : (
@@ -262,16 +453,25 @@ export default function ProfileSettingsPage() {
                 />
                 <Item label="Account Number" value={profile?.account_number} />
                 <Item label="NCK Number" value={profile?.nck_number} />
-                <Item label="County" value={profile?.county} />
                 <Item
                   label="ID Number"
                   value={profile?.identification_number}
                 />
                 <Item
-                  label="Designation"
-                  value={profile?.designation?.toUpperCase()}
+                <Item
+                  label="Professional Cadre"
+                  value={(
+                    profile?.professional_cadre ?? profile?.designation
+                  )?.toUpperCase()}
                 />
-                <Item label="Place of Work" value={profile?.employer_name} />
+                <Item
+                  label="Professional Qualification"
+                  value={profile?.professional_qualification}
+                />
+                <Item
+                  label="Chapter of Interest"
+                  value={profile?.chapter_label ?? profile?.chapter}
+                />
               </>
             )}
           </dl>
@@ -320,28 +520,6 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
-
-const TextField = ({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) => (
-  <div>
-    <label className="block text-xs font-medium text-slate-600 mb-1">
-      {label}
-    </label>
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-    />
-  </div>
-);
 
 const Field = ({
   label,

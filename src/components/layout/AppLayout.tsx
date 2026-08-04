@@ -7,6 +7,7 @@ import SupportButton from "@/components/common/SupportButton";
 import { ReactNode, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/hooks/use-auth";
+import { isStaff } from "@/lib/rbac";
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -47,7 +48,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       )}
 
       <MobileFooterNav />
-      <SupportButton />
+      {/* Contact-support is a member-facing aid — NNAK staff don't need it. */}
+      {!isStaff(user) && <SupportButton />}
     </div>
   );
 };

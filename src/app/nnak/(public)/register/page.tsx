@@ -18,6 +18,7 @@ import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { DatePicker } from "@/components/common/DatePicker";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth.schema";
+import { COUNTY_OPTIONS } from "@/lib/counties";
 
 const GENDER_OPTS = [
   { value: "female", label: "Female" },
@@ -48,55 +49,7 @@ const ID_TYPE_OPTS = [
   },
 ];
 
-const COUNTY_OPTS = [
-  "Baringo",
-  "Bomet",
-  "Bungoma",
-  "Busia",
-  "Elgeyo Marakwet",
-  "Embu",
-  "Garissa",
-  "Homa Bay",
-  "Isiolo",
-  "Kajiado",
-  "Kakamega",
-  "Kericho",
-  "Kiambu",
-  "Kilifi",
-  "Kirinyaga",
-  "Kisii",
-  "Kisumu",
-  "Kitui",
-  "Kwale",
-  "Laikipia",
-  "Lamu",
-  "Machakos",
-  "Makueni",
-  "Mandera",
-  "Marsabit",
-  "Meru",
-  "Migori",
-  "Mombasa",
-  "Murang'a",
-  "Nairobi",
-  "Nakuru",
-  "Nandi",
-  "Narok",
-  "Nyamira",
-  "Nyandarua",
-  "Nyeri",
-  "Samburu",
-  "Siaya",
-  "Taita Taveta",
-  "Tana River",
-  "Tharaka Nithi",
-  "Trans Nzoia",
-  "Turkana",
-  "Uasin Gishu",
-  "Vihiga",
-  "Wajir",
-  "West Pokot",
-].map((c) => ({ value: c, label: c }));
+const COUNTY_OPTS = COUNTY_OPTIONS;
 
 const STEPS = [
   { id: 1, label: "Personal Details" },

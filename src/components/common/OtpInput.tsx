@@ -46,9 +46,24 @@ export function OtpInput({
     if (autoFocus && refs.current[0] && !value) refs.current[0].focus();
   }, [autoFocus, value]);
 
+  // Callers pass an inline arrow, so `onComplete`'s identity changes on every
+  // render. Hold it in a ref so it can't drive the auto-submit effect below.
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  // Auto-submit exactly once per distinct complete code. Without the
+  // `lastCompleted` latch a rejected code re-fires on every re-render, which
+  // pins the caller in an infinite verify loop against the API.
+  const lastCompleted = useRef<string>("");
   useEffect(() => {
-    if (value.length === length && onComplete) onComplete(value);
-  }, [value, length, onComplete]);
+    if (value.length !== length) {
+      lastCompleted.current = "";
+      return;
+    }
+    if (lastCompleted.current === value) return;
+    lastCompleted.current = value;
+    onCompleteRef.current?.(value);
+  }, [value, length]);
 
   const setAt = (idx: number, ch: string) => {
     const arr = [...digits];

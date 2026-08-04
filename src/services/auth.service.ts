@@ -53,7 +53,9 @@ export interface UpdateProfilePayload {
   name?: string;
   phone?: string;
   county?: string;
+  /** Carries the professional cadre, matching what registration submits. */
   designation?: string;
+  professional_qualification?: string;
   place_of_work?: string;
   employer_type?: string;
   chapter?: string;
