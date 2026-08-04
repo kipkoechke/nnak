@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useStudentRegister } from "@/hooks/use-auth";
 import { useInstitutions } from "@/hooks/use-institutions";
 import { InputField } from "@/components/common/InputField";
+import { ConsentCheckbox } from "@/components/common/ConsentCheckbox";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import {
@@ -47,6 +48,7 @@ export default function StudentRegisterPage() {
       institution_id: "",
       password: "",
       password_confirmation: "",
+      consent: false,
     },
   });
 
@@ -61,8 +63,11 @@ export default function StudentRegisterPage() {
   };
 
   const onSubmit = (values: StudentRegisterFormValues) => {
+    // `consent` gates the form client-side; the register endpoint ignores it.
+    const { consent: _consent, ...payload } = values;
+    void _consent;
     registerStudent.mutate(
-      { ...values, phone: values.phone.replace(/^\+/, "") },
+      { ...payload, phone: values.phone.replace(/^\+/, "") },
       {
         onSuccess: (data) => {
           const params = new URLSearchParams({
@@ -225,6 +230,18 @@ export default function StudentRegisterPage() {
               register={register("password_confirmation")}
               error={errors.password_confirmation?.message}
               required
+            />
+
+            <Controller
+              control={control}
+              name="consent"
+              render={({ field }) => (
+                <ConsentCheckbox
+                  checked={!!field.value}
+                  onChange={field.onChange}
+                  error={errors.consent?.message}
+                />
+              )}
             />
 
             <div className="flex gap-3">

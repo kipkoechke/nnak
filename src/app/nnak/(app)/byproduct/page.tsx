@@ -1,9 +1,20 @@
 "use client";
+import { filterOptions } from "@/lib/available-filters";
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/common/PageHeader";
+import UploadsTable from "@/components/byproduct/UploadsTable";
 import { useByProductApiList, useUploadByProductFile, useDownloadByProductTemplate } from "@/hooks/use-byproduct";
 import { MdUpload, MdClose } from "react-icons/md";
+
+/** Used until the route advertises its own in meta.available_filters. */
+const STATUS_FALLBACK = [
+  { value: "", label: "All statuses" },
+  { value: "pending", label: "Pending" },
+  { value: "processing", label: "Processing" },
+  { value: "completed", label: "Completed" },
+  { value: "failed", label: "Failed" },
+];
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const monthsAgoIso = (n: number) => {
@@ -14,7 +25,9 @@ const monthsAgoIso = (n: number) => {
 
 export default function ByProductPage() {
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState("");
   const { data: uploadsData, isLoading } = useByProductApiList({
+    status: status || undefined,
     page,
     per_page: 15,
   });
@@ -33,6 +46,13 @@ export default function ByProductPage() {
     setFile(null);
   };
 
+  const pagination = uploadsData?.pagination;
+  const statusOptions = filterOptions(
+    uploadsData?.listing?.available_filters?.status,
+    STATUS_FALLBACK,
+    "All statuses",
+  );
+
   return (
     <div className="px-4 py-4 flex flex-col gap-3">
       <PageHeader
@@ -48,6 +68,26 @@ export default function ByProductPage() {
           </button>
         }
       />
+
+      <div className="flex flex-wrap gap-2 items-end">
+        <div>
+          <label className="text-[11px] text-slate-500 block mb-1">Status</label>
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+          >
+            {statusOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <form onSubmit={submit} className="bg-white border border-slate-200 rounded-lg p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -121,47 +161,19 @@ export default function ByProductPage() {
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="p-3 text-sm font-semibold border-b">Recent uploads</div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr>
-              <th className="px-3 py-2">File</th>
-              <th className="px-3 py-2">Period</th>
-              <th className="px-3 py-2">Total</th>
-              <th className="px-3 py-2">Processed</th>
-              <th className="px-3 py-2">Failed</th>
-              <th className="px-3 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {uploads.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500 text-sm">No uploads yet</td></tr>
-            )}
-            {uploads.map((u) => (
-              <tr key={u.id}>
-                <td className="px-3 py-2 text-xs font-medium max-w-[200px] truncate" title={u.file_name}>{u.file_name || "—"}</td>
-                <td className="px-3 py-2 text-xs whitespace-nowrap">{new Date(u.start_date).toLocaleDateString()} — {new Date(u.end_date).toLocaleDateString()}</td>
-                <td className="px-3 py-2">{u.total_rows || 0}</td>
-                <td className="px-3 py-2 text-emerald-700">{u.processed_rows || 0}</td>
-                <td className="px-3 py-2 text-red-600">{u.failed_rows || 0}</td>
-                <td className="px-3 py-2">
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${
-                    u.status === "completed" ? "bg-emerald-50 text-emerald-700" :
-                    u.status === "processing" ? "bg-amber-50 text-amber-700" :
-                    "bg-slate-100 text-slate-600"
-                  }`}>{u.status}</span>
-                </td>
-              </tr>
             ))}
-          </tbody>
-        </table>
+          </select>
+        </div>
       </div>
+
+      <UploadsTable
+        basePath="/nnak/byproduct"
+        uploads={uploads}
+        pagination={pagination}
+        isLoading={isLoading}
+        onPageChange={setPage}
+      />
+
     </div>
   );
 }
-
-const Detail = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <div className="text-[11px] uppercase text-slate-500">{label}</div>
-    <div className="text-slate-800 capitalize">{value || "—"}</div>
-  </div>
-);

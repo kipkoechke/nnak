@@ -36,6 +36,7 @@
     "icons": "^1.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
+    "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
     "next": "^16.2.4",
     "qrcode": "^1.5.4",
@@ -52,6 +53,7 @@
     "recharts": "^3.8.1",
     "sweetalert2": "^11.26.24",
     "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

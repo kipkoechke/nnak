@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   membersService,
+  type AdminCreateMemberInput,
   type MemberListQuery,
 } from "@/services/members.service";
 import { nqk } from "@/lib/query-keys";
@@ -10,13 +11,23 @@ import type { MemberStatus, NnakProfile } from "@/types/nnak";
 
 export type MemberListParams = MemberListQuery;
 
-export const useMembers = (p: MemberListParams = {}, opts?: { enabled?: boolean }) =>
-  useQuery({
-    queryKey: nqk.members.list(p as Record<string, unknown>),
+export const useMembers = (
+  p: MemberListParams = {},
+  opts?: { enabled?: boolean },
+) => {
+  // Pagination is kept out of the cache key so a filter combination is one
+  // cache entry rather than one-per-page-size. `page` has to stay, though —
+  // TanStack Query only refetches when the key changes, so dropping it would
+  // freeze the Pagination control on page 1. The server still receives both.
+  const keyParams: Record<string, unknown> = { ...p };
+  delete keyParams.per_page;
+  return useQuery({
+    queryKey: nqk.members.list(keyParams),
     queryFn: () => membersService.list(p),
     placeholderData: (prev) => prev,
     enabled: opts?.enabled,
   });
+};
 
 export const useMember = (id: string) =>
   useQuery({
@@ -73,12 +84,26 @@ export const useSetMemberStatus = () => {
 const apiErrMsg = (e: unknown, fb: string) =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message || fb;
 
+/** Direct admin creation — no OTP, auto-approved, no subscription raised. */
+export const useCreateAdminMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminCreateMemberInput) =>
+      membersService.createMember(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member created");
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Could not create the member")),
+  });
+};
+
 export const useImportMembers = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: {
       file: File;
-      branch_id: string;
+      branch_id?: string;
       member_category_code?: string;
     }) => membersService.importMembers(input),
     onSuccess: (res) => {

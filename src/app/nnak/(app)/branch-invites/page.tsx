@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useAdminBranchInvites } from "@/hooks/use-invites";
+import {
+  useAdminBranchInvites,
+  useApproveBranchInvite,
+} from "@/hooks/use-invites";
 import { useNnakBranches } from "@/hooks/use-branches";
 import type { BranchInvite } from "@/types/nnak";
 
@@ -10,7 +13,8 @@ const fmt = (s?: string | null) =>
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
-  accepted: "bg-emerald-100 text-emerald-700",
+  accepted: "bg-blue-100 text-blue-700",
+  approved: "bg-emerald-100 text-emerald-700",
   rejected: "bg-red-100 text-red-700",
   expired: "bg-slate-200 text-slate-600",
 };
@@ -19,6 +23,7 @@ export default function AdminBranchInvitesPage() {
   const [status, setStatus] = useState("");
   const [branchId, setBranchId] = useState("");
   const { data: branches = [] } = useNnakBranches();
+  const approve = useApproveBranchInvite();
   const { data: invites = [], isLoading } = useAdminBranchInvites({
     status: status || undefined,
     branch_id: branchId || undefined,
@@ -43,7 +48,8 @@ export default function AdminBranchInvitesPage() {
           >
             <option value="">All</option>
             <option value="pending">Pending</option>
-            <option value="accepted">Accepted</option>
+            <option value="accepted">Accepted — awaiting approval</option>
+            <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
             <option value="expired">Expired</option>
           </select>
@@ -84,6 +90,7 @@ export default function AdminBranchInvitesPage() {
                 <th className="px-3 py-2">Initiated By</th>
                 <th className="px-3 py-2">Sent</th>
                 <th className="px-3 py-2">Actioned</th>
+                <th className="px-3 py-2 w-28" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -114,6 +121,19 @@ export default function AdminBranchInvitesPage() {
                   </td>
                   <td className="px-3 py-2 text-xs">{fmt(inv.created_at)}</td>
                   <td className="px-3 py-2 text-xs">{fmt(inv.actioned_at)}</td>
+                  <td className="px-3 py-2 text-right">
+                    {/* The member has accepted; an admin still has to sign
+                        off before they are moved. */}
+                    {inv.status === "accepted" && (
+                      <button
+                        onClick={() => approve.mutate(inv.id)}
+                        disabled={approve.isPending}
+                        className="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-md font-medium hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </td>
                 </tr>
                 );
               })}

@@ -5,6 +5,8 @@ import { byProductStatusClass } from "@/lib/byproduct";
 import type { ByProductUploadRecord, NnakPagination } from "@/types/nnak";
 
 interface UploadsTableProps {
+  /** Route prefix for detail links, e.g. "/nnak/byproduct". */
+  basePath: string;
   uploads: ByProductUploadRecord[];
   pagination?: NnakPagination;
   isLoading?: boolean;
@@ -13,6 +15,7 @@ interface UploadsTableProps {
 
 /** Recent by-product uploads. Each row links to its own detail page. */
 export default function UploadsTable({
+  basePath,
   uploads,
   pagination,
   isLoading,
@@ -28,6 +31,7 @@ export default function UploadsTable({
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-3 py-2">File</th>
+              <th className="px-3 py-2">Branch</th>
               <th className="px-3 py-2">Period</th>
               <th className="px-3 py-2">Total</th>
               <th className="px-3 py-2">Processed</th>
@@ -41,7 +45,7 @@ export default function UploadsTable({
             {isLoading && uploads.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-3 py-6 text-center text-slate-500 text-sm"
                 >
                   Loading…
@@ -51,7 +55,7 @@ export default function UploadsTable({
             {!isLoading && uploads.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-3 py-6 text-center text-slate-500 text-sm"
                 >
                   No uploads yet
@@ -65,12 +69,13 @@ export default function UploadsTable({
                   title={u.file_name}
                 >
                   <Link
-                    href={`/nnak/byproduct/${u.id}`}
+                    href={`${basePath}/${u.id}`}
                     className="text-primary hover:underline"
                   >
                     {u.file_name || "—"}
                   </Link>
                 </td>
+                <td className="px-3 py-2 text-xs">{u.branch?.name || "—"}</td>
                 <td className="px-3 py-2 text-xs whitespace-nowrap">
                   {new Date(u.start_date).toLocaleDateString()} —{" "}
                   {new Date(u.end_date).toLocaleDateString()}
@@ -92,7 +97,7 @@ export default function UploadsTable({
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
                   <Link
-                    href={`/nnak/byproduct/${u.id}`}
+                    href={`${basePath}/${u.id}`}
                     className="text-xs text-primary hover:underline"
                   >
                     View details

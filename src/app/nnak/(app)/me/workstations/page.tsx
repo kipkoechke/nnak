@@ -55,6 +55,7 @@ export default function MyWorkstationsPage() {
     setForm({
       name: w.name,
       country: w.country,
+      // Read model exposes `county`; the write payload calls it `city`.
       city: w.county,
       employer_type: w.employer_type ?? "",
       start_date: w.start_date.slice(0, 10),

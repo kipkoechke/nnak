@@ -12,12 +12,12 @@ export default function PaymentsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const { data, isLoading, isFetching } = useMpesaTransactions(
     {
-      page,
-      per_page: 20,
       transaction_type: transactionType || undefined,
       status: status || undefined,
       date_from: dateFrom || undefined,
       used: used === "" ? undefined : used === "true",
+      page,
+      per_page: 20,
     },
     { pollWhilePending: true },
   );

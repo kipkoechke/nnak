@@ -10,6 +10,7 @@ import type {
   InvoiceStkPushInput,
   InvoiceStkPushResponse,
   InvoiceStkQueryResponse,
+  InvoiceStkQueryResult,
 } from "@/types/nnak";
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
@@ -24,12 +25,19 @@ export const memberPaymentService = {
       nnakApi.post(`/member/invoices/${invoiceId}/mpesa/stkpush`, body),
     ),
 
+  /**
+   * Null means the API found no push for this invoice — a normal state in the
+   * seconds between dispatching one and Safaricom registering it, not an
+   * error, so callers should keep polling rather than give up.
+   */
   stkQuery: async (
     invoiceId: string,
-  ): Promise<InvoiceStkQueryResponse["data"]> =>
-    unwrap<InvoiceStkQueryResponse["data"]>(
-      nnakApi.post(`/member/invoices/${invoiceId}/mpesa/stkquery`),
-    ),
+  ): Promise<InvoiceStkQueryResult | null> => {
+    const r = await nnakApi.post<InvoiceStkQueryResponse>(
+      `/member/invoices/${invoiceId}/mpesa/stkquery`,
+    );
+    return r.data?.success ? (r.data.data ?? null) : null;
+  },
 
   registerC2bUrls: async (
     body: C2bRegisterUrlsInput = {},

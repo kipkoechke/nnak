@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  isStkSuccess,
+  isStkTerminal,
   useInvoiceStkPush,
   useInvoiceStkQuery,
 } from "@/hooks/use-member-payments";
@@ -59,19 +61,13 @@ export default function StkPayModal({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(STK_TIMEOUT_SECONDS);
 
-  const isTerminal = (s?: string | null) =>
-    !!s &&
-    ["successful", "success", "failed", "cancelled", "timeout"].includes(
-      String(s).toLowerCase(),
-    );
-
   const stkQuery = useInvoiceStkQuery(activeInvoiceId, {
     enabled: !!activeInvoiceId,
-    refetchInterval: (data) => (isTerminal(data?.status) ? false : 3000),
+    refetchInterval: (data) => (isStkTerminal(data?.status) ? false : 3000),
   });
 
   const status = stkQuery.data?.status?.toLowerCase();
-  const isSuccess = status === "successful" || status === "success";
+  const isSuccess = isStkSuccess(status);
   const isFailed =
     status === "failed" || status === "cancelled" || status === "timeout";
   const isWaiting = !!activeInvoiceId && !isSuccess && !isFailed;

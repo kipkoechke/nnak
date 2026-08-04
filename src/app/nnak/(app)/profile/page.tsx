@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import PageHeader from "@/components/common/PageHeader";
 import { InputField } from "@/components/common/InputField";
+import PasswordInput from "@/components/common/PasswordInput";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import {
@@ -87,7 +88,6 @@ export default function ProfileSettingsPage() {
       chapter: "",
     },
   });
-  });
 
   // Seed the form from the loaded profile, and re-seed whenever the
   // canonical data changes (e.g. after a successful save).
@@ -137,10 +137,6 @@ export default function ProfileSettingsPage() {
         professional_qualification:
           values.professional_qualification || undefined,
         chapter: values.chapter || undefined,
-      },
-      { onSuccess: () => setIsEditing(false) },
-    );
-  };
       },
       { onSuccess: () => setIsEditing(false) },
     );
@@ -439,9 +435,6 @@ export default function ProfileSettingsPage() {
             </div>
           </form>
         ) : (
-            </div>
-          </form>
-        ) : (
           <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Item label="Email" value={me.email} />
             <Item label="Phone" value={profile?.phone} />
@@ -457,7 +450,6 @@ export default function ProfileSettingsPage() {
                   label="ID Number"
                   value={profile?.identification_number}
                 />
-                <Item
                 <Item
                   label="Professional Cadre"
                   value={(
@@ -538,8 +530,7 @@ const Field = ({
     <label className="block text-xs font-medium text-slate-600 mb-1">
       {label}
     </label>
-    <input
-      type="password"
+    <PasswordInput
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"

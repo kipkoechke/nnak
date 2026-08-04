@@ -1,4 +1,5 @@
 "use client";
+import { categoryLabel } from "@/lib/member-category";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
@@ -80,7 +81,7 @@ export default function FinanceMemberDetailPage({
         </h3>
         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Item label="Membership No." value={member.membership_number} />
-          <Item label="Membership Type" value={member.membership_type} />
+          <Item label="Membership Type" value={categoryLabel(member.membership_type)} />
           <Item label="Chapter of Interest" value={member.chapter} />
           <Item label="Designation" value={member.designation?.toUpperCase()} />
           <Item label="NCK Number" value={member.nck_number} />
@@ -100,7 +101,7 @@ export default function FinanceMemberDetailPage({
         </h3>
         {sub ? (
           <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Item label="Type" value={sub.membership_type} />
+            <Item label="Type" value={categoryLabel(sub.membership_type)} />
             <Item label="Amount" value={fmtMoney(sub.amount)} />
             <Item label="Start" value={fmtDate(sub.start_date)} />
             <Item label="End" value={fmtDate(sub.end_date)} />
@@ -135,7 +136,7 @@ export default function FinanceMemberDetailPage({
               {contributions.history.map((c) => (
                 <tr key={c.id}>
                   <td className="px-3 py-2 font-mono text-xs">{c.invoice_number}</td>
-                  <td className="px-3 py-2">{c.membership_type || "—"}</td>
+                  <td className="px-3 py-2">{categoryLabel(c.membership_type) || "—"}</td>
                   <td className="px-3 py-2 capitalize">
                     {c.payment_method?.replace(/_/g, " ") || "—"}
                   </td>
@@ -170,7 +171,7 @@ export default function FinanceMemberDetailPage({
               {pending_invoices.map((inv) => (
                 <tr key={inv.id}>
                   <td className="px-3 py-2 font-mono text-xs">{inv.invoice_number}</td>
-                  <td className="px-3 py-2">{inv.membership_type || "—"}</td>
+                  <td className="px-3 py-2">{categoryLabel(inv.membership_type) || "—"}</td>
                   <td className="px-3 py-2 text-xs">{fmtDate(inv.due_date)}</td>
                   <td className="px-3 py-2 text-right">{fmtMoney(inv.amount)}</td>
                 </tr>

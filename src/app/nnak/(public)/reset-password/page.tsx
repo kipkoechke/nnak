@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNnakResetPassword } from "@/hooks/use-auth";
+import PasswordInput from "@/components/common/PasswordInput";
 
 export default function NnakResetPasswordPage() {
   const router = useRouter();
@@ -22,16 +23,14 @@ export default function NnakResetPasswordPage() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-900">Reset password</h2>
-      <input
-        type="password"
+      <PasswordInput
         placeholder="New password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
         className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
       />
-      <input
-        type="password"
+      <PasswordInput
         placeholder="Confirm password"
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}

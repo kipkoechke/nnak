@@ -44,7 +44,7 @@ export const branchManagerService = {
     }
   },
 
-  listMembers: async (params?: { page?: number; per_page?: number; search?: string }) => {
+  listMembers: async (params?: { search?: string; page?: number; per_page?: number }) => {
     if (isDemoSession()) return { data: [], pagination: undefined, meta: undefined };
     const r = await nnakApi.get<BranchMembersResponse>("/branch/members", { params });
     const pagination = r.data?.pagination;

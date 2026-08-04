@@ -2,7 +2,7 @@
 //   GET  /events/{event}/agendas           list (paginated)
 //   POST /events/{event}/agendas           create
 //   GET  /events/{event}/agendas/{id}      detail
-//   PATCH /events/{event}/agendas/{id}     update
+//   PATCH  /events/{event}/agendas/{id}     update
 //   DELETE /events/{event}/agendas/{id}    delete
 import { nnakApi } from "@/lib/api";
 import type {

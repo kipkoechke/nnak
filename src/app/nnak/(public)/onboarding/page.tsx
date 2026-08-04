@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-enums";
 import { claimSchema, type ClaimFormValues } from "@/schemas/auth.schema";
 import { InputField } from "@/components/common/InputField";
+import { ConsentCheckbox } from "@/components/common/ConsentCheckbox";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { DatePicker } from "@/components/common/DatePicker";
@@ -93,6 +94,7 @@ export default function OnboardingPage() {
       professional_cadre: "",
       designation: "",
       nck_number: "",
+      consent: false,
     },
   });
 
@@ -150,11 +152,14 @@ export default function OnboardingPage() {
 
   // Step 3 — submit full details and request an OTP.
   const onClaim = async (values: ClaimFormValues) => {
+    // `consent` gates the form client-side; it is not part of the claim payload.
+    const { consent: _consent, ...claimValues } = values;
+    void _consent;
     const res = await claim
       .mutateAsync({
-        ...values,
-        identification_number: values.identification_number.trim(),
-        phone: values.phone.replace(/^\+/, ""),
+        ...claimValues,
+        identification_number: claimValues.identification_number.trim(),
+        phone: claimValues.phone.replace(/^\+/, ""),
       })
       .catch(() => null);
     if (!res?.pending_token) return;
@@ -442,6 +447,17 @@ export default function OnboardingPage() {
             register={register("designation")}
             error={errors.designation?.message}
             required
+          />
+          <Controller
+            control={control}
+            name="consent"
+            render={({ field }) => (
+              <ConsentCheckbox
+                checked={!!field.value}
+                onChange={field.onChange}
+                error={errors.consent?.message}
+              />
+            )}
           />
           <div className="flex gap-2">
             <button

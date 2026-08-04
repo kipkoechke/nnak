@@ -10,16 +10,24 @@
 //   POST /finance/byproduct/upload
 //   GET  /finance/batches
 //   GET  /finance/batches/{id}
+//   POST /finance/batches/generate
+//   POST /finance/batches/{id}/retry
 //   POST /finance/batches/{id}/payments
 //   GET  /finance/payments
 //   GET  /finance/remittances
 import { nnakApi } from "@/lib/api";
+import type { ListingMeta } from "@/lib/available-filters";
+import { normalizePagination } from "@/lib/pagination";
 import type {
   ApiEnvelope,
+  BatchListMeta,
   ByProductUploadInput,
   ByProductUploadRecord,
   FinanceBatch,
   FinanceBatchDetail,
+  GenerateBatchesInput,
+  GenerateBatchesResult,
+  RetryBatchResult,
   FinanceBranch,
   FinanceBranchDetail,
   FinanceDashboardData,
@@ -35,10 +43,31 @@ import type {
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
   p.then((r) => r.data.data);
 
+/**
+ * The detail endpoints answer `data: { branch|batch: {...}, meta: {...} }`,
+ * while the lists and some write responses return the record directly. These
+ * two helpers accept either shape so a change on one endpoint cannot silently
+ * hand the pages an object of undefined fields.
+ */
+type Nested<K extends string, T> = T & Partial<Record<K, T>>;
+
+/** As sent by /finance/remittances, before `remittance_type` is normalised. */
+type RawRemittanceItem = Omit<FinanceRemittanceItem, "type"> & {
+  type?: string;
+  remittance_type?: string;
+};
+
+const pick = <K extends string, T>(
+  key: K,
+  payload: Nested<K, T> | null | undefined,
+): T | null => (payload ? ((payload[key] as T | undefined) ?? payload) : null);
+
 interface Paginated<T> {
   data: T[];
   pagination?: NnakPagination;
-  meta?: Record<string, unknown>;
+  meta?: BatchListMeta | Record<string, unknown>;
+  /** `supported_params` / `available_filters` advertised by the route. */
+  listing?: ListingMeta;
 }
 
 interface FinanceMembersFilters {
@@ -62,6 +91,14 @@ interface FinanceBatchFilters {
   period?: string;
   branch_id?: string;
   status?: string;
+  search?: string;
+}
+
+/** Members inside a batch are paginated independently of the batch list. */
+export interface FinanceBatchDetailParams {
+  search?: string;
+  page?: number;
+  per_page?: number;
 }
 
 interface FinancePaymentsFilters {
@@ -113,8 +150,13 @@ export const financeService = {
       success: boolean;
       data: FinanceMember[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/members", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   memberDetail: async (id: string): Promise<FinanceMemberDetail | null> => {
@@ -128,23 +170,36 @@ export const financeService = {
       success: boolean;
       data: FinanceBranch[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/branches", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   branchDetail: async (id: string): Promise<FinanceBranchDetail | null> => {
-    return unwrap<FinanceBranchDetail>(nnakApi.get(`/finance/branches/${id}`));
+    const payload = await unwrap<Nested<"branch", FinanceBranchDetail>>(
+      nnakApi.get(`/finance/branches/${id}`),
+    );
+    return pick("branch", payload);
   },
 
   byproducts: async (
-    params?: { page?: number; per_page?: number; status?: string; branch_id?: string },
+    params?: { status?: string; branch_id?: string; page?: number; per_page?: number },
   ): Promise<Paginated<ByProductUploadRecord>> => {
     const r = await nnakApi.get<{
       success: boolean;
       data: ByProductUploadRecord[];
       pagination?: NnakPagination;
+      meta?: ListingMeta;
     }>("/finance/byproducts", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      pagination: r.data?.pagination,
+      listing: r.data?.meta,
+    };
   },
 
   byproductTemplate: async (): Promise<Blob> => {
@@ -154,8 +209,18 @@ export const financeService = {
     return r.data as Blob;
   },
 
+  /** Detail reports counts as `renewed` / `skipped`; normalise onto the list's
+   *  `processed_rows` / `skipped_count` so the shared UI reads one shape. */
   byproductDetail: async (id: string): Promise<ByProductUploadRecord | null> => {
-    return unwrap<ByProductUploadRecord>(nnakApi.get(`/finance/byproduct/${id}`));
+    const raw = await unwrap<ByProductUploadRecord>(
+      nnakApi.get(`/finance/byproduct/${id}`),
+    );
+    if (!raw) return null;
+    return {
+      ...raw,
+      processed_rows: raw.processed_rows ?? raw.renewed,
+      skipped_count: raw.skipped_count ?? raw.skipped,
+    };
   },
 
   uploadByproduct: async (
@@ -165,6 +230,8 @@ export const financeService = {
     fd.append("file", input.file);
     fd.append("start_date", input.start_date);
     fd.append("end_date", input.end_date);
+    // Optional — members with no branch are reinstated to it when given.
+    if (input.branch_id) fd.append("branch_id", input.branch_id);
     return unwrap<ByProductUploadRecord>(
       nnakApi.post("/finance/byproduct/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -179,12 +246,52 @@ export const financeService = {
       success: boolean;
       data: FinanceBatch[];
       pagination?: NnakPagination;
+      meta?: BatchListMeta;
     }>("/finance/batches", { params });
-    return { data: r.data?.data ?? [], pagination: r.data?.pagination };
+    return {
+      data: r.data?.data ?? [],
+      // The batch list pages via `meta`, not the usual `pagination` block.
+      pagination: normalizePagination(r.data?.pagination, r.data?.meta),
+      meta: r.data?.meta,
+    };
   },
 
-  batchDetail: async (id: string): Promise<FinanceBatchDetail | null> => {
-    return unwrap<FinanceBatchDetail>(nnakApi.get(`/finance/batches/${id}`));
+  batchDetail: async (
+    id: string,
+    params: FinanceBatchDetailParams = {},
+  ): Promise<FinanceBatchDetail | null> => {
+    const payload = await unwrap<Nested<"batch", FinanceBatchDetail>>(
+      nnakApi.get(`/finance/batches/${id}`, { params }),
+    );
+    return pick("batch", payload);
+  },
+
+  /** Queue generation for a period. An empty `branch_ids` means all branches,
+   *  so it is dropped rather than sent as `[]`. */
+  generateBatches: async (
+    body: GenerateBatchesInput,
+  ): Promise<GenerateBatchesResult | null> => {
+    const r = await nnakApi.post<ApiEnvelope<GenerateBatchesResult>>(
+      "/finance/batches/generate",
+      {
+        period: body.period,
+        ...(body.branch_ids?.length ? { branch_ids: body.branch_ids } : {}),
+      },
+    );
+    return r.data?.data ?? null;
+  },
+
+  /** Deletes the batch and re-queues it. Omitting `period` reuses the
+   *  batch's own period. */
+  retryBatch: async (
+    batchId: string,
+    period?: string,
+  ): Promise<RetryBatchResult | null> => {
+    const r = await nnakApi.post<ApiEnvelope<RetryBatchResult>>(
+      `/finance/batches/${batchId}/retry`,
+      period ? { period } : {},
+    );
+    return r.data?.data ?? null;
   },
 
   recordBatchPayment: async (
@@ -198,12 +305,12 @@ export const financeService = {
     fd.append("paid_at", body.paid_at);
     if (body.notes) fd.append("notes", body.notes);
     (body.attachments ?? []).forEach((f) => fd.append("attachments[]", f));
-    const r = await nnakApi.post<ApiEnvelope<FinanceBatchDetail>>(
-      `/finance/batches/${batchId}/payments`,
-      fd,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
-    return r.data?.data ?? null;
+    const r = await nnakApi.post<
+      ApiEnvelope<Nested<"batch", FinanceBatchDetail>>
+    >(`/finance/batches/${batchId}/payments`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return pick("batch", r.data?.data ?? null);
   },
 
   payments: async (
@@ -212,17 +319,19 @@ export const financeService = {
     data: FinancePayment[];
     pagination?: NnakPagination;
     summary?: FinancePaymentsSummary;
+    listing?: ListingMeta;
   }> => {
     const r = await nnakApi.get<{
       success: boolean;
       data: FinancePayment[];
       pagination?: NnakPagination;
-      meta?: { summary?: FinancePaymentsSummary };
+      meta?: ListingMeta & { summary?: FinancePaymentsSummary };
     }>("/finance/payments", { params });
     return {
       data: r.data?.data ?? [],
       pagination: r.data?.pagination,
       summary: r.data?.meta?.summary,
+      listing: r.data?.meta,
     };
   },
 
@@ -231,17 +340,31 @@ export const financeService = {
   ): Promise<{
     data: FinanceRemittanceItem[];
     meta?: FinanceRemittanceMeta;
+    pagination?: NnakPagination;
+    listing?: ListingMeta;
   }> => {
     const r = await nnakApi.get<{
       success: boolean;
+      pagination?: NnakPagination;
+      meta?: ListingMeta;
       data: {
-        data: FinanceRemittanceItem[];
-        meta?: FinanceRemittanceMeta;
+        data: RawRemittanceItem[];
+        meta?: FinanceRemittanceMeta & ListingMeta;
+        pagination?: NnakPagination;
       };
     }>("/finance/remittances", { params });
+    const body = r.data?.data;
     return {
-      data: r.data?.data?.data ?? [],
-      meta: r.data?.data?.meta,
+      // The API calls the discriminator `remittance_type`; every other
+      // remittance shape in the app reads `type`.
+      data: (body?.data ?? []).map((item) => ({
+        ...item,
+        type: item.type ?? item.remittance_type ?? "unknown",
+      })),
+      meta: body?.meta,
+      // Seen both inside `data` and on the envelope, depending on the route.
+      pagination: body?.pagination ?? r.data?.pagination,
+      listing: r.data?.meta ?? body?.meta,
     };
   },
 };
