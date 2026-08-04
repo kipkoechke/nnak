@@ -1,9 +1,15 @@
 "use client";
+import { filterOptions, humanizeFilter } from "@/lib/available-filters";
 import { useMemo, useState } from "react";
 import { MdSwapHoriz } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
+import DownloadButton from "@/components/common/DownloadButton";
 import { useFinanceRemittances, useFinanceBranches } from "@/hooks/use-finance";
+import { financeService } from "@/services/finance.service";
+import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
+import { fmtKes } from "@/lib/commission";
+import type { FinanceRemittanceItem } from "@/types/nnak";
 
 const toISO = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -15,8 +21,6 @@ const fmtDate = (s?: string | null) =>
         year: "numeric",
       })
     : "—";
-
-const fmtKes = (n: number) => `KES ${Number(n).toLocaleString()}`;
 
 const PERIOD_PRESETS: { label: string; getDates: () => { start: string; end: string } }[] = [
   {
@@ -58,26 +62,71 @@ export default function FinanceRemittancesPage() {
   const [startDate, setStartDate] = useState(init.start);
   const [endDate, setEndDate] = useState(init.end);
 
+  // The route advertises the categories it accepts.
+  const CATEGORY_FALLBACK = [
+    { value: "", label: "All categories" },
+    { value: "mpesa", label: "M-Pesa" },
+    { value: "batch", label: "Batch" },
+  ];
+
   const { data, isLoading } = useFinanceRemittances({
-    page,
-    per_page: 15,
     category: category !== "all" ? category : undefined,
     branch_id: branchId || undefined,
     start_date: startDate,
     end_date: endDate,
+    page,
+    per_page: 15,
   });
 
   const { data: branchesData } = useFinanceBranches({ per_page: 100 });
   const branches = branchesData?.data ?? [];
+  const categoryOptions = filterOptions(
+    data?.listing?.available_filters?.category,
+    CATEGORY_FALLBACK,
+    "All categories",
+    (v) => (v === "mpesa" ? "M-Pesa" : humanizeFilter(v)),
+  );
 
   const remittances = data?.data ?? [];
   const meta = data?.meta;
+  // Absent when the whole result set fits on one page.
+  const pagination = data?.pagination;
+
+  const exportColumns: ExcelColumn<FinanceRemittanceItem>[] = [
+    { header: "Type", value: (r) => r.type },
+    { header: "Payer", value: (r) => r.payer_name ?? "" },
+    { header: "Phone", value: (r) => r.phone ?? "" },
+    { header: "Reference", value: (r) => r.reference ?? "" },
+    { header: "Receipt", value: (r) => r.receipt ?? "" },
+    { header: "Amount", value: (r) => Number(r.amount ?? 0) },
+    { header: "Date", value: (r) => fmtDate(r.created_at) },
+  ];
+
+  const fetchExportRows = () =>
+    collectAllPages<FinanceRemittanceItem>((p) =>
+      financeService.remittances({
+        page: p,
+        per_page: 100,
+        category: category !== "all" ? category : undefined,
+        branch_id: branchId || undefined,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    );
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
       <PageHeader
         title="Remittances"
         description="Track M-Pesa and batch remittance history"
+        action={
+          <DownloadButton
+            filename="remittances"
+            sheetName="Remittances"
+            columns={exportColumns}
+            fetchRows={fetchExportRows}
+          />
+        }
       />
 
       {/* Summary */}
@@ -128,9 +177,11 @@ export default function FinanceRemittancesPage() {
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="all">All categories</option>
-          <option value="mpesa">M-Pesa</option>
-          <option value="batch">Batch</option>
+          {categoryOptions.map((o) => (
+            <option key={o.value || "all"} value={o.value || "all"}>
+              {o.label}
+            </option>
+          ))}
         </select>
         <select
           value={branchId}
@@ -163,7 +214,7 @@ export default function FinanceRemittancesPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 sticky top-0">
               <tr>
                 <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Member / Branch</th>
+                <th className="px-3 py-2">Payer</th>
                 <th className="px-3 py-2">Reference</th>
                 <th className="px-3 py-2 text-right">Amount</th>
                 <th className="px-3 py-2">Date</th>
@@ -185,8 +236,21 @@ export default function FinanceRemittancesPage() {
                       {r.type}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs">{r.member_name || r.branch_name || "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-slate-600">{r.reference || "—"}</td>
+                  <td className="px-3 py-2 text-xs">
+                    <div className="text-slate-900">{r.payer_name || "—"}</div>
+                    {r.phone && (
+                      <div className="text-[11px] text-slate-400">{r.phone}</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-slate-600">
+                    <div>{r.reference || "—"}</div>
+                    {/* Batch remittances mirror the reference into `receipt`. */}
+                    {r.receipt && r.receipt !== r.reference && (
+                      <div className="text-[11px] text-slate-400">
+                        {r.receipt}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right font-semibold text-slate-900">
                     {fmtKes(r.amount)}
                   </td>
@@ -198,10 +262,23 @@ export default function FinanceRemittancesPage() {
         )}
       </div>
 
-      {meta && (
-        <div className="shrink-0 text-xs text-slate-500">
-          {remittances.length > 0 && `Showing ${remittances.length} remittance${remittances.length !== 1 ? "s" : ""}`}
+      {pagination && pagination.last_page > 1 ? (
+        <div className="shrink-0">
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.last_page}
+            totalItems={pagination.total}
+            onPageChange={setPage}
+          />
         </div>
+      ) : (
+        remittances.length > 0 && (
+          <div className="shrink-0 text-xs text-slate-500">
+            Showing {remittances.length} remittance
+            {remittances.length === 1 ? "" : "s"}
+            {meta?.summary ? ` of ${meta.summary.count}` : ""}
+          </div>
+        )
       )}
     </div>
   );

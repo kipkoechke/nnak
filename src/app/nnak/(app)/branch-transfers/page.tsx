@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { useAdminBranchTransfers } from "@/hooks/use-invites";
+import {
+  useAdminBranchTransfers,
+  useApproveBranchTransfer,
+} from "@/hooks/use-invites";
 import { useNnakBranches } from "@/hooks/use-branches";
 import type { BranchTransfer } from "@/types/nnak";
 
@@ -10,7 +13,8 @@ const fmt = (s?: string | null) =>
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-amber-100 text-amber-800",
-  accepted: "bg-emerald-100 text-emerald-700",
+  accepted: "bg-blue-100 text-blue-700",
+  approved: "bg-emerald-100 text-emerald-700",
   rejected: "bg-red-100 text-red-700",
   expired: "bg-slate-200 text-slate-600",
 };
@@ -20,6 +24,7 @@ export default function AdminBranchTransfersPage() {
   const [fromBranchId, setFromBranchId] = useState("");
   const [toBranchId, setToBranchId] = useState("");
   const { data: branches = [] } = useNnakBranches();
+  const approve = useApproveBranchTransfer();
   const { data: transfers = [], isLoading } = useAdminBranchTransfers({
     status: status || undefined,
     from_branch_id: fromBranchId || undefined,
@@ -97,6 +102,7 @@ export default function AdminBranchTransfersPage() {
                 <th className="px-3 py-2">To</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Requested</th>
+                <th className="px-3 py-2 w-28" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -124,6 +130,19 @@ export default function AdminBranchTransfersPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs">{fmt(t.created_at)}</td>
+                  <td className="px-3 py-2 text-right">
+                    {/* The receiving branch has accepted; an admin signs off
+                        before the member actually moves. */}
+                    {t.status === "accepted" && (
+                      <button
+                        onClick={() => approve.mutate(t.id)}
+                        disabled={approve.isPending}
+                        className="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-md font-medium hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

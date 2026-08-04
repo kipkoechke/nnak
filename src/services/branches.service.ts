@@ -43,13 +43,26 @@ export const nnakBranchesService = {
     });
     return r.data?.data ?? [];
   },
-  /** Admin: POST /admin/branches — create a branch with its primary contact.
-   *  Returns a pending_token; must complete with OTP verification. */
+  /** Admin: POST /admin/branches — create a branch, optionally with a manager.
+   *  With a manager the response is a pending_token to verify by OTP; without
+   *  one the created branch is returned directly. */
   create: async (
     body: import("@/types/nnak").CreateBranchInput,
-  ): Promise<PendingOtpResponse> => {
-    const r = await nnakApi.post<{ success: boolean; data: PendingOtpResponse }>(
-      "/admin/branches",
+  ): Promise<import("@/types/nnak").CreateBranchResult> => {
+    const r = await nnakApi.post<{
+      success: boolean;
+      data: import("@/types/nnak").CreateBranchResult;
+    }>("/admin/branches", body);
+    return r.data?.data;
+  },
+
+  /** Admin: PATCH /admin/branches/{id} — edit branch details (not the manager). */
+  update: async (
+    id: string,
+    body: import("@/types/nnak").UpdateBranchInput,
+  ): Promise<Branch> => {
+    const r = await nnakApi.patch<{ success: boolean; data: Branch }>(
+      `/admin/branches/${id}`,
       body,
     );
     return r.data?.data;
@@ -86,6 +99,25 @@ export const nnakBranchesService = {
       { user_id: userId },
     );
     return r.data?.data;
+  },
+
+  /** Admin: POST /admin/branches/{branch}/remove-member — detaches a member
+   *  from the branch, turning them into an individual. The member is emailed
+   *  the reason, so it is required. */
+  removeMember: async (
+    branchId: string,
+    body: { user_id: string; reason: string },
+  ): Promise<void> => {
+    await nnakApi.post(`/admin/branches/${branchId}/remove-member`, body);
+  },
+
+  /** Admin: POST /admin/branches/{branch}/reinstate-member — puts a member
+   *  back into the branch and emails them. */
+  reinstateMember: async (
+    branchId: string,
+    body: { user_id: string; reason?: string },
+  ): Promise<void> => {
+    await nnakApi.post(`/admin/branches/${branchId}/reinstate-member`, body);
   },
 
   /** GET /admin/branches/{id} — single branch detail. */

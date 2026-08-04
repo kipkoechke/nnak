@@ -14,6 +14,8 @@
  */
 import { nnakApi } from "@/lib/api";
 import { isDemoSession } from "@/lib/demo-token";
+import type { ListingMeta } from "@/lib/available-filters";
+import { categoryLabel } from "@/lib/member-category";
 import { mockStore } from "@/lib/mock-store";
 import type {
   ApiEnvelope,
@@ -28,6 +30,7 @@ interface MembersResponse {
   success: boolean;
   data: (NnakUser & { profile: NnakProfile | null })[];
   pagination?: NnakPagination;
+  meta?: ListingMeta;
 }
 interface PendingResponse {
   success: boolean;
@@ -38,8 +41,6 @@ interface PendingResponse {
 /** Mirrors the `meta.supported_params` advertised by GET /admin/members —
  *  anything outside this set is ignored by the backend. */
 export interface MemberListQuery {
-  page?: number;
-  per_page?: number;
   search?: string;
   status?: string;
   member_category_id?: string;
@@ -48,6 +49,8 @@ export interface MemberListQuery {
   aging?: string;
   /** Filter by approval state. */
   approved?: boolean;
+  page?: number;
+  per_page?: number;
 }
 
 const unwrap = <T>(p: Promise<{ data: ApiEnvelope<T> }>) =>
@@ -89,6 +92,19 @@ export interface MemberDetail {
   member: MemberRecord;
   contributions: MemberContributions;
   pending_invoices: PendingInvoice[];
+}
+
+/** POST /admin/members — name, ID number and category are required. */
+export interface AdminCreateMemberInput {
+  name: string;
+  identification_number: string;
+  member_category_id: string;
+  email?: string | null;
+  phone?: string | null;
+  identification_type?: string | null;
+  nck_number?: string | null;
+  gender?: string | null;
+  branch_id?: string | null;
 }
 
 const EMPTY_CONTRIBUTIONS: MemberContributions = {
@@ -145,7 +161,11 @@ const normalizeMember = (raw: unknown): MemberRecord => {
     county: val("county") ?? null,
     chapter: val("chapter_code") ?? null,
     chapter_label: val("chapter") ?? null,
-    member_category: category ? { id: "", name: category as string } : null,
+    // `membership_type` is now a code ("individual", "checkoff"), so it is
+    // mapped to its display name here rather than in every screen.
+    member_category: category
+      ? { id: "", name: categoryLabel(category as string) }
+      : null,
     member_category_id: val("member_category_id") ?? null,
     branch: branchName ? { id: branchId, name: branchName } : null,
     branch_id: branchId,
@@ -153,6 +173,9 @@ const normalizeMember = (raw: unknown): MemberRecord => {
     approved_at: val("approved_at") ?? null,
     status: (val("status") ?? (approved ? "active" : "pending")) as string,
     subscription_active: subActive,
+    // What the digital ID prints as "Valid until".
+    coverage_end_date:
+      val("coverage_end_date") ?? val("current_coverage_end_date") ?? null,
     subscription_expires_at:
       val("subscription_ends_on") ?? val("subscription_expires_at") ?? null,
     active_subscription: row.active_subscription ?? null,
@@ -185,6 +208,8 @@ export const membersService = {
       pagination,
       // Backwards-compat alias so existing call-sites using `.meta` still work.
       meta: pagination,
+      /** `supported_params` / `available_filters` advertised by the route. */
+      listing: r.data?.meta,
     };
   },
 
@@ -279,24 +304,43 @@ export const membersService = {
     );
   },
 
+  /**
+   * POST /admin/members — create a member directly, without the OTP flow.
+   * Intended for the one-off tiers (Lifetime, Honorary): the member is
+   * auto-approved and no subscription or invoice is raised.
+   */
+  createMember: async (input: AdminCreateMemberInput) =>
+    unwrap<MemberRecord>(nnakApi.post("/admin/members", input)).then(
+      normalizeMember,
+    ),
+
   // ── Bulk import (Excel) ───────────────────────────────────────────
-  /** GET /admin/members/import/template — download the import spreadsheet. */
-  importTemplate: async (): Promise<Blob> => {
+  /**
+   * GET /admin/members/import/template — download the import spreadsheet.
+   *
+   * With `member_category_code=individual` the template carries a third
+   * "Active Until" column (those rows get a paid subscription); without a
+   * category it is the plain two-column ID Number / Name sheet.
+   */
+  importTemplate: async (memberCategoryCode?: string): Promise<Blob> => {
     const r = await nnakApi.get("/admin/members/import/template", {
       responseType: "blob",
+      params: memberCategoryCode
+        ? { member_category_code: memberCategoryCode }
+        : undefined,
     });
     return r.data as Blob;
   },
   /** POST /admin/members/import — bulk import members from an Excel file.
-   *  Requires a target branch; an optional category code applies to all rows. */
+   *  `branch_id` is optional: individual imports are not branch-scoped. */
   importMembers: async (input: {
     file: File;
-    branch_id: string;
+    branch_id?: string;
     member_category_code?: string;
   }) => {
     const body = new FormData();
     body.append("file", input.file);
-    body.append("branch_id", input.branch_id);
+    if (input.branch_id) body.append("branch_id", input.branch_id);
     if (input.member_category_code)
       body.append("member_category_code", input.member_category_code);
     return unwrap<{ imported?: number; failed?: number; errors?: unknown[] }>(

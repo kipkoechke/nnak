@@ -13,7 +13,8 @@ import {
   MdShield,
   MdHistory,
   MdCategory,
-  MdFolderShared,
+  // MdFolderShared, // restore with the Data Exports menu item
+  MdEventNote,
   MdHowToReg,
   MdBadge,
   MdWorkOutline,
@@ -83,6 +84,12 @@ const STAFF_ITEMS: MenuItem[] = [
     show: nnakCan.manageEvents,
   },
   {
+    name: "Calendar",
+    icon: MdEventNote,
+    href: "/nnak/calendar",
+    show: nnakCan.manageEvents,
+  },
+  {
     name: "Payments",
     icon: MdPayments,
     href: "/nnak/payments",
@@ -141,7 +148,7 @@ const STAFF_ITEMS: MenuItem[] = [
     name: "Institutions",
     icon: MdBusiness,
     href: "/nnak/institutions",
-    show: nnakCan.manageMembers,
+    show: nnakCan.manageInstitutions,
   },
   {
     name: "M-Pesa Transactions",
@@ -180,12 +187,12 @@ const STAFF_ITEMS: MenuItem[] = [
     href: "/nnak/ilm/audit",
     show: nnakCan.viewAuditLog,
   },
-  {
-    name: "Data Exports",
-    icon: MdFolderShared,
-    href: "/nnak/ilm/exports",
-    show: nnakCan.approveDataExport,
-  },
+  // {
+  //   name: "Data Exports",
+  //   icon: MdFolderShared,
+  //   href: "/nnak/ilm/exports",
+  //   show: nnakCan.approveDataExport,
+  // },
   {
     name: "Erasure",
     icon: MdShield,
@@ -200,6 +207,7 @@ const FINANCE_ITEMS: MenuItem[] = [
   { name: "Branches", icon: MdBusiness, href: "/nnak/finance/branches" },
   { name: "Batches", icon: MdAttachMoney, href: "/nnak/finance/batches" },
   { name: "Payments", icon: MdPayments, href: "/nnak/finance/payments" },
+  { name: "Events", icon: MdEvent, href: "/nnak/finance/events" },
   { name: "Remittances", icon: MdSwapHoriz, href: "/nnak/finance/remittances" },
   { name: "By-Product", icon: MdReceipt, href: "/nnak/finance/byproducts" },
 ];

@@ -2,9 +2,10 @@
 //   GET  /events/{event}/speakers           list (paginated)
 //   POST /events/{event}/speakers           create
 //   GET  /events/{event}/speakers/{id}      detail
-//   PATCH /events/{event}/speakers/{id}     update
+//   PATCH  /events/{event}/speakers/{id}     update
 //   DELETE /events/{event}/speakers/{id}    delete
 import { nnakApi } from "@/lib/api";
+import { MULTIPART_HEADERS, hasFileValue, toFormData } from "@/lib/multipart";
 import type {
   ApiEnvelope,
   CreateSpeakerInput,
@@ -35,17 +36,32 @@ export const speakerService = {
   getById: async (eventId: string, id: string) =>
     unwrap<Speaker>(nnakApi.get(`${base(eventId)}/${id}`)),
 
+  /** Goes out as multipart only when a photo file was picked. */
   create: async (
     eventId: string,
     input: CreateSpeakerInput,
-  ): Promise<Speaker> => unwrap<Speaker>(nnakApi.post(base(eventId), input)),
+  ): Promise<Speaker> =>
+    hasFileValue(input)
+      ? unwrap<Speaker>(
+          nnakApi.post(base(eventId), toFormData(input), MULTIPART_HEADERS),
+        )
+      : unwrap<Speaker>(nnakApi.post(base(eventId), input)),
 
   update: async (
     eventId: string,
     id: string,
     input: Partial<CreateSpeakerInput>,
   ): Promise<Speaker> =>
-    unwrap<Speaker>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
+    hasFileValue(input)
+      ? // PHP does not parse an upload on a real PATCH — spoof it.
+        unwrap<Speaker>(
+          nnakApi.post(
+            `${base(eventId)}/${id}`,
+            toFormData(input, { method: "PATCH" }),
+            MULTIPART_HEADERS,
+          ),
+        )
+      : unwrap<Speaker>(nnakApi.patch(`${base(eventId)}/${id}`, input)),
 
   remove: async (eventId: string, id: string) => {
     await nnakApi.delete(`${base(eventId)}/${id}`);

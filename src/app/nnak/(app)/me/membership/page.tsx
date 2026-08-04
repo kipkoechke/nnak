@@ -198,6 +198,7 @@ export default function MyMembershipPage() {
   const subExpiry =
     me.subscription_ends_on ??
     me.current_coverage_end_date ??
+    profile.coverage_end_date ??
     dash?.subscription_ends_on ??
     dash?.current_coverage_end_date ??
     currentSub?.end_date ??

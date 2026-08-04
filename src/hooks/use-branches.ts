@@ -4,8 +4,18 @@ import toast from "react-hot-toast";
 import { nnakBranchesService } from "@/services/branches.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import type { BranchVerifyManagerInput } from "@/types/nnak";
+import type {
+  BranchVerifyManagerInput,
+  CreateBranchResult,
+  UpdateBranchInput,
+} from "@/types/nnak";
 import { useMembers } from "@/hooks/use-members";
+
+/** A create result with no pending_token is a branch made without a manager. */
+export const isPendingBranch = (
+  r: CreateBranchResult,
+): r is Extract<CreateBranchResult, { pending_token: string }> =>
+  "pending_token" in r && !!r.pending_token;
 
 export const useNnakBranches = (opts?: { enabled?: boolean }) =>
   useQuery({
@@ -27,7 +37,29 @@ export const useCreateBranch = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: nnakBranchesService.create,
+    onSuccess: (result) => {
+      // A branch made without a manager is final now; one with a manager still
+      // needs OTP verification, so the caller routes on the pending_token.
+      if (!isPendingBranch(result)) {
+        qc.invalidateQueries({ queryKey: nqk.branches.all });
+        toast.success("Branch created");
+      }
+    },
     onError: (e) => toast.error(extractApiError(e, "Create branch failed")),
+  });
+};
+
+export const useUpdateBranch = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateBranchInput }) =>
+      nnakBranchesService.update(id, input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      qc.invalidateQueries({ queryKey: nqk.branches.detail(vars.id) });
+      toast.success("Branch updated");
+    },
+    onError: (e) => toast.error(extractApiError(e, "Update branch failed")),
   });
 };
 
@@ -72,5 +104,56 @@ export const useChangeBranchManager = () => {
       toast.success("Branch manager changed successfully");
     },
     onError: (e) => toast.error(extractApiError(e, "Could not change manager")),
+  });
+};
+
+/** Detach a member from a branch — they become an individual and are emailed
+ *  the reason. */
+export const useRemoveBranchMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      branchId,
+      userId,
+      reason,
+    }: {
+      branchId: string;
+      userId: string;
+      reason: string;
+    }) => nnakBranchesService.removeMember(branchId, { user_id: userId, reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member removed from the branch");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not remove the member")),
+  });
+};
+
+/** Put a member back into a branch. */
+export const useReinstateBranchMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      branchId,
+      userId,
+      reason,
+    }: {
+      branchId: string;
+      userId: string;
+      reason?: string;
+    }) =>
+      nnakBranchesService.reinstateMember(branchId, {
+        user_id: userId,
+        reason,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.branches.all });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Member reinstated to the branch");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not reinstate the member")),
   });
 };

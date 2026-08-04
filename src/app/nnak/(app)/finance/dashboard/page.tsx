@@ -1,4 +1,5 @@
 "use client";
+import { categoryLabel } from "@/lib/member-category";
 import { useMemo, useState } from "react";
 import {
   MdPeople,
@@ -8,6 +9,7 @@ import {
   MdReceipt,
   MdCalendarToday,
   MdPayments,
+  MdEvent,
 } from "react-icons/md";
 import {
   Bar,
@@ -34,8 +36,8 @@ const defaultRange = () => {
   return { start: toISO(start), end: toISO(today) };
 };
 
-const fmtKes = (n?: number) =>
-  n != null ? `KES ${Number(n).toLocaleString()}` : "—";
+const fmtKes = (n?: number | string | null) =>
+  n != null && n !== "" ? `KES ${Number(n).toLocaleString()}` : "—";
 const fmtCompact = (n: number) =>
   Math.abs(n) >= 1000
     ? `${(n / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}k`
@@ -103,6 +105,22 @@ export default function FinanceDashboardPage() {
 
       {!isLoading && dash && (
         <>
+          {/* Events summary — booking revenue lives outside the tabbed views. */}
+          {dash.events && (
+            <section className="bg-white border border-slate-200 rounded-xl p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                <MdEvent className="w-4 h-4" /> Events
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <KpiCard label="Total Bookings" value={String(dash.events.total_bookings)} />
+                <KpiCard label="Paid Bookings" value={String(dash.events.paid_bookings)} accent="emerald" />
+                <KpiCard label="Pending Bookings" value={String(dash.events.pending_bookings)} accent="amber" />
+                <KpiCard label="Revenue" value={fmtKes(dash.events.revenue)} accent="emerald" />
+                <KpiCard label="Upcoming Events" value={String(dash.events.upcoming_events)} accent="blue" />
+              </div>
+            </section>
+          )}
+
           {/* Primary tab bar — Payments / Members / Remittances */}
           <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
             <div className="flex border-b border-slate-100">
@@ -288,27 +306,37 @@ export default function FinanceDashboardPage() {
                         />
                       )}
                     </div>
-                    {dash.batches && (
-                      <div className="bg-white border border-slate-200 rounded-xl p-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                          <MdReceipt className="w-4 h-4" /> Batches (This Month)
-                        </h3>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div>
-                            <div className="text-[11px] text-slate-500">Count</div>
-                            <div className="font-bold text-slate-900">{dash.batches.this_month.count}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-slate-500">Collected</div>
-                            <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.total_collected)}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-slate-500">HQ Share</div>
-                            <div className="font-semibold text-slate-900">{fmtKes(dash.batches.this_month.hq_share)}</div>
+                    {(() => {
+                      // The API reports the batch window under this_month or
+                      // last_month depending on the period; take whichever came.
+                      const batch =
+                        dash.batches?.this_month ?? dash.batches?.last_month;
+                      const window = dash.batches?.this_month
+                        ? "This Month"
+                        : "Last Month";
+                      if (!batch) return null;
+                      return (
+                        <div className="bg-white border border-slate-200 rounded-xl p-4">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                            <MdReceipt className="w-4 h-4" /> Batches ({window})
+                          </h3>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <div className="text-[11px] text-slate-500">Count</div>
+                              <div className="font-bold text-slate-900">{batch.count}</div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] text-slate-500">Collected</div>
+                              <div className="font-semibold text-slate-900">{fmtKes(batch.total_collected)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] text-slate-500">HQ Share</div>
+                              <div className="font-semibold text-slate-900">{fmtKes(batch.hq_share)}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </>
                 ) : (
                   <div className="py-8 text-sm text-center text-slate-400">No remittance data.</div>
@@ -362,7 +390,7 @@ export default function FinanceDashboardPage() {
                             <div className="text-xs text-slate-500">{m.email}</div>
                           </td>
                           <td className="px-3 py-2 font-mono text-xs">{m.membership_number}</td>
-                          <td className="px-3 py-2 text-xs">{m.membership_type}</td>
+                          <td className="px-3 py-2 text-xs">{categoryLabel(m.membership_type)}</td>
                           <td className="px-3 py-2 text-xs text-slate-600">{m.branch_name || "—"}</td>
                           <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(m.created_at)}</td>
                         </tr>

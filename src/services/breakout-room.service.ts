@@ -2,7 +2,7 @@
 //   GET  /events/{event}/agendas/{agenda}/breakout-rooms         list
 //   POST /events/{event}/agendas/{agenda}/breakout-rooms         create
 //   GET  /events/{event}/agendas/{agenda}/breakout-rooms/{id}    detail
-//   PATCH /events/{event}/agendas/{agenda}/breakout-rooms/{id}   update
+//   PATCH  /events/{event}/agendas/{agenda}/breakout-rooms/{id}   update
 //   DELETE /events/{event}/agendas/{agenda}/breakout-rooms/{id}  delete
 import { nnakApi } from "@/lib/api";
 import type {

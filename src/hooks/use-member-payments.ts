@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { memberPaymentService } from "@/services/member-payment.service";
 import { nqk } from "@/lib/query-keys";
 import { extractApiError } from "@/lib/extract-api-error";
-import type { InvoiceStkPushInput } from "@/types/nnak";
+import type { InvoiceStkPushInput, InvoiceStkQueryResult } from "@/types/nnak";
 
 export const useInvoiceStkPush = () => {
   const qc = useQueryClient();
@@ -24,10 +24,26 @@ export const useInvoiceStkPush = () => {
   });
 };
 
+/** Statuses M-Pesa will not move off, so polling can stop. */
+const TERMINAL_STK_STATUSES = [
+  "successful",
+  "success",
+  "failed",
+  "cancelled",
+  "timeout",
+];
+
+export const isStkTerminal = (status?: string | null) =>
+  !!status && TERMINAL_STK_STATUSES.includes(String(status).toLowerCase());
+
+export const isStkSuccess = (status?: string | null) =>
+  ["successful", "success"].includes(String(status ?? "").toLowerCase());
+
+/** `data` is null while the API reports no push yet for the invoice. */
 type StkRefetchInterval =
   | number
   | false
-  | ((data: { status?: string } | undefined) => number | false);
+  | ((data: InvoiceStkQueryResult | null | undefined) => number | false);
 
 export const useInvoiceStkQuery = (
   invoiceId?: string | null,

@@ -17,10 +17,25 @@ interface Props {
   member: NnakUser & { profile: NnakProfile };
   category?: string;
   showDownload?: boolean;
-  /** Coverage end date to print on the card. Falls back to the profile's
-   *  subscription_expires_at when not provided. */
+  /** Overrides the coverage end date printed on the card. */
   validUntil?: string | null;
 }
+
+/**
+ * "Valid until" is the member's coverage end date. The API sends it as
+ * `profile.coverage_end_date` and mirrors it on the user as
+ * `current_coverage_end_date`; the older `subscription_expires_at` is the last
+ * resort so cards built from a leaner payload still print something.
+ */
+const coverageEndOf = (
+  member: NnakUser & { profile: NnakProfile },
+  validUntil?: string | null,
+) =>
+  validUntil ??
+  member.profile.coverage_end_date ??
+  member.current_coverage_end_date ??
+  member.profile.subscription_expires_at ??
+  null;
 
 const initialsOf = (name: string): string => {
   const parts = name.trim().split(/\s+/);
@@ -226,7 +241,7 @@ function DigitalIdPdf({
   validUntil,
   photoDataUrl,
 }: Props & { qrDataUrl: string; photoDataUrl: string }) {
-  const valid = fmtDate(validUntil ?? member.profile.subscription_expires_at);
+  const valid = fmtDate(coverageEndOf(member, validUntil));
   const logoUrl =
     typeof window !== "undefined" && logoSrc.startsWith("/")
       ? new URL(logoSrc, window.location.origin).toString()
@@ -279,7 +294,7 @@ export default function DigitalIdCard({ member, showDownload = true, validUntil 
   const [downloading, setDownloading] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const photo = cleanUrl(member.profile.photo_url);
-  const validUntilLabel = fmtDate(validUntil ?? member.profile.subscription_expires_at);
+  const validUntilLabel = fmtDate(coverageEndOf(member, validUntil));
 
   useEffect(() => {
     const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;

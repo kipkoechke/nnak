@@ -133,3 +133,37 @@ export const useAdminBranchTransfers = (params: AdminTransferFilters = {}) =>
     queryFn: () => adminInvitesService.listTransfers(params),
     refetchOnWindowFocus: false,
   });
+
+/**
+ * Invites and transfers both need an admin to sign off after the member has
+ * accepted; only then is the member moved between branches.
+ */
+export const useApproveBranchInvite = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteId: string) =>
+      adminInvitesService.approveInvite(inviteId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.invites.adminInvites() });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Invite approved — the member has been moved");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not approve the invite")),
+  });
+};
+
+export const useApproveBranchTransfer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (transferId: string) =>
+      adminInvitesService.approveTransfer(transferId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: nqk.invites.adminTransfers() });
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success("Transfer approved — the member has been moved");
+    },
+    onError: (e) =>
+      toast.error(extractApiError(e, "Could not approve the transfer")),
+  });
+};

@@ -1,7 +1,10 @@
 "use client";
 import { useMemo, useState } from "react";
-import { MdCalendarToday, MdReceipt } from "react-icons/md";
+import Link from "next/link";
+import { MdCalendarToday, MdEvent, MdReceipt } from "react-icons/md";
 import { useAdminDashboard } from "@/hooks/use-admin-dashboard";
+import StatCard from "@/components/common/StatCard";
+import type { AdminBatchPeriod } from "@/types/nnak";
 import {
   Bar,
   BarChart,
@@ -61,10 +64,23 @@ export default function AdminDashboard() {
     [data],
   );
 
-  const pendingMembers = data?.recent_pending_members ?? [];
+  const pendingMembers = data?.recent_pending_members;
   const showTrend = data?.trendline?.some(
     (t) => t.fully_paid || t.partially_paid || t.not_paid,
   );
+
+  /**
+   * The API reports batches under `this_month` or `last_month` depending on
+   * where the period falls, and may send neither. Reading a fixed key blanked
+   * the whole dashboard when it changed, so take whichever arrived.
+   */
+  const batchPeriods = useMemo(() => {
+    const windows: [string, AdminBatchPeriod | undefined][] = [
+      ["This Month", data?.batches?.this_month],
+      ["Last Month", data?.batches?.last_month],
+    ];
+    return windows.filter((w): w is [string, AdminBatchPeriod] => !!w[1]);
+  }, [data]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -111,23 +127,49 @@ export default function AdminDashboard() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Members
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <KpiCard label="Total Members" value={data.members.total} />
-              <KpiCard label="Active" value={data.members.active} accent="emerald" />
-              <KpiCard label="Inactive" value={data.members.inactive} accent="amber" />
-              <KpiCard
-                label="Pending Approval"
-                value={data.members.pending_approval}
-                accent="amber"
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {/* Total, with the active/inactive split sitting beneath it. */}
+              <StatCard
+                title="Total Members"
+                mainValue={data.members.total}
+                subtitle={
+                  <div className="grid grid-cols-2 gap-3 w-full pt-2 mt-1 border-t border-slate-100">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+                        Active
+                      </div>
+                      <div className="text-base md:text-lg font-bold text-emerald-700">
+                        {data.members.active}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+                        Inactive
+                      </div>
+                      <div className="text-base md:text-lg font-bold text-amber-600">
+                        {data.members.inactive}
+                      </div>
+                    </div>
+                  </div>
+                }
               />
-              <KpiCard
-                label="New This Period"
-                value={data.members.new_this_period}
-                accent="blue"
+              {typeof data.members.claimed === "number" && (
+                <StatCard
+                  title="Claimed Account"
+                  mainValue={data.members.claimed}
+                />
+              )}
+              <StatCard
+                title="Pending Approval"
+                mainValue={data.members.pending_approval}
               />
-              <KpiCard
-                label="Corporate / Individual"
-                value={`${data.members.corporate} / ${data.members.individual}`}
+              <StatCard
+                title="New This Period"
+                mainValue={data.members.new_this_period}
+              />
+              <StatCard
+                title="Corporate / Individual"
+                mainValue={`${data.members.corporate} / ${data.members.individual}`}
               />
             </div>
           </section>
@@ -196,7 +238,10 @@ export default function AdminDashboard() {
                       border: "1px solid #e2e8f0",
                     }}
                   />
-                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="plainline" />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11 }}
+                    iconType="plainline"
+                  />
                   <Line
                     type="monotone"
                     dataKey="fully_paid"
@@ -226,84 +271,167 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Batches */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <MdReceipt className="w-4 h-4" /> Batches — This Month
-              </h3>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <MiniStat label="Batches" value={data.batches.this_month.count} />
-                <MiniStat
-                  label="Paid"
-                  value={data.batches.this_month.paid_count}
-                  accent="emerald"
-                />
-                <MiniStat
-                  label="Pending"
-                  value={data.batches.this_month.pending_count}
-                  accent="amber"
-                />
-              </div>
-              <div className="border-t border-slate-100 mt-3 pt-3 grid grid-cols-3 gap-2 text-center">
-                <MiniStat
-                  label="Collected"
-                  value={fmtKes(data.batches.this_month.total_collected)}
-                  small
-                />
-                <MiniStat
-                  label="Branch Share"
-                  value={fmtKes(data.batches.this_month.branch_share)}
-                  small
-                />
-                <MiniStat
-                  label="HQ Share"
-                  value={fmtKes(data.batches.this_month.hq_share)}
-                  small
-                />
-              </div>
-            </div>
+          {/* Batches — only the windows the API actually reported */}
+          {(batchPeriods.length > 0 || data.batches?.all_time) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {batchPeriods.map(([label, period]) => (
+                <div
+                  key={label}
+                  className="bg-white border border-slate-200 rounded-xl p-4"
+                >
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                    <MdReceipt className="w-4 h-4" /> Batches — {label}
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <MiniStat label="Batches" value={period.count} />
+                    <MiniStat
+                      label="Paid"
+                      value={period.paid_count}
+                      accent="emerald"
+                    />
+                    <MiniStat
+                      label="Pending"
+                      value={period.pending_count}
+                      accent="amber"
+                    />
+                  </div>
+                  <div className="border-t border-slate-100 mt-3 pt-3 grid grid-cols-3 gap-2 text-center">
+                    <MiniStat
+                      label="Collected"
+                      value={fmtKes(period.total_collected)}
+                      small
+                    />
+                    <MiniStat
+                      label="Branch Share"
+                      value={fmtKes(period.branch_share)}
+                      small
+                    />
+                    <MiniStat
+                      label="HQ Share"
+                      value={fmtKes(period.hq_share)}
+                      small
+                    />
+                  </div>
+                </div>
+              ))}
 
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <MdReceipt className="w-4 h-4" /> Batches — All Time
+              {data.batches?.all_time && (
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+                    <MdReceipt className="w-4 h-4" /> Batches — All Time
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                    <MiniStat
+                      label="Collected"
+                      value={fmtKes(data.batches.all_time.total_collected)}
+                      small
+                    />
+                    <MiniStat
+                      label="Commission"
+                      value={fmtKes(data.batches.all_time.total_commission)}
+                      small
+                    />
+                    <MiniStat
+                      label="Branch Share"
+                      value={fmtKes(data.batches.all_time.total_branch_share)}
+                      small
+                    />
+                    <MiniStat
+                      label="HQ Share"
+                      value={fmtKes(data.batches.all_time.total_hq_share)}
+                      small
+                    />
+                    <MiniStat
+                      label="Paid Total"
+                      value={fmtKes(data.batches.all_time.paid_total)}
+                      accent="emerald"
+                      small
+                    />
+                    <MiniStat
+                      label="Pending Total"
+                      value={fmtKes(data.batches.all_time.pending_total)}
+                      accent="amber"
+                      small
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Events */}
+          {data.events && (
+            <section className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <MdEvent className="w-4 h-4" /> Events
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
-                <MiniStat
-                  label="Collected"
-                  value={fmtKes(data.batches.all_time.total_collected)}
-                  small
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <KpiCard
+                  label="Total Bookings"
+                  value={data.events.total_bookings}
                 />
-                <MiniStat
-                  label="Commission"
-                  value={fmtKes(data.batches.all_time.total_commission)}
-                  small
-                />
-                <MiniStat
-                  label="Branch Share"
-                  value={fmtKes(data.batches.all_time.total_branch_share)}
-                  small
-                />
-                <MiniStat
-                  label="HQ Share"
-                  value={fmtKes(data.batches.all_time.total_hq_share)}
-                  small
-                />
-                <MiniStat
-                  label="Paid Total"
-                  value={fmtKes(data.batches.all_time.paid_total)}
+                <KpiCard
+                  label="Paid Bookings"
+                  value={data.events.paid_bookings}
                   accent="emerald"
-                  small
                 />
-                <MiniStat
-                  label="Pending Total"
-                  value={fmtKes(data.batches.all_time.pending_total)}
+                <KpiCard
+                  label="Pending Bookings"
+                  value={data.events.pending_bookings}
                   accent="amber"
-                  small
+                />
+                <KpiCard
+                  label="Revenue"
+                  value={fmtKes(data.events.revenue)}
+                  accent="emerald"
+                />
+                <KpiCard
+                  label="Attendees"
+                  value={data.events.total_attendees}
+                />
+                <KpiCard
+                  label="Scanned In"
+                  value={data.events.scanned_in}
+                  accent="blue"
                 />
               </div>
-            </div>
-          </div>
+
+              {data.events.upcoming.length > 0 && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold mb-2">
+                    Upcoming
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {data.events.upcoming.map((e) => (
+                      <Link
+                        key={e.id}
+                        href={`/nnak/events/${e.id}`}
+                        className="group border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <div className="font-medium text-slate-900 group-hover:text-primary truncate">
+                          {e.title}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {new Date(e.start_date).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                          {typeof e.packages_count === "number" &&
+                            ` · ${e.packages_count} package${e.packages_count === 1 ? "" : "s"}`}
+                        </div>
+                        {e.location && (
+                          <div className="text-xs text-slate-400 mt-0.5 truncate">
+                            {e.location}
+                          </div>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Branches table */}
           <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -349,73 +477,76 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* Pending members table */}
-          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Recent Pending Approvals
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2">Email</th>
-                    <th className="px-4 py-2">Category</th>
-                    <th className="px-4 py-2">Chapter of Interest</th>
-                    <th className="px-4 py-2">Branch</th>
-                    <th className="px-4 py-2">NCK Number</th>
-                    <th className="px-4 py-2 text-right">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {pendingMembers.length === 0 ? (
+          {/* Pending members table — omitted entirely when the API does not
+              send the list, so an empty table cannot imply "none pending". */}
+          {pendingMembers && (
+            <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Recent Pending Approvals
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                     <tr>
-                      <td
-                        colSpan={7}
-                        className="px-4 py-6 text-center text-slate-400"
-                      >
-                        No pending approvals.
-                      </td>
+                      <th className="px-4 py-2">Name</th>
+                      <th className="px-4 py-2">Email</th>
+                      <th className="px-4 py-2">Category</th>
+                      <th className="px-4 py-2">Chapter of Interest</th>
+                      <th className="px-4 py-2">Branch</th>
+                      <th className="px-4 py-2">NCK Number</th>
+                      <th className="px-4 py-2 text-right">Date</th>
                     </tr>
-                  ) : (
-                    pendingMembers.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">
-                          {m.name}
-                        </td>
-                        <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
-                          {m.email}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap">
-                          {m.profile?.member_category?.name ?? (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap">
-                          {m.profile?.chapter_label ?? (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap">
-                          {m.profile?.branch?.name ?? (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
-                          {m.profile?.nck_number ?? (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-right text-slate-500 whitespace-nowrap">
-                          {new Date(m.created_at).toLocaleDateString("en-GB")}
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pendingMembers.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-6 text-center text-slate-400"
+                        >
+                          No pending approvals.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    ) : (
+                      pendingMembers.map((m) => (
+                        <tr key={m.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">
+                            {m.name}
+                          </td>
+                          <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                            {m.email}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {m.profile?.member_category?.name ?? (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {m.profile?.chapter_label ?? (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {m.profile?.branch?.name ?? (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                            {m.profile?.nck_number ?? (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-right text-slate-500 whitespace-nowrap">
+                            {new Date(m.created_at).toLocaleDateString("en-GB")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>
@@ -465,9 +596,7 @@ const MiniStat = ({
   }[accent];
   return (
     <div>
-      <div
-        className={`${small ? "text-sm" : "text-lg"} font-bold ${cls}`}
-      >
+      <div className={`${small ? "text-sm" : "text-lg"} font-bold ${cls}`}>
         {value}
       </div>
       <div className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">

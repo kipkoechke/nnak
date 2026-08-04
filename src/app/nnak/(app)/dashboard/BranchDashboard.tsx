@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useBranchDashboard } from "@/hooks/use-branch-manager";
 import PageHeader from "@/components/common/PageHeader";
-import type { NnakUser } from "@/types/nnak";
+import type { BranchPeriodBatch, NnakUser } from "@/types/nnak";
 import {
   PieChart,
   Pie,
@@ -97,23 +97,42 @@ const Section = ({
   </div>
 );
 
+const BATCH_TONE: Record<string, string> = {
+  pending: "bg-slate-100 text-slate-700",
+  submitted: "bg-blue-100 text-blue-700",
+  partially_paid: "bg-amber-100 text-amber-800",
+  paid: "bg-emerald-100 text-emerald-700",
+  overdue: "bg-red-100 text-red-700",
+};
+
 const BatchMetricsCard = ({
   title,
-  metrics,
+  period,
 }: {
   title: string;
-  metrics: {
-    count: number;
-    paid_count: number;
-    pending_count: number;
-    total_collected: string | number;
-    commission: string | number;
-    branch_share: string | number;
-  };
-}) => (
+  period: BranchPeriodBatch;
+}) => {
+  const { metrics, batch } = period;
+  return (
   <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-    <div className="text-xs uppercase tracking-wide text-slate-500">
-      {title}
+    <div className="flex items-center justify-between gap-2">
+      <div className="text-xs uppercase tracking-wide text-slate-500">
+        {title}
+        {batch?.period && (
+          <span className="ml-1 normal-case text-slate-400">
+            · {batch.period}
+          </span>
+        )}
+      </div>
+      {batch?.status && (
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-semibold whitespace-nowrap ${
+            BATCH_TONE[batch.status] || BATCH_TONE.pending
+          }`}
+        >
+          {String(batch.status).replace(/_/g, " ")}
+        </span>
+      )}
     </div>
     <div className="grid grid-cols-3 gap-2 text-center">
       <div>
@@ -157,8 +176,25 @@ const BatchMetricsCard = ({
         </div>
       </div>
     </div>
+    {batch && (
+      <div className="border-t border-slate-100 pt-3 flex items-center justify-between gap-2 text-xs">
+        <div className="text-slate-500">
+          Outstanding{" "}
+          <span className="font-semibold text-amber-700">
+            {fmtKes(batch.pending_remittance ?? 0)}
+          </span>
+        </div>
+        <Link
+          href={`/nnak/branch/batches/${batch.id}`}
+          className="text-primary font-semibold hover:underline whitespace-nowrap"
+        >
+          View batch
+        </Link>
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 export default function BranchDashboard({ user }: { user: NnakUser }) {
   // Default range: the last 30 days.
@@ -169,6 +205,10 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
     [start, end],
   );
   const { data, isLoading } = useBranchDashboard(params);
+
+  const currentMonth = data?.batches?.current_month;
+  const lastMonth = data?.batches?.last_month;
+  const allTime = data?.batches?.all_time;
 
   const chapterChart = useMemo(
     () =>
@@ -193,6 +233,15 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
               {data.branch.employer_type && (
                 <div className="text-[11px] text-slate-500">
                   {data.branch.employer_type}
+                </div>
+              )}
+              {/* The API sends these already humanised, e.g.
+                  "Individual Fixed Value" · "20.00". */}
+              {data.branch.commission_type && (
+                <div className="text-[11px] text-slate-400">
+                  {data.branch.commission_type}
+                  {data.branch.commission_value != null &&
+                    ` · ${data.branch.commission_value}`}
                 </div>
               )}
             </div>
@@ -228,7 +277,7 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
       ) : (
         <>
           {/* Member KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <Kpi
               label="Total Members"
               value={data.members.total}
@@ -246,6 +295,14 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
               icon={MdHourglassEmpty}
               tone="warn"
             />
+            {data.members.claimed != null && (
+              <Kpi
+                label="Claimed Accounts"
+                value={data.members.claimed}
+                icon={MdHowToReg}
+                tone="info"
+              />
+            )}
             <Kpi
               label="Pending Approval"
               value={data.members.pending_approval}
@@ -280,93 +337,110 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
               icon={MdReceiptLong}
               tone="warn"
             />
-            <Link
-              href="/nnak/branch/invites"
-              className="bg-white rounded-lg border border-slate-200 p-4 hover:border-primary/40 transition"
-            >
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <MdMailOutline className="w-4 h-4" /> Pending Invites
-              </div>
-              <div className="text-2xl font-semibold text-slate-900 mt-1">
-                {data.invites.pending_invites}
-              </div>
-            </Link>
-            <Link
-              href="/nnak/branch/transfers"
-              className="bg-white rounded-lg border border-slate-200 p-4 hover:border-primary/40 transition"
-            >
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <MdSwapHoriz className="w-4 h-4" /> Pending Transfers
-              </div>
-              <div className="text-2xl font-semibold text-slate-900 mt-1">
-                {data.invites.pending_transfers}
-              </div>
-            </Link>
+            {/* The invites block is only sent when the branch has any. */}
+            {data.invites && (
+              <>
+                <Link
+                  href="/nnak/branch/invites"
+                  className="bg-white rounded-lg border border-slate-200 p-4 hover:border-primary/40 transition"
+                >
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <MdMailOutline className="w-4 h-4" /> Pending Invites
+                  </div>
+                  <div className="text-2xl font-semibold text-slate-900 mt-1">
+                    {data.invites.pending_invites}
+                  </div>
+                </Link>
+                <Link
+                  href="/nnak/branch/transfers"
+                  className="bg-white rounded-lg border border-slate-200 p-4 hover:border-primary/40 transition"
+                >
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <MdSwapHoriz className="w-4 h-4" /> Pending Transfers
+                  </div>
+                  <div className="text-2xl font-semibold text-slate-900 mt-1">
+                    {data.invites.pending_transfers}
+                  </div>
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Monthly batches */}
-          <Section
-            title="Monthly Batches"
-            description="Subscription collections for the current and last month, with all-time totals"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <BatchMetricsCard
-                title="Current Month"
-                metrics={data.batches.current_month.metrics}
-              />
-              <BatchMetricsCard
-                title="Last Month"
-                metrics={data.batches.last_month.metrics}
-              />
-            </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
-                All-Time
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Collected
+          {/* Monthly batches — the API sends only the periods it has, so a
+              branch with one batch gets one card rather than a broken grid. */}
+          {(currentMonth || lastMonth || allTime) && (
+            <Section
+              title="Monthly Batches"
+              description="Subscription collections remitted to HQ"
+            >
+              {(currentMonth || lastMonth) && (
+                <div
+                  className={`grid grid-cols-1 gap-3 ${
+                    currentMonth && lastMonth ? "md:grid-cols-2" : ""
+                  } ${allTime ? "mb-3" : ""}`}
+                >
+                  {currentMonth && (
+                    <BatchMetricsCard
+                      title="Current Month"
+                      period={currentMonth}
+                    />
+                  )}
+                  {lastMonth && (
+                    <BatchMetricsCard title="Last Month" period={lastMonth} />
+                  )}
+                </div>
+              )}
+              {allTime && (
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
+                    All-Time
                   </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_collected)}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                    <div>
+                      <div className="text-[10px] text-slate-500 uppercase">
+                        Collected
+                      </div>
+                      <div className="text-base font-semibold text-slate-900">
+                        {fmtKes(allTime.total_collected)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-slate-500 uppercase">
+                        Commission
+                      </div>
+                      <div className="text-base font-semibold text-slate-900">
+                        {fmtKes(allTime.total_commission)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-slate-500 uppercase">
+                        Branch Share
+                      </div>
+                      <div className="text-base font-semibold text-slate-900">
+                        {fmtKes(allTime.total_branch_share)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-slate-500 uppercase">
+                        Paid Total
+                      </div>
+                      <div className="text-base font-semibold text-emerald-700">
+                        {fmtKes(allTime.paid_total)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-slate-500 uppercase">
+                        Pending Total
+                      </div>
+                      <div className="text-base font-semibold text-amber-700">
+                        {fmtKes(allTime.pending_total)}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Commission
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_commission)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Branch Share
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {fmtKes(data.batches.all_time.total_branch_share)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Paid Total
-                  </div>
-                  <div className="text-base font-semibold text-emerald-700">
-                    {fmtKes(data.batches.all_time.paid_total)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase">
-                    Pending Total
-                  </div>
-                  <div className="text-base font-semibold text-amber-700">
-                    {fmtKes(data.batches.all_time.pending_total)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Section>
+              )}
+            </Section>
+          )}
 
           {/* Payments trend */}
           {data.trendline && data.trendline.some(
@@ -409,15 +483,11 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
           )}
 
           {/* Chapter doughnut */}
+          {chapterChart.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-lg p-4">
             <div className="text-xs uppercase tracking-wide text-slate-500 mb-3">
               Members by Chapter
             </div>
-            {chapterChart.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">
-                No data available.
-              </p>
-            ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
@@ -451,10 +521,11 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
                   />
                 </PieChart>
               </ResponsiveContainer>
-            )}
           </div>
+          )}
 
           {/* Recent members */}
+          {!!data.recent_members?.length && (
           <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
             <div className="px-4 py-2 text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
               Recent Members
@@ -473,17 +544,7 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {data.recent_members.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-4 py-6 text-center text-slate-500"
-                      >
-                        No recent members.
-                      </td>
-                    </tr>
-                  ) : (
-                    data.recent_members.map((m) => (
+                  {data.recent_members.map((m) => (
                       <tr key={m.id} className="hover:bg-slate-50">
                         <td className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">
                           {m.name}
@@ -529,12 +590,12 @@ export default function BranchDashboard({ user }: { user: NnakUser }) {
                           )}
                         </td>
                       </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
+          )}
         </>
       )}
     </div>

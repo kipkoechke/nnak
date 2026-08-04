@@ -28,6 +28,8 @@ export const nnakCan = {
   upgradeCategory: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
   /** Create / edit branches — HQ only. Branch managers cannot. */
   manageBranches: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
+  /** The institution register is HQ-owned; mirrors the middleware rule. */
+  manageInstitutions: (u?: NnakUser | null) => has(u, ["super_admin", "admin"]),
 
   // Events
   manageEvents: (u?: NnakUser | null) =>

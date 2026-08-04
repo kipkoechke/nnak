@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   "/unauthorized",
   "/nnak/register/student",
   "/nnak/onboarding",
+  "/nnak/privacy",
 ];
 
 const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
@@ -19,6 +20,7 @@ const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
   { prefix: "/nnak/byproduct", allow: ["super_admin", "admin", "finance"] },
   { prefix: "/nnak/events", allow: ["super_admin", "admin", "events"] },
   { prefix: "/nnak/checkin", allow: ["super_admin", "admin", "events"] },
+  { prefix: "/nnak/calendar", allow: ["super_admin", "admin", "events"] },
   { prefix: "/nnak/payments", allow: ["super_admin", "admin", "finance", "executive"] },
   { prefix: "/nnak/ilm", allow: ["super_admin", "admin"] },
   { prefix: "/nnak/branch-invites", allow: ["super_admin", "admin"] },
