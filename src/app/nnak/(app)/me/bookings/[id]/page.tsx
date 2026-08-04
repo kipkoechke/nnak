@@ -1,9 +1,15 @@
 "use client";
 import { use } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MdCalendarToday, MdBookmarks, MdLocationOn, MdConfirmationNumber } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
-import { useStudentBooking } from "@/hooks/use-student-events";
+import {
+  useBooking,
+  useBookingScope,
+  useCancelBooking,
+  usePayBooking,
+} from "@/hooks/use-bookings";
 
 const STATUS_TONE: Record<string, string> = {
   confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -28,16 +34,22 @@ const fmtDateTime = (iso: string) =>
     minute: "2-digit",
   });
 
-export default function StudentBookingDetailPage({
+export default function MyBookingDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: booking, isLoading } = useStudentBooking(id);
+  const scope = useBookingScope();
+  const payBooking = usePayBooking(scope);
+  const cancelBooking = useCancelBooking(scope);
+  // Poll while an STK push is in flight so the status flips without a refresh.
+  const { data: booking, isLoading } = useBooking(scope, id, {
+    poll: payBooking.isSuccess,
+  });
 
-  if (isLoading)
+  if (isLoading && !booking)
     return <div className="p-4 text-sm text-slate-500">Loading booking…</div>;
   if (!booking)
     return <div className="p-4 text-sm text-slate-500">Booking not found.</div>;
@@ -45,6 +57,12 @@ export default function StudentBookingDetailPage({
   const statusTone =
     STATUS_TONE[booking.status?.toLowerCase()] ||
     "bg-slate-50 text-slate-700 border-slate-200";
+
+  // Only an unsettled booking can be paid or cancelled.
+  const isPending = ["pending", "pending_payment", "unpaid"].includes(
+    String(booking.status ?? "").toLowerCase(),
+  );
+  const owes = Number(booking.amount ?? 0) > 0;
 
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -179,15 +197,95 @@ export default function StudentBookingDetailPage({
         </div>
       )}
 
+      {/* Pending-payment actions */}
+      {isPending && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Payment pending
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {owes
+                ? "Complete payment to confirm this booking, or cancel it."
+                : "This booking is awaiting confirmation."}
+            </p>
+          </div>
+
+          {payBooking.isSuccess && (
+            <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+              STK push sent. Enter your M-Pesa PIN on your phone.
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {owes && (
+              <button
+                onClick={() => payBooking.mutate(booking.id)}
+                disabled={payBooking.isPending}
+                className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {payBooking.isPending
+                  ? "Sending…"
+                  : payBooking.isSuccess
+                    ? "Resend payment request"
+                    : "Pay via M-Pesa"}
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (confirm("Cancel this booking? This cannot be undone."))
+                  cancelBooking.mutate(booking.id);
+              }}
+              disabled={cancelBooking.isPending}
+              className="border border-red-200 text-red-600 text-sm font-semibold px-4 py-2 rounded-md hover:bg-red-50 disabled:opacity-50"
+            >
+              {cancelBooking.isPending ? "Cancelling…" : "Cancel booking"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Attendees */}
+      {booking.attendees && booking.attendees.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Attendees ({booking.attendees.length})
+          </h3>
+          <ul className="divide-y divide-slate-100">
+            {booking.attendees.map((a) => (
+              <li
+                key={a.id}
+                className="py-2 flex items-center justify-between gap-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-slate-900 truncate">
+                    {a.name}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">
+                    {[a.email, a.phone].filter(Boolean).join(" · ") || "—"}
+                  </div>
+                </div>
+                {a.ticket_number && (
+                  <span className="font-mono text-xs text-slate-500 shrink-0">
+                    #{a.ticket_number}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Browse more events */}
       <div className="flex justify-center">
-        <a
+        <Link
           href="/nnak/me/events"
           className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline"
         >
           <MdBookmarks className="w-4 h-4" />
           Browse more events
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -596,20 +596,28 @@ export interface NnakPagination {
 export interface Workstation {
   id: string;
   name: string;
+  /** ISO country code, e.g. "KE". */
   country: string;
-  /** Backend field is `city` (labelled "County" in the UI). */
-  city: string;
+  county: string;
   start_date: string;
+  /** Null while this is the member's current posting. */
+  end_date?: string | null;
+  employer_type?: string | null;
+  /** Human-readable form of `employer_type`, e.g. "County Governments". */
+  employer_type_label?: string | null;
   user_id: string;
   created_at: string;
   updated_at: string;
 }
+/** Note the asymmetry: reads return `county`, but writes expect `city`. */
 export interface WorkstationInput {
   name: string;
   country: string;
-  /** Backend field is `city` (labelled "County" in the UI). */
+  /** The county — the write endpoint names this field `city`. */
   city: string;
   start_date: string;
+  end_date?: string | null;
+  employer_type?: string;
 }
 
 // ── Subscriptions & Invoices (GET/POST /member/subscriptions) ──────
@@ -1077,8 +1085,17 @@ export interface ByProductUploadRecord {
   processed_rows?: number;
   failed_rows?: number;
   skipped_count?: number;
-  /** JSON-encoded array of per-row messages — decode with parseByProductErrors. */
-  errors?: string | null;
+  // The detail endpoint names these differently to the list endpoint; the
+  // service normalises them onto the fields above.
+  /** Detail endpoint's name for `processed_rows`. */
+  renewed?: number;
+  /** Detail endpoint's name for `skipped_count`. */
+  skipped?: number;
+  /** Rows whose member could not be matched. Detail endpoint only. */
+  not_found?: number;
+  /** Per-row messages. The list returns a JSON-encoded string, the detail
+   *  endpoint a real array — decode with parseByProductErrors either way. */
+  errors?: string | string[] | null;
   /** Set once the uploader has been notified that processing finished. */
   notified_at?: string | null;
   created_at: string;
@@ -1596,7 +1613,32 @@ export interface StudentBooking {
   created_at: string;
 }
 
+/** Which role-scoped booking endpoints to talk to. `public` maps to the
+ *  unprefixed /bookings routes used by unauthenticated bookers. */
+export type BookingScope = "member" | "student" | "public";
+
+export interface BookingAttendeeInput {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface CreateBookingInput {
+  event_package_id: string;
+  attendees: BookingAttendeeInput[];
+}
+
+/** Response of POST /{scope}/bookings/{id}/pay — an M-Pesa STK push init. */
+export interface BookingPaymentInit {
+  invoice_id?: string | null;
+  checkout_request_id?: string | null;
+  merchant_request_id?: string | null;
+  message?: string | null;
+  [key: string]: unknown;
+}
+
 export interface StudentBookingDetail extends StudentBooking {
+  attendees?: EventAttendee[] | null;
   payment?: {
     id: string;
     amount: number;

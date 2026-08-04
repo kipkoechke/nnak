@@ -52,14 +52,6 @@ export default function AdminDashboard() {
   );
   const { data, isLoading } = useAdminDashboard(params);
 
-  const categoryChart = useMemo(
-    () =>
-      (data?.categories ?? [])
-        .filter((r) => r.category && r.category !== "None")
-        .map((r) => ({ name: r.category, value: r.total })),
-    [data],
-  );
-
   const chapterChart = useMemo(
     () =>
       (data?.chapters ?? []).map((r) => ({
@@ -164,11 +156,8 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* Members split charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <HBarChart title="Members by Category" data={categoryChart} />
-            <HBarChart title="Members by Chapter" data={chapterChart} />
-          </div>
+          {/* Members by chapter — full width */}
+          <HBarChart title="Members by Chapter" data={chapterChart} />
 
           {/* Payments trend */}
           {showTrend && (
@@ -495,14 +484,20 @@ const MiniStat = ({
 const HBarChart = ({
   title,
   data,
+  /** Rows shown before "Show all"; the rest stay collapsed. */
+  initialCount = 10,
 }: {
   title: string;
   data: { name: string; value: number }[];
+  initialCount?: number;
 }) => {
+  const [expanded, setExpanded] = useState(false);
   const rows = data
     .filter((d) => Number(d.value) > 0)
     .sort((a, b) => b.value - a.value);
-  const height = Math.max(160, rows.length * 34 + 24);
+  const visible = expanded ? rows : rows.slice(0, initialCount);
+  const hasMore = rows.length > initialCount;
+  const height = Math.max(160, visible.length * 34 + 24);
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
@@ -513,49 +508,63 @@ const HBarChart = ({
           No data for this period.
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart
-            data={rows}
-            layout="vertical"
-            margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              horizontal={false}
-              stroke="#f1f5f9"
-            />
-            <XAxis
-              type="number"
-              tick={{ fontSize: 11, fill: "#64748b" }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-              tickFormatter={(v: number) => fmtCompact(v)}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fontSize: 11, fill: "#475569" }}
-              axisLine={false}
-              tickLine={false}
-              width={130}
-            />
-            <Tooltip
-              cursor={{ fill: "#f8fafc" }}
-              formatter={(v) => [Number(v).toLocaleString(), "Members"]}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid #e2e8f0",
-              }}
-            />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
-              {rows.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        /* Cap the height so an expanded list scrolls inside the card rather
+           than stretching it past every other card on the dashboard. */
+        <div className="max-h-96 overflow-y-auto">
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart
+              data={visible}
+              layout="vertical"
+              margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                horizontal={false}
+                stroke="#f1f5f9"
+              />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11, fill: "#64748b" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+                tickFormatter={(v: number) => fmtCompact(v)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fontSize: 11, fill: "#475569" }}
+                axisLine={false}
+                tickLine={false}
+                width={130}
+              />
+              <Tooltip
+                cursor={{ fill: "#f8fafc" }}
+                formatter={(v) => [Number(v).toLocaleString(), "Members"]}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid #e2e8f0",
+                }}
+              />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                {visible.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-3 w-full text-xs font-semibold text-primary hover:underline"
+        >
+          {expanded ? "Show less" : `Show all ${rows.length}`}
+        </button>
       )}
     </div>
   );

@@ -1,8 +1,7 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import {
   MdCalendarToday,
   MdEvent,
@@ -15,11 +14,8 @@ import PageHeader from "@/components/common/PageHeader";
 import { EventMap } from "@/components/common/EventMap";
 import { useMemberEvent, useMemberEventPackages } from "@/hooks/use-member-events";
 import { useStudentEvent, useStudentEventPackages } from "@/hooks/use-student-events";
-import {
-  useInvoiceStkPush,
-  useInvoiceStkQuery,
-} from "@/hooks/use-member-payments";
-import { PhoneInputField } from "@/components/common/PhoneInputField";
+import BookingModal from "@/components/events/BookingModal";
+import { useBookingScope } from "@/hooks/use-bookings";
 import { useNnakMe } from "@/hooks/use-auth";
 import { nqk } from "@/lib/query-keys";
 import type { MemberEventPackage } from "@/types/nnak";
@@ -73,37 +69,14 @@ export default function MemberEventDetailPage({
   const packagesLoading = isStudent ? studentPkgQ.isLoading : memberPkgQ.isLoading;
 
   const [tab, setTab] = useState<"details" | "packages">("details");
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<MemberEventPackage | null>(null);
-  const [stkPhone, setStkPhone] = useState(me?.profile?.phone || "");
-  const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [selectedPackage, setSelectedPackage] =
+    useState<MemberEventPackage | null>(null);
 
-  const stkPush = useInvoiceStkPush();
+  // Bookings are role-scoped (/member/bookings vs /student/bookings).
+  const bookingScope = useBookingScope();
 
-  const isTerminal = (s?: string | null) =>
-    !!s &&
-    ["successful", "success", "failed", "cancelled", "timeout"].includes(
-      String(s).toLowerCase(),
-    );
-
-  const stkQuery = useInvoiceStkQuery(activeInvoiceId, {
-    enabled: !!activeInvoiceId,
-    refetchInterval: (data) => {
-      const s = data?.status?.toLowerCase();
-      return isTerminal(s) ? false : 3000;
-    },
-  });
-
-  const stkStatus = stkQuery.data?.status?.toLowerCase();
-  const isSuccess = stkStatus === "successful" || stkStatus === "success";
-  const isFailed =
-    stkStatus === "failed" ||
-    stkStatus === "cancelled" ||
-    stkStatus === "timeout";
-
-  useEffect(() => {
-    if (!isSuccess) return;
+  // Once a booking is made the event's registration state is stale.
+  const refreshEvent = () => {
     if (isStudent) {
       qc.invalidateQueries({ queryKey: nqk.studentEvents.detail(id) });
       qc.invalidateQueries({ queryKey: nqk.studentEvents.packages(id) });
@@ -111,25 +84,7 @@ export default function MemberEventDetailPage({
       qc.invalidateQueries({ queryKey: nqk.memberEvents.detail(id) });
       qc.invalidateQueries({ queryKey: nqk.memberEvents.packages(id) });
     }
-    const t = setTimeout(() => {
-      setShowPayModal(false);
-      setActiveInvoiceId(null);
-      setPaymentError(null);
-      setSelectedPackage(null);
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [isSuccess, qc, id]);
-
-  useEffect(() => {
-    if (!isFailed) return;
-    const reason =
-      stkQuery.data?.ResultDesc ||
-      stkQuery.data?.message ||
-      "Payment was not completed.";
-    setPaymentError(reason);
-    setActiveInvoiceId(null);
-    stkPush.reset();
-  }, [isFailed, stkQuery.data, stkStatus, stkPush]);
+  };
 
   if (isLoading)
     return <div className="p-4 text-sm text-slate-500">Loading event…</div>;
@@ -340,13 +295,7 @@ export default function MemberEventDetailPage({
                   key={pkg.id}
                   pkg={pkg}
                   isRegistered={!!event.is_registered}
-                  onSelect={() => {
-                    setSelectedPackage(pkg);
-                    setStkPhone(me?.profile?.phone || "");
-                    setPaymentError(null);
-                    setActiveInvoiceId(null);
-                    setShowPayModal(true);
-                  }}
+                  onSelect={() => setSelectedPackage(pkg)}
                 />
               ))}
             </div>
@@ -354,93 +303,19 @@ export default function MemberEventDetailPage({
         </div>
       )}
 
-      {/* M-Pesa Payment Modal */}
-      {showPayModal && selectedPackage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setShowPayModal(false)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Register &amp; Pay
-              </h3>
-              <button
-                onClick={() => setShowPayModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-xl"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="bg-slate-50 rounded-lg p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Package</span>
-                <span className="font-semibold">{selectedPackage.name}</span>
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-slate-600">Amount</span>
-                <span className="font-semibold">
-                  KES {pkgCost(selectedPackage).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <PhoneInputField
-                label="M-Pesa Phone Number"
-                value={stkPhone || me?.profile?.phone || ""}
-                onChange={(val) => setStkPhone(val || "")}
-                defaultCountry="KE"
-              />
-            </div>
-
-            <button
-              onClick={() => {
-                const phone = stkPhone || me?.profile?.phone || "";
-                if (!phone || !selectedPackage) return;
-                setPaymentError(null);
-                toast("To pay, complete event registration first to receive an invoice.", { icon: "ℹ️" });
-              }}
-              disabled={
-                stkPush.isPending ||
-                (!!activeInvoiceId && !isFailed && !isSuccess)
-              }
-              className="w-full bg-emerald-600 text-white text-sm font-medium px-4 py-2.5 rounded-md hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {stkPush.isPending
-                ? "Sending..."
-                : activeInvoiceId && !isFailed && !isSuccess
-                  ? "Waiting for confirmation…"
-                  : paymentError
-                    ? "Retry Payment"
-                    : "Pay via M-Pesa"}
-            </button>
-
-            {activeInvoiceId && !isSuccess && !isFailed && (
-              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-                <span className="inline-block w-3 h-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-                STK Push sent. Enter your M-Pesa PIN on your phone.
-              </div>
-            )}
-
-            {isSuccess && (
-              <div className="text-xs rounded-md px-3 py-2 text-center font-medium bg-emerald-50 border border-emerald-200 text-emerald-700">
-                Payment successful! Your registration is confirmed.
-              </div>
-            )}
-
-            {paymentError && !activeInvoiceId && (
-              <div className="text-xs rounded-md px-3 py-2 bg-red-50 border border-red-200 text-red-700">
-                <div className="font-semibold mb-0.5">Payment failed</div>
-                <div>{paymentError}</div>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Booking + M-Pesa payment */}
+      {selectedPackage && (
+        <BookingModal
+          scope={bookingScope}
+          pkg={selectedPackage}
+          defaultAttendee={{
+            name: me?.name ?? "",
+            email: me?.email ?? "",
+            phone: me?.profile?.phone ?? "",
+          }}
+          onClose={() => setSelectedPackage(null)}
+          onBooked={refreshEvent}
+        />
       )}
     </div>
   );

@@ -135,10 +135,9 @@ export type ClaimFormValues = z.infer<typeof claimSchema>;
 export const profileSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   phone: z.string().min(1, "Phone number is required"),
-  designation: z.string().optional(),
-  place_of_work: z.string().optional(),
-  county: z.string().optional(),
-  employer_type: z.string().optional(),
+  /** Sent to the API as `designation`, matching what registration submits. */
+  professional_cadre: z.string().optional(),
+  professional_qualification: z.string().optional(),
   chapter: z.string().optional(),
 });
 

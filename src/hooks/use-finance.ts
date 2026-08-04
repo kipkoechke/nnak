@@ -41,12 +41,16 @@ export const useFinanceMember = (id: string) =>
   });
 
 // ── Branches ─────────────────────────────────────────────────────
-export const useFinanceBranches = (params?: Record<string, unknown>) =>
+export const useFinanceBranches = (
+  params?: Record<string, unknown>,
+  opts?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: nqk.finance.branches.list(params ?? {}),
     queryFn: () => financeService.branches(params as Parameters<typeof financeService.branches>[0]),
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled,
   });
 
 export const useFinanceBranch = (id: string) =>
@@ -110,7 +114,10 @@ export const useFinanceDownloadByproductTemplate = () =>
   });
 
 // ── Batches ───────────────────────────────────────────────────────
-export const useFinanceBatches = (params?: Record<string, unknown>) =>
+export const useFinanceBatches = (
+  params?: Record<string, unknown>,
+  opts?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: nqk.finance.batches.list(params ?? {}),
     queryFn: () =>
@@ -119,13 +126,14 @@ export const useFinanceBatches = (params?: Record<string, unknown>) =>
       ),
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled,
   });
 
-export const useFinanceBatch = (id: string) =>
+export const useFinanceBatch = (id: string, opts?: { enabled?: boolean }) =>
   useQuery({
     queryKey: nqk.finance.batches.detail(id),
     queryFn: () => financeService.batchDetail(id),
-    enabled: !!id,
+    enabled: !!id && (opts?.enabled ?? true),
     refetchOnWindowFocus: false,
   });
 

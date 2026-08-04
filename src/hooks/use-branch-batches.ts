@@ -25,11 +25,15 @@ export const useBranchBatch = (id?: string) =>
     refetchOnWindowFocus: false,
   });
 
-export const useAdminBranchBatches = (params: AdminBatchFilters = {}) =>
+export const useAdminBranchBatches = (
+  params: AdminBatchFilters = {},
+  opts?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: nqk.batches.adminList(params as Record<string, unknown>),
     queryFn: () => branchBatchesService.adminList(params),
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled,
   });
 
 export const useAdminBranchBatch = (id?: string) =>

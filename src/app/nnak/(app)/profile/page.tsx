@@ -13,8 +13,11 @@ import {
   useNnakUpdateProfile,
   useNnakUpdateProfilePicture,
 } from "@/hooks/use-auth";
-import { useChapters, useEmployerTypes } from "@/hooks/use-enums";
-import { COUNTY_OPTIONS } from "@/lib/counties";
+import {
+  useChapters,
+  useProfessionalCadres,
+  useProfessionalQualifications,
+} from "@/hooks/use-enums";
 import { profileSchema, type ProfileFormValues } from "@/schemas/auth.schema";
 import { NNAK_ROLES, isStaff } from "@/lib/rbac";
 import {
@@ -52,8 +55,9 @@ export default function ProfileSettingsPage() {
   const updatePicture = useNnakUpdateProfilePicture();
   const photoRef = useRef<HTMLInputElement | null>(null);
 
-  const { data: employerTypes = [] } = useEmployerTypes();
   const { data: chapters = [] } = useChapters();
+  const { data: cadres = [] } = useProfessionalCadres();
+  const { data: qualifications = [] } = useProfessionalQualifications();
   const chapterOptions = useMemo(
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
@@ -80,10 +84,8 @@ export default function ProfileSettingsPage() {
     defaultValues: {
       name: "",
       phone: "",
-      designation: "",
-      place_of_work: "",
-      county: "",
-      employer_type: "",
+      professional_cadre: "",
+      professional_qualification: "",
       chapter: "",
     },
   });
@@ -95,10 +97,9 @@ export default function ProfileSettingsPage() {
     resetForm({
       name: me.name ?? "",
       phone: me.profile?.phone ?? "",
-      designation: me.profile?.designation ?? "",
-      place_of_work: me.profile?.employer_name ?? "",
-      county: me.profile?.county ?? "",
-      employer_type: me.profile?.employer_type ?? "",
+      professional_cadre:
+        me.profile?.professional_cadre ?? me.profile?.designation ?? "",
+      professional_qualification: me.profile?.professional_qualification ?? "",
       chapter: me.profile?.chapter ?? "",
     });
   }, [me, resetForm]);
@@ -132,10 +133,10 @@ export default function ProfileSettingsPage() {
         name: values.name.trim(),
         // The API rejects a leading "+" — match what registration sends.
         phone: values.phone.replace(/^\+/, ""),
-        county: values.county || undefined,
-        designation: values.designation || undefined,
-        place_of_work: values.place_of_work || undefined,
-        employer_type: values.employer_type || undefined,
+        // The backend stores the cadre in `designation`, as registration does.
+        designation: values.professional_cadre || undefined,
+        professional_qualification:
+          values.professional_qualification || undefined,
         chapter: values.chapter || undefined,
       },
       { onSuccess: () => setIsEditing(false) },
@@ -328,51 +329,34 @@ export default function ProfileSettingsPage() {
             {!staff && step === 2 && (
               <div className="space-y-4">
                 <SectionTitle>Professional</SectionTitle>
-                <InputField
-                  label="Designation"
-                  type="text"
-                  placeholder="e.g. Registered Nurse"
-                  register={register("designation")}
-                  error={errors.designation?.message}
+                <Controller
+                  control={control}
+                  name="professional_cadre"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Professional Cadre"
+                      options={cadres}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select cadre"
+                      error={errors.professional_cadre?.message}
+                    />
+                  )}
                 />
-                <InputField
-                  label="Place of Work"
-                  type="text"
-                  placeholder="e.g. Kenyatta National Hospital"
-                  register={register("place_of_work")}
-                  error={errors.place_of_work?.message}
+                <Controller
+                  control={control}
+                  name="professional_qualification"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      label="Highest Professional Qualification"
+                      options={qualifications}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Select qualification"
+                      error={errors.professional_qualification?.message}
+                    />
+                  )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Controller
-                    control={control}
-                    name="county"
-                    render={({ field }) => (
-                      <SearchableSelect
-                        label="County"
-                        options={COUNTY_OPTIONS}
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Select county"
-                        searchPlaceholder="Search counties…"
-                        error={errors.county?.message}
-                      />
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="employer_type"
-                    render={({ field }) => (
-                      <SearchableSelect
-                        label="Employer Type"
-                        options={employerTypes}
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Select employer type"
-                        error={errors.employer_type?.message}
-                      />
-                    )}
-                  />
-                </div>
                 <Controller
                   control={control}
                   name="chapter"
@@ -424,16 +408,24 @@ export default function ProfileSettingsPage() {
               >
                 {!staff && step === 2 ? "Back" : "Cancel"}
               </button>
+              {/* Distinct keys keep these as separate DOM nodes. Sharing one
+                  node would let React patch `type` from button -> submit while
+                  the click is still resolving, firing a save on "Continue". */}
               {!staff && step === 1 ? (
                 <button
+                  key="continue"
                   type="button"
-                  onClick={() => handleNext(2, step1Fields)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNext(2, step1Fields);
+                  }}
                   className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90"
                 >
                   Continue
                 </button>
               ) : (
                 <button
+                  key="save"
                   type="submit"
                   disabled={updateProfile.isPending}
                   className="px-4 py-2 bg-primary text-white rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50"
@@ -455,17 +447,20 @@ export default function ProfileSettingsPage() {
                 />
                 <Item label="Account Number" value={profile?.account_number} />
                 <Item label="NCK Number" value={profile?.nck_number} />
-                <Item label="County" value={profile?.county} />
                 <Item
                   label="ID Number"
                   value={profile?.identification_number}
                 />
                 <Item
-                  label="Designation"
-                  value={profile?.designation?.toUpperCase()}
+                  label="Professional Cadre"
+                  value={(
+                    profile?.professional_cadre ?? profile?.designation
+                  )?.toUpperCase()}
                 />
-                <Item label="Place of Work" value={profile?.employer_name} />
-                <Item label="Employer Type" value={profile?.employer_type} />
+                <Item
+                  label="Professional Qualification"
+                  value={profile?.professional_qualification}
+                />
                 <Item
                   label="Chapter of Interest"
                   value={profile?.chapter_label ?? profile?.chapter}
