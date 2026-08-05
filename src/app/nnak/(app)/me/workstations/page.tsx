@@ -23,9 +23,6 @@ const empty: WorkstationInput = {
   start_date: todayIso(),
   end_date: "",
 };
-  start_date: todayIso(),
-  end_date: "",
-};
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", {
@@ -58,9 +55,6 @@ export default function MyWorkstationsPage() {
       // Read model exposes `county`; the write payload calls it `city`.
       city: w.county,
       employer_type: w.employer_type ?? "",
-      start_date: w.start_date.slice(0, 10),
-      end_date: w.end_date ? w.end_date.slice(0, 10) : "",
-    });
       start_date: w.start_date.slice(0, 10),
       end_date: w.end_date ? w.end_date.slice(0, 10) : "",
     });

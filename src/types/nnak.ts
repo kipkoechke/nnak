@@ -591,6 +591,8 @@ export interface Workstation {
   /** ISO country code, e.g. "KE". */
   country: string;
   county: string;
+  /** Some payloads echo the write field name back alongside `county`. */
+  city?: string | null;
   start_date: string;
   /** Null while this is the member's current posting. */
   end_date?: string | null;
@@ -1864,7 +1866,7 @@ export interface PayBookingInput {
   phone_number?: string;
 }
 
-export interface StudentBookingDetail extends StudentBooking {
+export interface StudentBookingDetail extends MyBooking {
   attendees?: EventAttendee[] | null;
   payment?: {
     id: string;
@@ -1919,5 +1921,4 @@ export interface CreateCalendarEntryInput {
   description?: string | null;
   location?: string | null;
   is_all_day?: boolean;
-}
 }

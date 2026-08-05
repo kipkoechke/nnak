@@ -5,7 +5,7 @@ import { MdBookmarks, MdCalendarToday, MdConfirmationNumber, MdPeople } from "re
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import { useBookingScope, useMyBookings } from "@/hooks/use-bookings";
-import type { StudentBooking, MyBooking } from "@/types/nnak";
+import type { MyBooking } from "@/types/nnak";
 
 const STATUS_TONE: Record<string, string> = {
   paid: "bg-emerald-50 text-emerald-700 border-emerald-200",

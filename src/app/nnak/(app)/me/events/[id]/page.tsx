@@ -1,5 +1,7 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   MdCalendarToday,
   MdEvent,
@@ -8,16 +10,9 @@ import {
 } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import { EventMap } from "@/components/common/EventMap";
-import { useMemberEvent, useMemberEventPackages } from "@/hooks/use-member-events";
-import { useStudentEvent, useStudentEventPackages } from "@/hooks/use-student-events";
 import { usePublicEvent } from "@/hooks/use-public-events";
 import BookingModal from "@/components/events/BookingModal";
 import { useBookingScope } from "@/hooks/use-bookings";
-import {
-  useInvoiceStkPush,
-  useInvoiceStkQuery,
-} from "@/hooks/use-member-payments";
-import { PhoneInputField } from "@/components/common/PhoneInputField";
 import { useNnakMe } from "@/hooks/use-auth";
 import { nqk } from "@/lib/query-keys";
 import type { EventPackage } from "@/types/nnak";
@@ -53,21 +48,15 @@ export default function MemberEventDetailPage({
   const packages = event?.packages ?? [];
 
   const [tab, setTab] = useState<"details" | "packages">("details");
-  const [selectedPackage, setSelectedPackage] =
-    useState<EventPackage | MemberEventPackage | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<EventPackage | null>(
+    null,
+  );
 
   // Bookings are role-scoped (/member/bookings vs /student/bookings).
   const bookingScope = useBookingScope();
 
   // A new booking can change package availability, so re-read the event.
   const refreshEvent = () => {
-    if (isStudent) {
-      qc.invalidateQueries({ queryKey: nqk.studentEvents.detail(id) });
-      qc.invalidateQueries({ queryKey: nqk.studentEvents.packages(id) });
-    } else if (isMember) {
-      qc.invalidateQueries({ queryKey: nqk.memberEvents.detail(id) });
-      qc.invalidateQueries({ queryKey: nqk.memberEvents.packages(id) });
-    }
     qc.invalidateQueries({ queryKey: nqk.publicEvents.detail(id) });
     qc.invalidateQueries({ queryKey: nqk.publicEvents.packages(id) });
   };
@@ -206,7 +195,6 @@ export default function MemberEventDetailPage({
                 <PackageCard
                   key={pkg.id}
                   pkg={pkg}
-                  isRegistered={!!event.is_registered}
                   onSelect={() => setSelectedPackage(pkg)}
                 />
               ))}
@@ -228,7 +216,6 @@ export default function MemberEventDetailPage({
           onClose={() => setSelectedPackage(null)}
           onBooked={refreshEvent}
         />
-      )}
       )}
     </div>
   );

@@ -159,13 +159,7 @@ export default function ByProductPage() {
         </div>
       </form>
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <div className="p-3 text-sm font-semibold border-b">Recent uploads</div>
-            ))}
-          </select>
-        </div>
-      </div>
-
+      {/* UploadsTable draws its own "Recent uploads" card. */}
       <UploadsTable
         basePath="/nnak/byproduct"
         uploads={uploads}
