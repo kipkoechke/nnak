@@ -155,7 +155,6 @@ export const profileSchema = z.object({
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
-
 export const otpSchema = z.object({
   otp: z.string().min(1, "Verification code is required"),
 });

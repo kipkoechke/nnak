@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { MdBookmarks, MdConfirmationNumber, MdPeople } from "react-icons/md";
+import { MdBookmarks, MdCalendarToday, MdConfirmationNumber, MdPeople } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import Pagination from "@/components/common/Pagination";
 import { useBookingScope, useMyBookings } from "@/hooks/use-bookings";
-import type { MyBooking } from "@/types/nnak";
+import type { StudentBooking, MyBooking } from "@/types/nnak";
 
 const STATUS_TONE: Record<string, string> = {
   paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -21,6 +21,13 @@ const STATUS_OPTIONS = [
   { value: "cancelled", label: "Cancelled" },
   { value: "expired", label: "Expired" },
 ];
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
 export default function MyBookingsPage() {
   const [page, setPage] = useState(1);

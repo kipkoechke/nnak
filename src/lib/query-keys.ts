@@ -225,6 +225,17 @@ export const nqk = {
     all: ["nnak", "institutions"] as const,
     list: (p?: Record<string, unknown>) => ["nnak", "institutions", "list", p ?? {}] as const,
   },
+  studentEvents: {
+    all: ["nnak", "student", "events"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "student", "events", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "student", "events", "detail", id] as const,
+    packages: (id: string) => ["nnak", "student", "events", "packages", id] as const,
+  },
+  studentBookings: {
+    all: ["nnak", "student", "bookings"] as const,
+    list: (p?: Record<string, unknown>) => ["nnak", "student", "bookings", "list", p ?? {}] as const,
+    detail: (id: string) => ["nnak", "student", "bookings", "detail", id] as const,
+  },
   /**
    * Bookings. Listing is role-scoped (member | student | public); a single
    * booking is read from the unprefixed route, so its key carries no scope.

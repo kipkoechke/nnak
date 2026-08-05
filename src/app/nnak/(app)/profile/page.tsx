@@ -48,7 +48,6 @@ const STEPS = [
   { id: 1, label: "Personal Details" },
   { id: 2, label: "Professional" },
 ] as const;
-
 export default function ProfileSettingsPage() {
   const { data: me, isLoading } = useNnakMe();
   const changePassword = useNnakChangePassword();
@@ -63,7 +62,6 @@ export default function ProfileSettingsPage() {
     () => chapters.map((c) => ({ value: c.value, label: c.label })),
     [chapters],
   );
-
   const onPhotoPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) updatePicture.mutate(file);

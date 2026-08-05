@@ -605,7 +605,7 @@ export interface Workstation {
 export interface WorkstationInput {
   name: string;
   country: string;
-  /** The county — the write endpoint names this field `city`. */
+/** The county — the write endpoint names this field `city`. */
   city: string;
   start_date: string;
   end_date?: string | null;
@@ -1864,6 +1864,18 @@ export interface PayBookingInput {
   phone_number?: string;
 }
 
+export interface StudentBookingDetail extends StudentBooking {
+  attendees?: EventAttendee[] | null;
+  payment?: {
+    id: string;
+    amount: number;
+    status: string;
+    method?: string | null;
+    reference?: string | null;
+    paid_at?: string | null;
+  } | null;
+}
+
 /** Response of POST /bookings/{id}/pay — an M-Pesa STK push init. */
 export interface BookingPaymentInit {
   invoice_id: string;
@@ -1907,4 +1919,5 @@ export interface CreateCalendarEntryInput {
   description?: string | null;
   location?: string | null;
   is_all_day?: boolean;
+}
 }

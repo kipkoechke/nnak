@@ -172,7 +172,7 @@ export default function OnboardingPage() {
 
   // Step 4 — verify the OTP automatically once 6 digits are entered; on
   // success the session is set by the hook.
-  /** `force` bypasses the latch so an explicit click can retry the same code. */
+/** `force` bypasses the latch so an explicit click can retry the same code. */
   const runVerify = async (code: string, force = false) => {
     if (!pendingToken || code.length < 6 || verify.isPending) return;
     if (!force && submittedCode.current === code) return;

@@ -48,8 +48,9 @@ export default function MyBookingDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const payBooking = usePayBooking();
-  const cancelBooking = useCancelBooking();
+  const scope = useBookingScope();
+  const payBooking = usePayBooking(scope);
+  const cancelBooking = useCancelBooking(scope);
   const [payPhone, setPayPhone] = useState("");
   // The attendee whose ticket QR is on screen.
   const [ticketFor, setTicketFor] = useState<{
@@ -72,10 +73,10 @@ export default function MyBookingDetailPage({
     "bg-slate-50 text-slate-700 border-slate-200";
 
   // Only an unsettled booking can be paid or cancelled.
-  const isPending =
-    String(booking.status ?? "").toLowerCase() === "pending_payment";
-  const owes = Number(booking.total_amount ?? 0) > 0;
-
+  const isPending = ["pending", "pending_payment", "unpaid"].includes(
+    String(booking.status ?? "").toLowerCase(),
+  );
+  const owes = Number(booking.total_amount ?? booking.amount ?? 0) > 0;
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       <PageHeader
@@ -319,7 +320,6 @@ export default function MyBookingDetailPage({
           </ul>
         </div>
       )}
-
       <ModalShell
         isOpen={!!ticketFor}
         onClose={() => setTicketFor(null)}
@@ -344,16 +344,12 @@ export default function MyBookingDetailPage({
           </div>
         )}
       </ModalShell>
-
-      {/* Browse more events */}
-      <div className="flex justify-center">
-        <Link
           href="/nnak/me/events"
           className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline"
         >
           <MdBookmarks className="w-4 h-4" />
           Browse more events
-        </Link>
+</Link>
       </div>
     </div>
   );

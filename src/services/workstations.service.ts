@@ -21,6 +21,7 @@ const demoSeed = (userId: string): Workstation[] => {
         id: "demo-ws-" + Math.random().toString(36).slice(2, 8),
         name: "Kenyatta National Hospital",
         country: "KE",
+        city: "Nairobi",
         county: "Nairobi",
         employer_type: "county_governments",
         employer_type_label: "County Governments",
