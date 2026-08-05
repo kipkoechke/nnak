@@ -54,6 +54,13 @@ export default function UploadDetail({
           <span className="text-xs text-slate-500">
             Period {fmtDate(upload.start_date)} — {fmtDate(upload.end_date)}
           </span>
+          {/* The upload's branch — rows for members without one are
+              reinstated to it. */}
+          {upload.branch?.name && (
+            <span className="text-xs text-slate-500">
+              Branch {upload.branch.name}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

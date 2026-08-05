@@ -1,4 +1,5 @@
 "use client";
+import { coverageState } from "@/lib/coverage";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/common/PageHeader";
@@ -35,12 +36,6 @@ const fmtDate = (s?: string | null) =>
         year: "numeric",
       })
     : "—";
-
-const daysUntil = (iso?: string | null) => {
-  if (!iso) return null;
-  const ms = new Date(iso).getTime() - Date.now();
-  return Math.ceil(ms / (1000 * 60 * 60 * 24));
-};
 
 // How long Safaricom keeps the STK prompt alive on the handset (~60s). Used
 // only for the on-screen countdown — polling continues until a terminal status.
@@ -176,8 +171,10 @@ export default function MyMembershipPage() {
     me.current_subscription ?? dash?.current_subscription ?? dash?.subscription ?? null;
   const pendingSub = me.pending_subscription ?? dash?.pending_subscription ?? null;
   const apiStatus = me.subscription_status ?? dash?.subscription_status;
-  const coverageActive =
-    me.coverage_active ?? dash?.coverage_active ?? apiStatus === "active";
+  // Coverage runs to the end of the category's grace period, which is what
+  // decides "active" everywhere else in the system.
+  const coverage = coverageState(me, dash, profile);
+  const coverageActive = coverage.active || apiStatus === "active";
 
   // The invoice the member can pay: the pending extension first, otherwise an
   // unpaid current-term invoice.
@@ -195,16 +192,8 @@ export default function MyMembershipPage() {
   const displaySub = currentSub ?? payableSub;
   const subAmount = displaySub ? Number(displaySub.amount) : 0;
 
-  const subExpiry =
-    me.subscription_ends_on ??
-    me.current_coverage_end_date ??
-    profile.coverage_end_date ??
-    dash?.subscription_ends_on ??
-    dash?.current_coverage_end_date ??
-    currentSub?.end_date ??
-    profile.subscription_expires_at ??
-    null;
-  const expiresIn = daysUntil(subExpiry);
+  const subExpiry = coverage.endDate ?? currentSub?.end_date ?? null;
+  const expiresIn = coverage.daysLeft;
 
   // A pending extension awaiting payment stacks on top of current coverage.
   const extendsTo =
@@ -381,7 +370,9 @@ export default function MyMembershipPage() {
                         (
                         {expiresIn < 0
                           ? `${Math.abs(expiresIn)} days overdue`
-                          : `${expiresIn} days left`}
+                          : coverage.inGrace
+                            ? `${expiresIn} days left in grace period`
+                            : `${expiresIn} days left`}
                         )
                       </span>
                     )}

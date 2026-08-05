@@ -15,6 +15,7 @@ import {
 } from "@/hooks/use-member-payments";
 import { useMyWorkstations } from "@/hooks/use-workstations";
 import { isIndividualMember } from "@/lib/rbac";
+import { coverageState, coverageSubtitle } from "@/lib/coverage";
 import { PhoneInputField } from "@/components/common/PhoneInputField";
 
 const fmtDate = (iso?: string | null) =>
@@ -25,11 +26,6 @@ const fmtDate = (iso?: string | null) =>
         year: "numeric",
       })
     : "—";
-
-const daysUntil = (iso?: string | null) => {
-  if (!iso) return null;
-  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-};
 
 export default function MemberDashboard() {
   const { data: me } = useNnakMe();
@@ -73,17 +69,18 @@ export default function MemberDashboard() {
   const currentSub = apiDash?.current_subscription ?? null;
   const pendingSub = apiDash?.pending_subscription ?? null;
   const apiStatus = apiDash?.subscription_status;
-  const coverageActive = apiDash?.coverage_active ?? false;
+
+  // Coverage, not the raw subscription end, decides whether the member is
+  // active — benefits run through the category's grace period, which is what
+  // the admin listings already report.
+  const coverage = coverageState(apiDash, me.profile);
+  const coverageActive = coverage.active;
 
   const categoryLabel =
     currentSub?.member_category?.name || profile?.employer_type || "—";
 
-  const apiExpiry =
-    apiDash?.subscription_ends_on ??
-    apiDash?.current_coverage_end_date ??
-    currentSub?.end_date ??
-    null;
-  const expiresIn = daysUntil(apiExpiry);
+  const apiExpiry = coverage.endDate ?? currentSub?.end_date ?? null;
+  const expiresIn = coverage.daysLeft;
   const extendsTo =
     pendingSub && pendingSub.invoice && !pendingSub.invoice.status
       ? (pendingSub.end_date ?? null)
@@ -160,16 +157,12 @@ export default function MemberDashboard() {
           subtitle={
             extendsTo
               ? `Extension to ${fmtDate(extendsTo)} pending payment`
-              : expiresIn === null
-                ? "No active subscription"
-                : expiresIn < 0
-                  ? `${Math.abs(expiresIn)} days overdue — renew now`
-                  : `${expiresIn} days until renewal`
+              : coverageSubtitle(coverage)
           }
           tone={
-            expiresIn !== null && expiresIn < 0
+            !coverageActive && expiresIn !== null
               ? "danger"
-              : expiresIn !== null && expiresIn <= 60
+              : coverage.inGrace || (expiresIn !== null && expiresIn <= 60)
                 ? "warn"
                 : "ok"
           }

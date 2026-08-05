@@ -93,6 +93,12 @@ const toDataUrl = async (raw?: string | null): Promise<string> => {
   }
 };
 
+/** `logoSrc` is a site-relative path; fetching needs an absolute URL. */
+const absoluteLogoSrc = () =>
+  typeof window !== "undefined" && logoSrc.startsWith("/")
+    ? new URL(logoSrc, window.location.origin).toString()
+    : logoSrc;
+
 const BRAND_GREEN = "#80cc28";
 const BRAND_GREEN_DARK = "#5fa01d";
 const ACCENT_GOLD = "#d8913f";
@@ -240,12 +246,13 @@ function DigitalIdPdf({
   qrDataUrl,
   validUntil,
   photoDataUrl,
-}: Props & { qrDataUrl: string; photoDataUrl: string }) {
+  logoDataUrl,
+}: Props & {
+  qrDataUrl: string;
+  photoDataUrl: string;
+  logoDataUrl: string;
+}) {
   const valid = fmtDate(coverageEndOf(member, validUntil));
-  const logoUrl =
-    typeof window !== "undefined" && logoSrc.startsWith("/")
-      ? new URL(logoSrc, window.location.origin).toString()
-      : logoSrc;
   const photoUrl = photoDataUrl;
 
   return (
@@ -256,7 +263,11 @@ function DigitalIdPdf({
           <View style={pdfStyles.topBarMid} />
           <View style={pdfStyles.topBarEnd} />
 
-          <Image src={logoUrl} style={pdfStyles.logo} />
+          {/* Inlined up front — @react-pdf fetches sources itself and drops
+              the image without a word when that request fails. */}
+          {logoDataUrl ? (
+            <Image src={logoDataUrl} style={pdfStyles.logo} />
+          ) : null}
 
           {photoUrl ? (
             <Image src={photoUrl} style={pdfStyles.photo} />
@@ -307,11 +318,15 @@ export default function DigitalIdCard({ member, showDownload = true, validUntil 
     try {
       setDownloading(true);
       // Inline the photo before rendering — react-pdf can't fetch it itself.
-      const photoDataUrl = await toDataUrl(member.profile.photo_url);
+      const [photoDataUrl, logoDataUrl] = await Promise.all([
+        toDataUrl(member.profile.photo_url),
+        toDataUrl(absoluteLogoSrc()),
+      ]);
       const blob = await pdf(
         <DigitalIdPdf
           member={member}
           qrDataUrl={qrDataUrl}
+          logoDataUrl={logoDataUrl}
           validUntil={validUntil}
           photoDataUrl={photoDataUrl}
         />,
@@ -406,11 +421,15 @@ export async function downloadDigitalIdPdf(
 ) {
   const verifyUrl = `${window.location.origin}/nnak/members/${member.id}`;
   const qrDataUrl = await QRCodeLib.toDataURL(verifyUrl, { width: 120, margin: 1 }).catch(() => "");
-  const photoDataUrl = await toDataUrl(member.profile.photo_url);
+  const [photoDataUrl, logoDataUrl] = await Promise.all([
+    toDataUrl(member.profile.photo_url),
+    toDataUrl(absoluteLogoSrc()),
+  ]);
   const blob = await pdf(
     <DigitalIdPdf
       member={member}
       qrDataUrl={qrDataUrl}
+      logoDataUrl={logoDataUrl}
       validUntil={validUntil}
       photoDataUrl={photoDataUrl}
     />,
