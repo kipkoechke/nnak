@@ -149,13 +149,38 @@ export const useApproveMember = () => {
   });
 };
 
-/** Grant / revoke the executive dashboard for one member. */
+/**
+ * Grant / revoke the executive dashboard for one member.
+ *
+ * `GET /admin/members/{id}` does not return `is_executive`, so refetching
+ * would drop the value straight back to undefined and the switch would snap
+ * off. The toggle response is authoritative, so patch it into the cached
+ * detail instead of invalidating it; the list is invalidated as usual.
+ */
 export const useToggleExecutive = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => membersService.toggleExecutive(userId),
-    onSuccess: (member) => {
-      qc.invalidateQueries({ queryKey: nqk.members.all });
+    /** `userId` addresses the API; `detailId` is the id the open detail page
+     *  is keyed by, which on this route is the profile id, not the user id. */
+    mutationFn: ({ userId }: { userId: string; detailId?: string }) =>
+      membersService.toggleExecutive(userId),
+    onSuccess: (member, { userId, detailId }) => {
+      qc.invalidateQueries({ queryKey: nqk.members.list() });
+      const flag = member?.is_executive === true;
+      for (const key of new Set([detailId ?? userId, userId])) {
+        qc.setQueryData(
+          [...nqk.members.detail(key), "full"],
+          (prev: { member?: Record<string, unknown> } | null | undefined) =>
+            prev?.member
+              ? { ...prev, member: { ...prev.member, is_executive: flag } }
+              : prev,
+        );
+        qc.setQueryData(
+          nqk.members.detail(key),
+          (prev: Record<string, unknown> | null | undefined) =>
+            prev ? { ...prev, is_executive: flag } : prev,
+        );
+      }
       toast.success(
         member?.is_executive
           ? "Executive privileges granted"

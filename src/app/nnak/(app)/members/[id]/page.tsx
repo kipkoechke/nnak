@@ -42,11 +42,12 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const toggleExecutive = useToggleExecutive();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
 
-  // The flag only reaches admins, and only members can hold it — so the
-  // control stays hidden unless the payload actually carried it.
+  // Admin-only, and only members can hold the flag. `/admin/members/{id}`
+  // does not send `is_executive` today, so a missing value reads as off
+  // rather than hiding the control.
   const isAdmin = me?.role === "super_admin" || me?.role === "admin";
-  const canToggleExecutive =
-    isAdmin && member?.role === "member" && member?.is_executive !== undefined;
+  const canToggleExecutive = isAdmin && member?.role === "member";
+  const isExecutive = member?.is_executive === true;
 
   // A member with no branch can be put back into one; the API emails them.
   const reinstate = useReinstateBranchMember();
@@ -181,17 +182,19 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               <button
                 type="button"
                 role="switch"
-                aria-checked={member.is_executive === true}
+                aria-checked={isExecutive}
                 aria-label="Executive privileges"
                 disabled={toggleExecutive.isPending}
-                onClick={() => toggleExecutive.mutate(member.id)}
+                onClick={() =>
+                  toggleExecutive.mutate({ userId: member.id, detailId: id })
+                }
                 className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50 ${
-                  member.is_executive ? "bg-emerald-600" : "bg-slate-300"
+                  isExecutive ? "bg-emerald-600" : "bg-slate-300"
                 }`}
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    member.is_executive ? "translate-x-5" : ""
+                    isExecutive ? "translate-x-5" : ""
                   }`}
                 />
               </button>
