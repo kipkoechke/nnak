@@ -55,13 +55,6 @@ export default function AdminDashboard() {
   );
   const { data, isLoading } = useAdminDashboard(params);
 
-const categoryChart = useMemo(
-  () =>
-    (data?.categories ?? [])
-      .filter((r) => r.category && r.category !== "None")
-      .map((r) => ({ name: r.category, value: r.total })),
-  [data],
-);
   const chapterChart = useMemo(
     () =>
       (data?.chapters ?? []).map((r) => ({
@@ -205,11 +198,8 @@ const categoryChart = useMemo(
             </div>
           </section>
 
-          {/* Members split charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <HBarChart title="Members by Category" data={categoryChart} />
-            <HBarChart title="Members by Chapter" data={chapterChart} />
-          </div>
+          {/* Members by chapter — full width */}
+          <HBarChart title="Members by Chapter" data={chapterChart} />
 
           {/* Payments trend */}
           {showTrend && (

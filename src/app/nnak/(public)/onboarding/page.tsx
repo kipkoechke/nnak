@@ -102,8 +102,6 @@ export default function OnboardingPage() {
     "name",
     "email",
     "phone",
-    "password",
-    "password_confirmation",
     "gender",
     "date_of_birth",
   ];
@@ -344,24 +342,6 @@ export default function OnboardingPage() {
               )}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InputField
-              label="Password"
-              type="password"
-              placeholder="At least 8 characters"
-              register={register("password")}
-              error={errors.password?.message}
-              required
-            />
-            <InputField
-              label="Confirm Password"
-              type="password"
-              placeholder="Re-enter your password"
-              register={register("password_confirmation")}
-              error={errors.password_confirmation?.message}
-              required
-            />
-          </div>
           <div className="flex gap-2">
             <button
               type="button"
@@ -440,14 +420,42 @@ export default function OnboardingPage() {
               />
             )}
           />
-          <InputField
-            label="Designation"
-            type="text"
-            placeholder="e.g. Registered Nurse"
-            register={register("designation")}
-            error={errors.designation?.message}
-            required
+          <Controller
+            control={control}
+            name="designation"
+            render={({ field }) => (
+              <SearchableSelect
+                label="Designation"
+                required
+                options={cadres}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select designation"
+                searchPlaceholder="Search designations…"
+                error={errors.designation?.message}
+              />
+            )}
           />
+
+          {/* Password closes the form — the account is created on submit. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <InputField
+              label="Password"
+              type="password"
+              placeholder="At least 8 characters"
+              register={register("password")}
+              error={errors.password?.message}
+              required
+            />
+            <InputField
+              label="Confirm Password"
+              type="password"
+              placeholder="Re-enter your password"
+              register={register("password_confirmation")}
+              error={errors.password_confirmation?.message}
+              required
+            />
+          </div>
           <Controller
             control={control}
             name="consent"
