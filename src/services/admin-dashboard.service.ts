@@ -13,15 +13,25 @@ export interface DateRangeParams {
   branch_id?: string;
 }
 
+const loadFrom = async (
+  path: string,
+  params?: DateRangeParams,
+): Promise<AdminDashboardData | null> => {
+  if (isDemoSession()) return null;
+  try {
+    return await unwrap<AdminDashboardData>(nnakApi.get(path, { params }));
+  } catch {
+    return null;
+  }
+};
+
 export const adminDashboardService = {
-  load: async (params?: DateRangeParams): Promise<AdminDashboardData | null> => {
-    if (isDemoSession()) return null;
-    try {
-      return await unwrap<AdminDashboardData>(
-        nnakApi.get("/admin/dashboard", { params }),
-      );
-    } catch {
-      return null;
-    }
-  },
+  load: (params?: DateRangeParams) => loadFrom("/admin/dashboard", params),
+
+  /**
+   * GET /executive/dashboard — the same payload, for executive members who
+   * hold none of the admin routes. `start_date` / `end_date` are required.
+   */
+  loadExecutive: (params?: DateRangeParams) =>
+    loadFrom("/executive/dashboard", params),
 };

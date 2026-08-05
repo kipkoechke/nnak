@@ -9,6 +9,7 @@ import {
   getNnakUser,
   setNnakSession,
   setNnakTokenExpiry,
+  syncNnakUser,
 } from "@/lib/auth";
 
 export const useNnakMe = () =>
@@ -16,7 +17,11 @@ export const useNnakMe = () =>
     queryKey: nqk.auth.me,
     queryFn: async () => {
       try {
-        return await nnakAuth.me();
+        const user = await nnakAuth.me();
+        // Keep the cookie the middleware reads in step with the API, so a
+        // privilege granted mid-session takes effect on the next navigation.
+        if (user) syncNnakUser(user);
+        return user;
       } catch {
         return getNnakUser() as NnakUserWithProfile | null;
       }

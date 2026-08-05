@@ -53,6 +53,13 @@ export interface NnakUser {
   email: string;
   role: NnakRole;
   email_verified_at: string | null;
+  /**
+   * Executive members see the admin summary dashboard (read-only) on top of
+   * their normal membership. Sent on login / `GET /profile`, and on other
+   * users only when an admin is the one asking — so `undefined` means "not
+   * disclosed", not "false".
+   */
+  is_executive?: boolean;
   profile?: NnakProfile;
   /** Subscription lifecycle — surfaced on GET /profile. `current_subscription`
    *  is the paid term covering today; `pending_subscription` is a future-dated

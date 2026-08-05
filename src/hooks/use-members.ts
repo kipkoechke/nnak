@@ -149,6 +149,23 @@ export const useApproveMember = () => {
   });
 };
 
+/** Grant / revoke the executive dashboard for one member. */
+export const useToggleExecutive = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => membersService.toggleExecutive(userId),
+    onSuccess: (member) => {
+      qc.invalidateQueries({ queryKey: nqk.members.all });
+      toast.success(
+        member?.is_executive
+          ? "Executive privileges granted"
+          : "Executive privileges revoked",
+      );
+    },
+    onError: (e) => toast.error(apiErrMsg(e, "Could not update privileges")),
+  });
+};
+
 export const useRejectMember = () => {
   const qc = useQueryClient();
   return useMutation({

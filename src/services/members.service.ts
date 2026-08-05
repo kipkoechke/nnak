@@ -189,6 +189,9 @@ const normalizeMember = (raw: unknown): MemberRecord => {
     email: (val("email") ?? "") as string,
     role: (val("role") ?? "member") as NnakUser["role"],
     email_verified_at: val("email_verified_at") ?? null,
+    // Only disclosed to admins; left undefined otherwise so the toggle can
+    // tell "not an executive" from "the API did not say".
+    is_executive: val<boolean>("is_executive"),
     profile,
   } as MemberRecord;
 };
@@ -302,6 +305,19 @@ export const membersService = {
     return unwrap<unknown>(
       nnakApi.post("/admin/members/reject", { profile_id }),
     );
+  },
+
+  /**
+   * POST /admin/members/{user}/toggle-executive — flip executive privileges.
+   *
+   * The body is empty; the backend flips whatever the current value is and
+   * echoes the updated user. Members only — anything else returns 422.
+   */
+  toggleExecutive: async (userId: string) => {
+    if (isDemoSession()) return null;
+    return unwrap<MemberRecord>(
+      nnakApi.post(`/admin/members/${userId}/toggle-executive`),
+    ).then(normalizeMember);
   },
 
   /**

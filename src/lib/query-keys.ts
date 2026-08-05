@@ -48,6 +48,9 @@ export const nqk = {
   },
   adminDashboard: (p?: Record<string, unknown>) =>
     ["nnak", "admin", "dashboard", p ?? {}] as const,
+  /** Same payload as the admin dashboard, read through /executive/dashboard. */
+  executiveDashboard: (p?: Record<string, unknown>) =>
+    ["nnak", "executive", "dashboard", p ?? {}] as const,
   branchDashboard: (p?: Record<string, unknown>) =>
     ["nnak", "branch", "dashboard", p ?? {}] as const,
   branchMembers: (p?: Record<string, unknown>) =>

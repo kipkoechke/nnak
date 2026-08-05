@@ -26,8 +26,25 @@ export const setNnakSession = (user: NnakUser, token: string) => {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
   localStorage.setItem(NNAK_TOKEN_KEY, token);
+  // `is_executive` rides along so the middleware can guard the executive
+  // dashboard without an extra round-trip.
   setCookie(NNAK_USER_COOKIE, encodeURIComponent(JSON.stringify({
     id: user.id, email: user.email, role: user.role, name: user.name,
+    is_executive: user.is_executive === true,
+  })));
+};
+
+/**
+ * Refresh the cached user and its cookie from a `GET /profile` read, leaving
+ * the token alone. Without this a flag flipped mid-session — `is_executive`,
+ * say — would never reach the middleware, which reads only the cookie.
+ */
+export const syncNnakUser = (user: NnakUser) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  setCookie(NNAK_USER_COOKIE, encodeURIComponent(JSON.stringify({
+    id: user.id, email: user.email, role: user.role, name: user.name,
+    is_executive: user.is_executive === true,
   })));
 };
 

@@ -47,6 +47,8 @@ interface MiniUser {
   id?: string;
   email?: string;
   role?: string;
+  /** Grants the executive dashboard; set on members only. */
+  is_executive?: boolean;
 }
 
 function getNnakUserFromCookie(request: NextRequest): MiniUser | null {
@@ -111,6 +113,16 @@ export function middleware(request: NextRequest) {
     // Send finance users straight to their dashboard on first load
     if (pathname === "/nnak/dashboard" && nnakUser?.role === "finance") {
       return NextResponse.redirect(buildUrl("/nnak/finance/dashboard", request));
+    }
+
+    // The executive dashboard is granted by a per-user flag rather than a
+    // role, so it cannot be expressed in NNAK_ROLE_GUARDS.
+    if (
+      pathname.startsWith("/nnak/executive") &&
+      nnakUser?.is_executive !== true &&
+      !["super_admin", "admin"].includes(nnakUser?.role || "")
+    ) {
+      return NextResponse.redirect(buildUrl("/unauthorized", request));
     }
 
     for (const guard of NNAK_ROLE_GUARDS) {

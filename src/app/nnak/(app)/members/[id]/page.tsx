@@ -7,6 +7,7 @@ import {
   useMemberDetail,
   useSetMemberStatus,
   useConvertStudent,
+  useToggleExecutive,
 } from "@/hooks/use-members";
 import { useBranchMember } from "@/hooks/use-branch-manager";
 import { useCategories } from "@/hooks/use-categories";
@@ -38,7 +39,14 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const setStatusM = useSetMemberStatus();
   const convertStudent = useConvertStudent();
   const stk = useStkPush();
+  const toggleExecutive = useToggleExecutive();
   const [showSuspendModal, setShowSuspendModal] = useState(false);
+
+  // The flag only reaches admins, and only members can hold it — so the
+  // control stays hidden unless the payload actually carried it.
+  const isAdmin = me?.role === "super_admin" || me?.role === "admin";
+  const canToggleExecutive =
+    isAdmin && member?.role === "member" && member?.is_executive !== undefined;
 
   // A member with no branch can be put back into one; the API emails them.
   const reinstate = useReinstateBranchMember();
@@ -156,6 +164,37 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   {stk.isPending ? "Processing..." : `Collect KES ${category.annual_fee} (M-Pesa)`}
                 </button>
               )}
+            </div>
+          )}
+
+          {canToggleExecutive && (
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-slate-700">
+                  Executive privileges
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Grants a read-only association-wide dashboard. Membership is
+                  unaffected.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={member.is_executive === true}
+                aria-label="Executive privileges"
+                disabled={toggleExecutive.isPending}
+                onClick={() => toggleExecutive.mutate(member.id)}
+                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50 ${
+                  member.is_executive ? "bg-emerald-600" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    member.is_executive ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
             </div>
           )}
         </div>

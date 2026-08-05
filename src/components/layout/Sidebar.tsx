@@ -8,6 +8,7 @@ import {
   MdEvent,
   MdQrCodeScanner,
   MdInsertChart,
+  MdLeaderboard,
   MdPayments,
   MdReceipt,
   MdShield,
@@ -214,6 +215,14 @@ const FINANCE_ITEMS: MenuItem[] = [
 
 const MEMBER_ITEMS: MenuItem[] = [
   { name: "My Portal", icon: MdInsertChart, href: "/nnak/dashboard" },
+  {
+    // Only members carrying the executive flag; their own membership items
+    // stay exactly as they are.
+    name: "Executive Dashboard",
+    icon: MdLeaderboard,
+    href: "/nnak/executive/dashboard",
+    show: (u) => u?.is_executive === true,
+  },
   {
     name: "My Membership",
     icon: MdBadge,

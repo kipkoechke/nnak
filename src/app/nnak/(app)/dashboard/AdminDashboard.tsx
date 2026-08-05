@@ -1,8 +1,10 @@
 "use client";
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { MdCalendarToday, MdEvent, MdReceipt } from "react-icons/md";
-import { useAdminDashboard } from "@/hooks/use-admin-dashboard";
+import { MdCalendarToday, MdReceipt } from "react-icons/md";
+import {
+  useAdminDashboard,
+  useExecutiveDashboard,
+} from "@/hooks/use-admin-dashboard";
 import StatCard from "@/components/common/StatCard";
 import type { AdminBatchPeriod } from "@/types/nnak";
 import {
@@ -44,7 +46,17 @@ const daysAgoIso = (n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-export default function AdminDashboard() {
+/**
+ * The admin dashboard is already read-only — no drill-down links, no action
+ * buttons — so executive members get the very same screen, differing only in
+ * which endpoint it reads. They hold no admin routes, hence the separate
+ * `/executive/dashboard` source.
+ */
+export default function AdminDashboard({
+  scope = "admin",
+}: {
+  scope?: "admin" | "executive";
+} = {}) {
   // Default range: the last 30 days.
   const [start, setStart] = useState(daysAgoIso(30));
   const [end, setEnd] = useState(todayIso());
@@ -53,7 +65,12 @@ export default function AdminDashboard() {
     () => ({ start_date: start, end_date: end }),
     [start, end],
   );
-  const { data, isLoading } = useAdminDashboard(params);
+  const isExecutive = scope === "executive";
+  const adminQuery = useAdminDashboard(params, { enabled: !isExecutive });
+  const executiveQuery = useExecutiveDashboard(params, {
+    enabled: isExecutive,
+  });
+  const { data, isLoading } = isExecutive ? executiveQuery : adminQuery;
 
   const chapterChart = useMemo(
     () =>

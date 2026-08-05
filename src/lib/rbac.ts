@@ -48,6 +48,13 @@ export const nnakCan = {
     has(u, ["super_admin", "admin", "finance", "executive", "branch", "branch_manager", "events"]),
   viewExecutiveKpis: (u?: NnakUser | null) =>
     has(u, ["super_admin", "admin", "executive", "finance"]),
+  /**
+   * The summary dashboard at /nnak/executive/dashboard. Open to admins and to
+   * any member carrying `is_executive` — the flag, not the legacy `executive`
+   * role, is what the backend checks.
+   */
+  viewExecutiveDashboard: (u?: NnakUser | null) =>
+    !!u && (u.is_executive === true || has(u, ["super_admin", "admin"])),
   viewBranchOnly: (u?: NnakUser | null) =>
     has(u, ["branch", "branch_manager"]),
   exportData: (u?: NnakUser | null) =>
