@@ -20,9 +20,9 @@ export default function ByProductPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const { data: uploadsData, isLoading } = useByProductApiList({
-    status: status || undefined,
     page,
     per_page: 15,
+    status: status || undefined,
   });
   const uploads = uploadsData?.data ?? [];
   const pagination = uploadsData?.pagination;
