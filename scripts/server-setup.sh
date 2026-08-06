@@ -91,9 +91,20 @@ echo "==> [5/7] Configuring Nginx vhost for $DOMAIN..."
 # Create ACME challenge directory
 mkdir -p /var/www/certbot
 
-# Copy vhost template and substitute APP_PORT
+# The vhost proxies to the `nnak_app` upstream, which the blue/green deploy
+# owns. Seed it here so `nginx -t` has a definition to resolve; the deploy
+# rewrites it to whichever colour is live.
+if [ ! -f /etc/nginx/conf.d/nnak-upstream.conf ]; then
+    cat > /etc/nginx/conf.d/nnak-upstream.conf <<UPSTREAM
+upstream nnak_app {
+    server 127.0.0.1:$APP_PORT;
+    keepalive 32;
+}
+UPSTREAM
+fi
+
+# Copy vhost template
 cp "$REPO_ROOT/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
-sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
 
 # Enable the site
 ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
@@ -101,8 +112,12 @@ ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
 # Remove default site if present
 rm -f /etc/nginx/sites-enabled/default
 
-# Comment out HTTPS block so nginx starts without certs
-sed -i '/^# ── HTTPS/,/^}$/s/^/#/' "/etc/nginx/sites-enabled/$DOMAIN"
+# Only comment the HTTPS block out when there is no certificate yet, or nginx
+# cannot start. With a cert present it must stay put — otherwise every deploy
+# tears HTTPS down and builds it back up.
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    sed -i "/listen      443 ssl;/,/^}$/s/^/#/" "/etc/nginx/sites-enabled/$DOMAIN"
+fi
 
 echo "    Vhost configured (HTTP-only for now)."
 
@@ -119,11 +134,16 @@ nginx -t && systemctl start nginx || {
     exit 1
 }
 
-# Obtain SSL certificate
-if certbot --nginx -d "$DOMAIN" \
-    --non-interactive --agree-tos \
-    --email "$LETSENCRYPT_EMAIL" \
-    --redirect; then
+# Obtain SSL certificate.
+#
+# NOT `certbot --nginx`, and never with --redirect: it rewrites the vhost and
+# has inserted `return 301 https://...` INSIDE the 443 block, so every HTTPS
+# request redirects to itself (ERR_TOO_MANY_REDIRECTS). The webroot
+# authenticator only drops a challenge file and never edits nginx config. The
+# vhost in this repo already does the HTTP->HTTPS redirect itself.
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    echo "    Certificate already present - skipping issuance."
+elif certbot certonly --webroot -w /var/www/certbot -d "$DOMAIN"     --non-interactive --agree-tos     --email "$LETSENCRYPT_EMAIL"; then
     echo "    SSL certificate obtained."
 else
     echo "    WARNING: certbot failed. Continuing with HTTP-only."
@@ -135,13 +155,25 @@ fi
 echo ""
 echo "==> [7/7] Deploying full HTTPS config..."
 
-# Re-deploy the pristine vhost (certbot may have modified it)
+# Re-deploy the pristine vhost, undoing anything certbot changed.
 cp "$REPO_ROOT/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
-sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
 
-nginx -t && systemctl enable --now nginx
-echo "    Nginx is running with full config."
-echo "    Nginx is running."
+# `systemctl enable --now` is a no-op on an already-running nginx, so the
+# pristine config would sit on disk unused until something else reloaded.
+# Reload explicitly — it is graceful and drops no connections.
+systemctl enable nginx
+if nginx -t; then
+    if systemctl is-active --quiet nginx; then
+        nginx -s reload
+    else
+        systemctl start nginx
+    fi
+    echo "    Nginx is running with the pristine config."
+else
+    echo "    ERROR: nginx config invalid - leaving the running config in place."
+    nginx -t 2>&1 || true
+    exit 1
+fi
 
 # ──────────────────────────────────────────────────────────
 # Done

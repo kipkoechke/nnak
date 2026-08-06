@@ -178,14 +178,20 @@ jobs:
 
               if [ "$DAYS_LEFT" -lt 0 ]; then
                 echo "::error:: SSL certificate has EXPIRED! Attempting renewal..."
-                certbot renew --nginx --non-interactive || {
+                # Never --nginx: it rewrites the vhost and can drop a
+                # `return 301` inside the 443 block, which loops HTTPS onto
+                # itself. Webroot only writes the challenge file.
+                certbot renew --webroot -w /var/www/certbot --non-interactive || {
                   echo "::error:: certbot renewal failed."
                   exit 1
                 }
                 echo "    Certificate renewed."
               elif [ "$DAYS_LEFT" -lt 7 ]; then
                 echo "::warning:: Certificate expires in $DAYS_LEFT days. Renewing early..."
-                certbot renew --nginx --non-interactive || {
+                # Never --nginx: it rewrites the vhost and can drop a
+                # `return 301` inside the 443 block, which loops HTTPS onto
+                # itself. Webroot only writes the challenge file.
+                certbot renew --webroot -w /var/www/certbot --non-interactive || {
                   echo "::warning:: Early renewal failed, but cert is still valid for $DAYS_LEFT days."
                 }
               else
@@ -204,9 +210,12 @@ jobs:
               echo "::error:: nginx config test FAILED. Restoring from repo template..."
               # Restore the pristine vhost config
               if [ -f "$DEPLOY_PATH/nginx/host-vhost.conf" ]; then
-                APP_PORT="${APP_PORT:-3010}"
+                # The port now lives in the upstream include, not the vhost.
+                if [ ! -f /etc/nginx/conf.d/nnak-upstream.conf ]; then
+                  printf 'upstream nnak_app {\n    server 127.0.0.1:3010;\n    keepalive 32;\n}\n' \
+                    > /etc/nginx/conf.d/nnak-upstream.conf
+                fi
                 cp "$DEPLOY_PATH/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
-                sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
                 nginx -t && echo "    Config restored and valid." || {
                   echo "::error:: Config still invalid after restore."
                   exit 1
