@@ -258,14 +258,12 @@ jobs:
             # without touching the vhost. Seed it on first run — otherwise
             # `nginx -t` fails on an undefined upstream. An existing file is
             # left alone: it records which colour is currently live.
+            # printf, not a heredoc: this script is itself a heredoc inside a
+            # YAML block scalar, and the nested terminator would keep the
+            # indentation YAML leaves behind and never match.
             if [ ! -f "$UPSTREAM_FILE" ]; then
               echo "==> Seeding upstream -> 127.0.0.1:3010"
-              cat > "$UPSTREAM_FILE" <<'SEED'
-            upstream nnak_app {
-                server 127.0.0.1:3010;
-                keepalive 32;
-            }
-            SEED
+              printf 'upstream nnak_app {\n    server 127.0.0.1:3010;\n    keepalive 32;\n}\n' > "$UPSTREAM_FILE"
             fi
 
             echo "==> Overwriting nginx vhost from repo template (undoes certbot damage)..."

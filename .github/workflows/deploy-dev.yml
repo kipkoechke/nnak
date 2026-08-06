@@ -72,14 +72,12 @@ jobs:
             # undefined upstream. An existing file is left alone — it records
             # which colour is live.
             UPSTREAM_FILE="/etc/nginx/conf.d/nnak-upstream-dev.conf"
+            # printf, not a heredoc: this script is itself a heredoc inside a
+            # YAML block scalar, and the nested terminator would keep the
+            # indentation YAML leaves behind and never match.
             if [ ! -f "$UPSTREAM_FILE" ]; then
-              echo "    Seeding dev upstream → 127.0.0.1:3020"
-              cat > "$UPSTREAM_FILE" <<'SEED'
-            upstream nnak_dev_app {
-                server 127.0.0.1:3020;
-                keepalive 32;
-            }
-            SEED
+              echo "    Seeding dev upstream -> 127.0.0.1:3020"
+              printf 'upstream nnak_dev_app {\n    server 127.0.0.1:3020;\n    keepalive 32;\n}\n' > "$UPSTREAM_FILE"
             fi
 
             # ── Check if SSL certificate already exists ─────
