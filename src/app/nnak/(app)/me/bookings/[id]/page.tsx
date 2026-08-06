@@ -14,7 +14,6 @@ import { ModalShell } from "@/components/common/Modal";
 import TicketPass from "@/components/events/TicketPass";
 import {
   useBooking,
-  useBookingScope,
   useCancelBooking,
   usePayBooking,
 } from "@/hooks/use-bookings";

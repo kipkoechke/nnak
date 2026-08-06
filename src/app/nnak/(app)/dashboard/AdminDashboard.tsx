@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { MdCalendarToday, MdReceipt } from "react-icons/md";
+import Link from "next/link";
+import { MdCalendarToday, MdEvent, MdReceipt } from "react-icons/md";
 import {
   useAdminDashboard,
   useExecutiveDashboard,
@@ -371,6 +372,101 @@ export default function AdminDashboard({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Events */}
+          {data.events && (
+            <section className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <MdEvent className="w-4 h-4" /> Events
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <KpiCard
+                  label="Total Bookings"
+                  value={data.events.total_bookings}
+                />
+                <KpiCard
+                  label="Paid Bookings"
+                  value={data.events.paid_bookings}
+                  accent="emerald"
+                />
+                <KpiCard
+                  label="Pending Bookings"
+                  value={data.events.pending_bookings}
+                  accent="amber"
+                />
+                <KpiCard
+                  label="Revenue"
+                  value={fmtKes(data.events.revenue)}
+                  accent="emerald"
+                />
+                <KpiCard
+                  label="Attendees"
+                  value={data.events.total_attendees}
+                />
+                <KpiCard
+                  label="Scanned In"
+                  value={data.events.scanned_in}
+                  accent="blue"
+                />
+              </div>
+
+              {data.events.upcoming.length > 0 && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold mb-2">
+                    Upcoming
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {data.events.upcoming.map((e) => {
+                      const body = (
+                        <>
+                          <div
+                            className={`font-medium text-slate-900 truncate ${
+                              isExecutive ? "" : "group-hover:text-primary"
+                            }`}
+                          >
+                            {e.title}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {new Date(e.start_date).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {typeof e.packages_count === "number" &&
+                              ` · ${e.packages_count} package${e.packages_count === 1 ? "" : "s"}`}
+                          </div>
+                          {e.location && (
+                            <div className="text-xs text-slate-400 mt-0.5 truncate">
+                              {e.location}
+                            </div>
+                          )}
+                        </>
+                      );
+                      // Executives hold no admin routes, so the card stays
+                      // inert for them rather than linking somewhere they
+                      // would be bounced from.
+                      return isExecutive ? (
+                        <div
+                          key={e.id}
+                          className="border border-slate-200 rounded-lg p-3"
+                        >
+                          {body}
+                        </div>
+                      ) : (
+                        <Link
+                          key={e.id}
+                          href={`/nnak/events/${e.id}`}
+                          className="group border border-slate-200 rounded-lg p-3 hover:border-primary hover:bg-primary/5 transition-colors"
+                        >
+                          {body}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
           {/* Branches table */}

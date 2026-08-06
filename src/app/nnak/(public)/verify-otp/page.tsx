@@ -31,7 +31,7 @@ export default function VerifyOtpPage() {
   // code once; unlock on failure so the user can retry a corrected code.
   const submittedCode = useRef<string>("");
 
-/** `force` bypasses the latch so an explicit click can retry the same code. */
+  /** `force` bypasses the latch so an explicit click can retry the same code. */
   const runVerify = async (code: string, force = false) => {
     if (!pendingToken || code.length < 6 || verify.isPending) return;
     if (!force && submittedCode.current === code) return;

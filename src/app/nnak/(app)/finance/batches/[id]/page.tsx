@@ -2,7 +2,11 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
-import { useFinanceBatch, useRecordFinanceBatchPayment, useRetryFinanceBatch } from "@/hooks/use-finance";
+import {
+  useFinanceBatch,
+  useRecordFinanceBatchPayment,
+  useRetryFinanceBatch,
+} from "@/hooks/use-finance";
 import {
   useAdminBranchBatch,
   useRecordBatchPayment,
@@ -87,6 +91,7 @@ export default function AdminBatchDetailPage({
   const financeRecord = useRecordFinanceBatchPayment();
   const adminRecord = useRecordBatchPayment();
   const record = isFinance ? financeRecord : adminRecord;
+
   const financeRetry = useRetryFinanceBatch();
   const adminRetry = useRetryBranchBatch();
   const retry = isFinance ? financeRetry : adminRetry;
