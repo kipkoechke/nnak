@@ -1,7 +1,8 @@
 services:
   # ── Next.js application (development) ────────────────────
   frontend-dev:
-    container_name: nnak-frontend-dev-app
+    # No container_name: the blue/green deploy runs two copies of this service
+    # under different compose projects, and a fixed name would collide.
     image: nnak-dev:latest
     build:
       context: .
@@ -9,7 +10,8 @@ services:
       args:
         NEXT_PUBLIC_NNAK_API_URL: ${NEXT_PUBLIC_NNAK_API_URL:-}
     ports:
-      - "3020:3000"  # Maps VPS port 3020 to internal container port 3000
+      # Blue = 3020, green = 3021; the live one is chosen by the nginx upstream.
+      - "${APP_PORT:-3020}:3000"
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1

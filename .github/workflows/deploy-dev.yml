@@ -24,7 +24,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p 22 ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to VPS via SSH
+      - name: Fetch latest code on VPS
         uses: appleboy/ssh-action@v1.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,26 +47,9 @@ jobs:
               git fetch origin dev
               git reset --hard origin/dev
             fi
-
-            # Stop and rebuild
-            docker compose -f docker-compose-dev.yml down
-            docker compose -f docker-compose-dev.yml up -d --build
-
-            # Wait for app healthcheck to pass
-            echo "==> Waiting for dev app container to be healthy..."
-            for i in $(seq 1 30); do
-              STATUS=$(docker compose -f docker-compose-dev.yml ps --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
-              if [ "$STATUS" = "healthy" ]; then
-                echo "    Dev app is healthy after ${i}s."
-                break
-              fi
-              sleep 2
-            done
-
-            echo "==> Dev deploy complete!"
+            echo "==> At commit: $(git rev-parse --short HEAD)"
 
       - name: Configure nginx & SSL for demo domain (root)
-        if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -82,6 +65,22 @@ jobs:
 
             # Ensure ACME challenge webroot exists
             mkdir -p /var/www/certbot
+
+            # The vhost proxies to the `nnak_dev_app` upstream, which now lives
+            # in its own include so the deploy can repoint it between colours.
+            # Seed it on first run, otherwise `nginx -t` below fails on an
+            # undefined upstream. An existing file is left alone — it records
+            # which colour is live.
+            UPSTREAM_FILE="/etc/nginx/conf.d/nnak-upstream-dev.conf"
+            if [ ! -f "$UPSTREAM_FILE" ]; then
+              echo "    Seeding dev upstream → 127.0.0.1:3020"
+              cat > "$UPSTREAM_FILE" <<'SEED'
+            upstream nnak_dev_app {
+                server 127.0.0.1:3020;
+                keepalive 32;
+            }
+            SEED
+            fi
 
             # ── Check if SSL certificate already exists ─────
             if [ -f "$CERT_PATH" ]; then
@@ -170,6 +169,24 @@ jobs:
               echo "    Renewal cron installed."
             fi
 
+      - name: Zero-downtime deploy (root)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/nnak-frontend-dev
+            chmod +x scripts/deploy-blue-green.sh
+            COMPOSE_FILE=docker-compose-dev.yml \
+            SERVICE=frontend-dev \
+            PROJECT=nnak-dev \
+            PORT_BLUE=3020 \
+            PORT_GREEN=3021 \
+            UPSTREAM_FILE=/etc/nginx/conf.d/nnak-upstream-dev.conf \
+            UPSTREAM_NAME=nnak_dev_app \
+            bash scripts/deploy-blue-green.sh
+
       - name: Diagnostics
         if: always()
         uses: appleboy/ssh-action@v1.0.3
@@ -179,11 +196,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/nnak-frontend-dev 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
-            echo "=== Dev container status ==="
-            docker compose -f docker-compose-dev.yml ps
+            echo "=== Dev container status (both colours) ==="
+            docker compose -p nnak-dev-blue -f docker-compose-dev.yml ps
+            docker compose -p nnak-dev-green -f docker-compose-dev.yml ps
+            echo ""
+            echo "=== Live upstream ==="
+            cat /etc/nginx/conf.d/nnak-upstream-dev.conf 2>/dev/null || echo "not found"
             echo ""
             echo "=== Dev app logs (last 30 lines) ==="
-            docker compose -f docker-compose-dev.yml logs --tail=30 frontend-dev
+            docker compose -p nnak-dev-blue -f docker-compose-dev.yml logs --tail=30 frontend-dev 2>/dev/null
+            docker compose -p nnak-dev-green -f docker-compose-dev.yml logs --tail=30 frontend-dev 2>/dev/null
             echo ""
             echo "=== SSL certificates ==="
             certbot certificates 2>/dev/null || echo "certbot not available"

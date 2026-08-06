@@ -85,8 +85,11 @@ jobs:
             git reset --hard origin/main
             echo "    At commit: $(git rev-parse --short HEAD)"
 
+            # Built here, ahead of the swap, so the deploy job only has to
+            # start a container — the running release is never interrupted
+            # while an image builds.
             echo "==> Building Next.js Docker image..."
-            docker compose build --no-cache app
+            docker compose build app
             echo "==> Build complete!"
           BUILD_SCRIPT
 
@@ -228,52 +231,7 @@ jobs:
             echo "==> SSL pre-check complete — all OK."
           SSL_CHECK
 
-      - name: Deploy container on server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
-            env DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'DEPLOY_SCRIPT'
-            set -euo pipefail
-            cd "$DEPLOY_PATH"
-
-            echo "==> [$(date -u '+%Y-%m-%dT%H:%M:%SZ')] Starting deploy..."
-
-            # Stop conflicting containers
-            echo "==> Checking for containers competing on ports 80 / 443..."
-            CONFLICT=$(docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' \
-              | grep -E '0\.0\.0\.0:(80|443)->' || true)
-            if [ -n "$CONFLICT" ]; then
-              echo "    Found — stopping:"
-              echo "$CONFLICT"
-              echo "$CONFLICT" | awk '{print $1}' | xargs docker stop
-              echo "$CONFLICT" | awk '{print $1}' | xargs docker update --restart=no || true
-            else
-              echo "    None found."
-            fi
-
-            echo "==> Bringing up updated app container..."
-            docker compose up -d --remove-orphans app
-
-            # Wait for app healthcheck to pass
-            echo "==> Waiting for app container to be healthy..."
-            for i in $(seq 1 30); do
-              STATUS=$(docker compose ps --format json app 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
-              if [ "$STATUS" = "healthy" ]; then
-                echo "    App is healthy after ${i}s."
-                break
-              fi
-              sleep 2
-            done
-
-            echo "==> Deploy complete!"
-          DEPLOY_SCRIPT
-
-      - name: Rewrite nginx config & reload (root)
-        if: always()
+      - name: Rewrite nginx vhost & seed upstream (root)
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
@@ -281,14 +239,28 @@ jobs:
         run: |
           ssh -p "$SERVER_PORT" "root@$SERVER_HOST" \
             env DEPLOY_PATH="$DEPLOY_PATH" \
-                APP_PORT="${APP_PORT:-3010}" \
             bash -s << 'NGINX_RELOAD'
             set -euo pipefail
             DOMAIN="portal.nnak.or.ke"
+            UPSTREAM_FILE="/etc/nginx/conf.d/nnak-upstream.conf"
 
-            echo "==> Overwriting nginx config from repo template (undoes certbot damage)..."
+            # The vhost proxies to the `nnak_app` upstream, which now lives in
+            # its own include so the deploy can repoint it between colours
+            # without touching the vhost. Seed it on first run — otherwise
+            # `nginx -t` fails on an undefined upstream. An existing file is
+            # left alone: it records which colour is currently live.
+            if [ ! -f "$UPSTREAM_FILE" ]; then
+              echo "==> Seeding upstream -> 127.0.0.1:3010"
+              cat > "$UPSTREAM_FILE" <<'SEED'
+            upstream nnak_app {
+                server 127.0.0.1:3010;
+                keepalive 32;
+            }
+            SEED
+            fi
+
+            echo "==> Overwriting nginx vhost from repo template (undoes certbot damage)..."
             cp "$DEPLOY_PATH/nginx/host-vhost.conf" "/etc/nginx/sites-available/$DOMAIN"
-            sed -i "s/__APP_PORT__/$APP_PORT/g" "/etc/nginx/sites-available/$DOMAIN"
 
             # Ensure sites-enabled symlink exists
             if [ ! -L "/etc/nginx/sites-enabled/$DOMAIN" ]; then
@@ -306,6 +278,41 @@ jobs:
             }
           NGINX_RELOAD
 
+      - name: Zero-downtime deploy (root)
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -p "$SERVER_PORT" "root@$SERVER_HOST" \
+            env DEPLOY_PATH="$DEPLOY_PATH" \
+            bash -s << 'DEPLOY_SCRIPT'
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+
+            echo "==> [$(date -u '+%Y-%m-%dT%H:%M:%SZ')] Starting zero-downtime deploy..."
+
+            # Anything squatting on 80/443 would fight the host nginx.
+            CONFLICT=$(docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' \
+              | grep -E '0\.0\.0\.0:(80|443)->' || true)
+            if [ -n "$CONFLICT" ]; then
+              echo "==> Stopping containers competing on ports 80 / 443:"
+              echo "$CONFLICT"
+              echo "$CONFLICT" | awk '{print $1}' | xargs docker stop
+              echo "$CONFLICT" | awk '{print $1}' | xargs docker update --restart=no || true
+            fi
+
+            chmod +x scripts/deploy-blue-green.sh
+            COMPOSE_FILE=docker-compose.yml \
+            SERVICE=app \
+            PROJECT=nnak \
+            PORT_BLUE=3010 \
+            PORT_GREEN=3011 \
+            UPSTREAM_FILE=/etc/nginx/conf.d/nnak-upstream.conf \
+            UPSTREAM_NAME=nnak_app \
+            bash scripts/deploy-blue-green.sh
+          DEPLOY_SCRIPT
+
       - name: Container & SSL diagnostics
         if: always()
         env:
@@ -317,11 +324,16 @@ jobs:
           ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" \
             env DEPLOY_PATH="$DEPLOY_PATH" bash -s << 'DIAG'
             cd "$DEPLOY_PATH" 2>/dev/null || { echo "DEPLOY_PATH missing"; exit 0; }
-            echo "=== Container status ==="
-            docker compose ps
+            echo "=== Container status (both colours) ==="
+            docker compose -p nnak-blue -f docker-compose.yml ps
+            docker compose -p nnak-green -f docker-compose.yml ps
+            echo ""
+            echo "=== Live upstream ==="
+            cat /etc/nginx/conf.d/nnak-upstream.conf 2>/dev/null || echo "not found"
             echo ""
             echo "=== App logs (last 30 lines) ==="
-            docker compose logs --tail=30 app
+            docker compose -p nnak-blue -f docker-compose.yml logs --tail=30 app 2>/dev/null
+            docker compose -p nnak-green -f docker-compose.yml logs --tail=30 app 2>/dev/null
             echo ""
             echo "=== Host nginx status ==="
             systemctl is-active nginx || true
