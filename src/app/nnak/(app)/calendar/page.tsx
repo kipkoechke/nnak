@@ -80,7 +80,7 @@ export default function CalendarPage() {
   // Reads are public; only staff who manage events get the CRUD controls.
   const canManage = nnakCan.manageEvents(me);
 
-  const { data: items = [], isLoading } = useCalendar({ year, month });
+  const { data: items = [], isLoading, error } = useCalendar({ year, month });
   const createEntry = useCreateCalendarEntry();
   const updateEntry = useUpdateCalendarEntry();
   const deleteEntry = useDeleteCalendarEntry();
@@ -91,8 +91,9 @@ export default function CalendarPage() {
   const [deleteFor, setDeleteFor] = useState<CalendarItem | null>(null);
 
   const sorted = useMemo(
+    // Guarded: spreading a non-array here would throw and blank the page.
     () =>
-      [...items].sort(
+      (Array.isArray(items) ? [...items] : []).sort(
         (a, b) =>
           new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
       ),
@@ -185,6 +186,16 @@ export default function CalendarPage() {
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-sm text-slate-500">Loading…</div>
+        ) : error ? (
+          /* Say the read failed. Falling through to the empty state here
+             would claim the month is clear when we simply do not know. */
+          <div className="p-10 text-sm text-center text-slate-500">
+            <MdEventNote className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+            Could not load the calendar.
+            <div className="text-xs text-slate-400 mt-1">
+              {(error as Error)?.message || "Please try again."}
+            </div>
+          </div>
         ) : sorted.length === 0 ? (
           <div className="p-10 text-sm text-center text-slate-500">
             <MdEventNote className="w-8 h-8 mx-auto text-slate-300 mb-2" />
