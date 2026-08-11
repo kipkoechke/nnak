@@ -25,8 +25,13 @@ export default function FinanceByproductUploadPage() {
   const [startDate, setStartDate] = useState(monthsAgoIso(1));
   const [endDate, setEndDate] = useState(todayIso());
   const [branchId, setBranchId] = useState("");
-  const { data: branchesData } = useFinanceBranches({ per_page: 100 });
-  const branchOptions = branchesData?.data ?? [];
+  const { data: branchesData, isLoading: branchesLoading } = useFinanceBranches(
+    { per_page: 100 },
+  );
+  // Guarded: a wrapper object here would throw on .map and blank the page.
+  const branchOptions = Array.isArray(branchesData?.data)
+    ? branchesData.data
+    : [];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +121,14 @@ export default function FinanceByproductUploadPage() {
             Rows for members who have no branch are reinstated to the branch
             picked here instead of being skipped.
           </p>
+          {/* An empty dropdown looks exactly like a missing feature, so say
+              which it is rather than leaving it blank. */}
+          {!branchesLoading && branchOptions.length === 0 && (
+            <p className="text-[11px] text-amber-600 mt-1">
+              No branches loaded — the file will fall back to each member&apos;s
+              own branch.
+            </p>
+          )}
         </div>
 
         <div className="mt-4">

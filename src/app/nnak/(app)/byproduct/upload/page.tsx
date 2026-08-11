@@ -19,7 +19,11 @@ const monthsAgoIso = (n: number) => {
 export default function ByProductUploadPage() {
   const router = useRouter();
   const uploadMutation = useUploadByProductFile();
-  const { data: branchOptions = [] } = useNnakBranches();
+  const { data: branchOptions = [], isLoading: branchesLoading } =
+    useNnakBranches();
+  // Guarded: /admin/branches has returned a wrapper object before now, and
+  // mapping over one throws and blanks the whole page.
+  const branches = Array.isArray(branchOptions) ? branchOptions : [];
   const downloadTemplate = useDownloadByProductTemplate();
 
   const [file, setFile] = useState<File | null>(null);
@@ -105,7 +109,7 @@ export default function ByProductUploadPage() {
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
           >
             <option value="">Take the branch from each member</option>
-            {branchOptions.map((b) => (
+            {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
@@ -115,6 +119,14 @@ export default function ByProductUploadPage() {
             Rows for members who have no branch are reinstated to the branch
             picked here instead of being skipped.
           </p>
+          {/* An empty dropdown looks exactly like a missing feature, so say
+              which it is rather than leaving it blank. */}
+          {!branchesLoading && branches.length === 0 && (
+            <p className="text-[11px] text-amber-600 mt-1">
+              No branches loaded — the file will fall back to each member&apos;s
+              own branch.
+            </p>
+          )}
         </div>
 
         <div className="mt-4">
