@@ -106,16 +106,54 @@ export const useImportMembers = () => {
       branch_id?: string;
       member_category_code?: string;
     }) => membersService.importMembers(input),
-    onSuccess: (res) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: nqk.members.all });
-      const n = res?.imported;
-      toast.success(
-        typeof n === "number" ? `Imported ${n} members` : "Members imported",
-      );
+      // Rows are created in the background now, so there is no count to
+      // report yet — the caller polls the returned import_id.
+      toast.success("Import started");
     },
     onError: (e) => toast.error(apiErrMsg(e, "Import failed")),
   });
 };
+
+/**
+ * One import run, polled while the background job is still going.
+ *
+ * Stops as soon as the status is terminal so a finished import does not keep
+ * the tab requesting forever.
+ */
+export const useMemberImport = (
+  id: string | null | undefined,
+  opts?: { pollIntervalMs?: number },
+) => {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: nqk.members.import(id ?? ""),
+    queryFn: () => membersService.importStatus(id as string),
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = String(query.state.data?.status ?? "").toLowerCase();
+      if (status === "completed" || status === "failed") {
+        // The rows are in — let the member list pick them up.
+        qc.invalidateQueries({ queryKey: nqk.members.list() });
+        return false;
+      }
+      return opts?.pollIntervalMs ?? 2000;
+    },
+  });
+};
+
+/** Past import runs, newest first. */
+export const useMemberImports = (
+  params: { status?: string; per_page?: number; page?: number } = {},
+  opts?: { enabled?: boolean },
+) =>
+  useQuery({
+    queryKey: nqk.members.imports(params as Record<string, unknown>),
+    queryFn: () => membersService.listImports(params),
+    enabled: opts?.enabled ?? true,
+    placeholderData: (prev) => prev,
+  });
 
 export const useConvertStudent = () => {
   const qc = useQueryClient();

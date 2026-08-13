@@ -45,6 +45,11 @@ export const nqk = {
     detail: (id: string) => ["nnak", "members", "detail", id] as const,
     pending: (p?: Record<string, unknown>) =>
       ["nnak", "members", "pending", p ?? {}] as const,
+    /** Bulk import runs. Under `members` so a finished import's invalidation
+     *  of `members.all` also refreshes these. */
+    imports: (p?: Record<string, unknown>) =>
+      ["nnak", "members", "imports", p ?? {}] as const,
+    import: (id: string) => ["nnak", "members", "imports", "detail", id] as const,
   },
   adminDashboard: (p?: Record<string, unknown>) =>
     ["nnak", "admin", "dashboard", p ?? {}] as const,

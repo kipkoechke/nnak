@@ -60,7 +60,8 @@ export interface NnakUser {
    * disclosed", not "false".
    */
   is_executive?: boolean;
-  profile?: NnakProfile;
+  /** Null for accounts with no membership record — staff, typically. */
+  profile?: NnakProfile | null;
   /** Subscription lifecycle — surfaced on GET /profile. `current_subscription`
    *  is the paid term covering today; `pending_subscription` is a future-dated
    *  extension awaiting payment. `coverage_active` is the authoritative "is the
@@ -450,9 +451,26 @@ export interface MpesaTransaction {
   ResultDesc: string | null;
   used: boolean;
   payload: Record<string, unknown> | null;
+  /** The member or customer who paid. Sent from 2026-08-13; `FirstName` is
+   *  the raw Daraja name and stays as the fallback. */
+  recipient_name?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+/**
+ * The route filters to successful, terminal payments unless asked otherwise.
+ * `default_filters` says what it applied on your behalf, `applied_filters`
+ * what you asked for — so the screen can admit it is showing a filtered view.
+ */
+export interface MpesaListingMeta {
+  supported_params?: string[];
+  default_filters?: {
+    transaction_type?: string[];
+    status?: string;
+  };
+  applied_filters?: Record<string, unknown>;
 }
 
 export interface MpesaTransactionListParams {
@@ -464,6 +482,45 @@ export interface MpesaTransactionListParams {
   date_to?: string;
   used?: boolean | string;
   search?: string;
+}
+
+// ── Member imports (POST /admin/members/import) ────────────────────
+/** `pending` -> `processing` -> `completed` | `failed`. */
+export type MemberImportStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
+
+/** What POST /admin/members/import returns — the work happens in the
+ *  background, so all you get back is a handle to poll. */
+export interface MemberImportTicket {
+  import_id: string;
+  status: MemberImportStatus | string;
+  branch_id?: string | null;
+  member_category_code?: string | null;
+}
+
+/**
+ * One import run. The list and detail routes name the counters differently
+ * (`created_count`/`skipped_count` vs `created`/`skipped`); the service
+ * normalises both onto this shape.
+ */
+export interface MemberImport {
+  id: string;
+  file_name?: string | null;
+  status: MemberImportStatus | string;
+  total_rows: number;
+  created: number;
+  skipped: number;
+  /** Human-readable, one per skipped row: "Row 22: invalid Active Until …". */
+  errors: string[];
+  branch_id?: string | null;
+  branch?: { id?: string | null; name?: string | null } | null;
+  member_category_code?: string | null;
+  uploaded_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // By-product reconciliation -------------------------------
@@ -598,7 +655,8 @@ export interface Workstation {
   /** ISO country code, e.g. "KE". */
   country: string;
   county: string;
-  /** Some payloads echo the write field name back alongside `county`. */
+  /** Legacy alias — the column was renamed `city` -> `county` on 2026-08-13.
+   *  Kept optional so older cached payloads still type-check. */
   city?: string | null;
   start_date: string;
   /** Null while this is the member's current posting. */
@@ -610,12 +668,12 @@ export interface Workstation {
   created_at: string;
   updated_at: string;
 }
-/** Note the asymmetry: reads return `county`, but writes expect `city`. */
 export interface WorkstationInput {
   name: string;
   country: string;
-/** The county — the write endpoint names this field `city`. */
-  city: string;
+  /** Reads and writes now agree on `county`; the write field used to be
+   *  `city` until the 2026-08-13 rename. */
+  county: string;
   start_date: string;
   end_date?: string | null;
   employer_type?: string;

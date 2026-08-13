@@ -1,7 +1,6 @@
 // Member workstations (employer history): /member/workstations
 //   GET    /member/workstations           -> { data: Workstation[], pagination }
-//   POST   /member/workstations           { name, country, city, start_date, employer_type? }
-//     NB: writes take `city`, but reads return the same value as `county`.
+//   POST   /member/workstations           { name, country, county, start_date, employer_type? }
 //   PATCH  /member/workstations/{id}      partial
 //   DELETE /member/workstations/{id}
 import { nnakApi } from "@/lib/api";
@@ -21,7 +20,6 @@ const demoSeed = (userId: string): Workstation[] => {
         id: "demo-ws-" + Math.random().toString(36).slice(2, 8),
         name: "Kenyatta National Hospital",
         country: "KE",
-        city: "Nairobi",
         county: "Nairobi",
         employer_type: "county_governments",
         employer_type_label: "County Governments",
@@ -50,12 +48,9 @@ export const workstationsService = {
   create: async (body: WorkstationInput, userId = "demo"): Promise<Workstation> => {
     if (isDemoSession()) {
       const items = demoSeed(userId);
-      const { city, ...rest } = body;
       const w: Workstation = {
         id: "demo-ws-" + Math.random().toString(36).slice(2, 8),
-        ...rest,
-        // The write payload calls it `city`; the read model exposes `county`.
-        county: city,
+        ...body,
         start_date: new Date(body.start_date).toISOString(),
         user_id: userId,
         created_at: new Date().toISOString(),
@@ -75,12 +70,9 @@ export const workstationsService = {
       const items = demoSeed(userId);
       const i = items.findIndex((w) => w.id === id);
       if (i < 0) throw new Error("Workstation not found");
-      const { city, ...rest } = body;
       items[i] = {
         ...items[i],
-        ...rest,
-        // The write payload calls it `city`; the read model exposes `county`.
-        ...(city !== undefined ? { county: city } : {}),
+        ...body,
         ...(body.start_date
           ? { start_date: new Date(body.start_date).toISOString() }
           : {}),

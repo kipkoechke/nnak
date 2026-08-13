@@ -4,6 +4,7 @@ import { MdSearch } from "react-icons/md";
 import PageHeader from "@/components/common/PageHeader";
 import DownloadButton from "@/components/common/DownloadButton";
 import { useMpesaTransactions } from "@/hooks/use-mpesa-transactions";
+import { useNnakMe } from "@/hooks/use-auth";
 import { mpesaTransactionService } from "@/services/mpesa-transaction.service";
 import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import type { MpesaTransaction } from "@/types/nnak";
@@ -23,24 +24,33 @@ const fmtTime = (s?: string | null) =>
 export default function MpesaTransactionsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [txnType, setTxnType] = useState("");
   const [page, setPage] = useState(1);
+  const { data: me } = useNnakMe();
+  const scope = me?.role === "finance" ? "finance" : "admin";
 
   const { data, isLoading } = useMpesaTransactions(
     {
       search: search || undefined,
       status: status || undefined,
+      transaction_type: txnType || undefined,
       page,
     },
-    { pollWhilePending: true },
+    { pollWhilePending: true, scope },
   );
 
   const txns = data?.data ?? [];
   const pagination = data?.pagination;
+  // With no filters of our own the route hides everything except successful
+  // terminal payments, so the screen has to say so rather than implying the
+  // table is the whole ledger.
+  const defaults = data?.listing?.default_filters;
+  const showingDefaultView = !status && !txnType && !!defaults;
 
   const exportColumns: ExcelColumn<MpesaTransaction>[] = [
     { header: "Receipt", value: (t) => t.MpesaReceiptNumber || t.TransID || "" },
     { header: "Phone", value: (t) => t.MSISDN ?? "" },
-    { header: "Name", value: (t) => t.FirstName ?? "" },
+    { header: "Paid by", value: (t) => t.recipient_name || t.FirstName || "" },
     { header: "Amount", value: (t) => Number(t.TransAmount ?? 0) },
     {
       header: "Reference",
@@ -52,12 +62,16 @@ export default function MpesaTransactionsPage() {
 
   const fetchExportRows = () =>
     collectAllPages<MpesaTransaction>((p) =>
-      mpesaTransactionService.list({
-        page: p,
-        per_page: 100,
-        search: search || undefined,
-        status: status || undefined,
-      }),
+      mpesaTransactionService.list(
+        {
+          page: p,
+          per_page: 100,
+          search: search || undefined,
+          status: status || undefined,
+          transaction_type: txnType || undefined,
+        },
+        scope,
+      ),
     );
 
   return (
@@ -96,12 +110,49 @@ export default function MpesaTransactionsPage() {
           }}
           className="px-3 py-2 border border-slate-300 rounded-md text-sm"
         >
-          <option value="">All statuses</option>
+          {/* Not "All statuses": with no status the route returns successful
+              payments only. Picking one overrides that default. */}
+          <option value="">Successful only (default)</option>
           <option value="success">Success</option>
           <option value="pending">Pending</option>
           <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
         </select>
+        <select
+          value={txnType}
+          onChange={(e) => {
+            setTxnType(e.target.value);
+            setPage(1);
+          }}
+          className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+        >
+          <option value="">Payments only (default)</option>
+          <option value="stk_push_callback">STK push callback</option>
+          <option value="c2b_confirmation">C2B confirmation</option>
+          <option value="stk_push_request">STK push request</option>
+          <option value="stk_query">STK query</option>
+        </select>
+        {(status || txnType) && (
+          <button
+            type="button"
+            onClick={() => {
+              setStatus("");
+              setTxnType("");
+              setPage(1);
+            }}
+            className="text-xs text-primary font-medium hover:underline px-1"
+          >
+            Reset to default view
+          </button>
+        )}
       </div>
+
+      {showingDefaultView && (
+        <p className="text-[11px] text-slate-500 -mt-1">
+          Showing successful payments only. Requests, queries and failed
+          attempts are hidden — pick a status or type above to include them.
+        </p>
+      )}
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -110,7 +161,7 @@ export default function MpesaTransactionsPage() {
               <tr>
                 <th className="px-3 py-2">Receipt</th>
                 <th className="px-3 py-2">Phone</th>
-                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Paid by</th>
                 <th className="px-3 py-2 text-right">Amount</th>
                 <th className="px-3 py-2">Reference</th>
                 <th className="px-3 py-2">Time</th>
@@ -138,7 +189,7 @@ export default function MpesaTransactionsPage() {
                     </td>
                     <td className="px-3 py-2 text-slate-600">{t.MSISDN}</td>
                     <td className="px-3 py-2 text-slate-600">
-                      {t.FirstName || "—"}
+                      {t.recipient_name || t.FirstName || "—"}
                     </td>
                     <td className="px-3 py-2 text-right font-medium text-slate-900">
                       KES {Number(t.TransAmount || 0).toLocaleString()}

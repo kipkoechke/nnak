@@ -19,6 +19,8 @@ import { categoryLabel } from "@/lib/member-category";
 import { mockStore } from "@/lib/mock-store";
 import type {
   ApiEnvelope,
+  MemberImport,
+  MemberImportTicket,
   MemberStatus,
   NnakPagination,
   NnakProfile,
@@ -196,6 +198,39 @@ const normalizeMember = (raw: unknown): MemberRecord => {
   } as MemberRecord;
 };
 
+/**
+ * The list route reports `created_count` / `skipped_count`, the detail route
+ * `created` / `skipped`. Flatten both so the screen reads one shape.
+ */
+const normalizeImport = (raw: unknown): MemberImport => {
+  const row = (raw ?? {}) as Record<string, unknown>;
+  const num = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = row[k];
+      if (typeof v === "number") return v;
+      if (typeof v === "string" && v !== "" && !Number.isNaN(Number(v)))
+        return Number(v);
+    }
+    return 0;
+  };
+  const branch = row.branch as { id?: string; name?: string } | null | undefined;
+  return {
+    id: String(row.id ?? ""),
+    file_name: (row.file_name as string) ?? null,
+    status: (row.status as string) ?? "pending",
+    total_rows: num("total_rows"),
+    created: num("created", "created_count"),
+    skipped: num("skipped", "skipped_count"),
+    errors: Array.isArray(row.errors) ? row.errors.map(String) : [],
+    branch_id: (row.branch_id as string) ?? branch?.id ?? null,
+    branch: branch ?? null,
+    member_category_code: (row.member_category_code as string) ?? null,
+    uploaded_by: (row.uploaded_by as string) ?? null,
+    created_at: row.created_at as string | undefined,
+    updated_at: row.updated_at as string | undefined,
+  };
+};
+
 export const membersService = {
   list: async (params?: MemberListQuery) => {
     if (isDemoSession()) {
@@ -359,11 +394,42 @@ export const membersService = {
     if (input.branch_id) body.append("branch_id", input.branch_id);
     if (input.member_category_code)
       body.append("member_category_code", input.member_category_code);
-    return unwrap<{ imported?: number; failed?: number; errors?: unknown[] }>(
+    // Since 2026-08-13 rows are created in the background; the response is a
+    // handle to poll rather than the finished counts.
+    return unwrap<MemberImportTicket>(
       nnakApi.post("/admin/members/import", body, {
         headers: { "Content-Type": "multipart/form-data" },
       }),
     );
+  },
+
+  /** GET /admin/members/imports — past import runs, newest first. */
+  listImports: async (params?: {
+    status?: string;
+    per_page?: number;
+    page?: number;
+  }): Promise<{ data: MemberImport[]; pagination?: NnakPagination }> => {
+    if (isDemoSession()) return { data: [] };
+    const r = await nnakApi.get<{
+      success: boolean;
+      data: unknown[];
+      pagination?: NnakPagination;
+    }>("/admin/members/imports", { params });
+    return {
+      data: (Array.isArray(r.data?.data) ? r.data.data : []).map(
+        normalizeImport,
+      ),
+      pagination: r.data?.pagination,
+    };
+  },
+
+  /** GET /admin/members/import/{id} — status, counters and per-row errors. */
+  importStatus: async (id: string): Promise<MemberImport | null> => {
+    if (isDemoSession()) return null;
+    const r = await unwrap<unknown>(
+      nnakApi.get(`/admin/members/import/${id}`),
+    );
+    return r ? normalizeImport(r) : null;
   },
 
   /** POST /admin/students/{user_id}/convert — upgrade a student to a member. */

@@ -27,11 +27,13 @@ export default function ReportsPage() {
   const [tab, setTab] = useState<"members"|"financial"|"events">("members");
 
   const exportMembers = () => {
+    // A member with no profile record still belongs in the export — blank
+    // columns beat dropping the row or throwing mid-download.
     const rows = members?.data.map((m) => ({
-      account_number: m.profile.account_number,
-      name: m.name, email: m.email, phone: m.profile.phone,
-      license_number: m.profile.license_number, status: m.profile.status,
-      branch: m.profile.branch_id, category: m.profile.member_category_id,
+      account_number: m.profile?.account_number ?? "",
+      name: m.name, email: m.email, phone: m.profile?.phone ?? "",
+      license_number: m.profile?.license_number ?? "", status: m.profile?.status ?? "",
+      branch: m.profile?.branch_id ?? "", category: m.profile?.member_category_id ?? "",
     })) || [];
     download(`nnak-members-${new Date().toISOString().slice(0,10)}.csv`, toCsv(rows));
   };

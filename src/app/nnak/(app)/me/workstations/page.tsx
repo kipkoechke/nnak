@@ -18,7 +18,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const empty: WorkstationInput = {
   name: "",
   country: "KE",
-  city: "",
+  county: "",
   employer_type: "",
   start_date: todayIso(),
   end_date: "",
@@ -52,8 +52,7 @@ export default function MyWorkstationsPage() {
     setForm({
       name: w.name,
       country: w.country,
-      // Read model exposes `county`; the write payload calls it `city`.
-      city: w.county,
+      county: w.county,
       employer_type: w.employer_type ?? "",
       start_date: w.start_date.slice(0, 10),
       end_date: w.end_date ? w.end_date.slice(0, 10) : "",
@@ -173,8 +172,8 @@ export default function MyWorkstationsPage() {
                 label="County"
                 required
                 options={COUNTY_OPTIONS}
-                value={form.city}
-                onChange={(v) => setForm({ ...form, city: v })}
+                value={form.county}
+                onChange={(v) => setForm({ ...form, county: v })}
                 placeholder="Select county"
                 searchPlaceholder="Search counties…"
               />

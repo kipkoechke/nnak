@@ -9,6 +9,7 @@ import { collectAllPages, type ExcelColumn } from "@/lib/export-excel";
 import {
   useCreateAdminMember,
   useImportMembers,
+  useMemberImports,
   useMembers,
   useSetMemberStatus,
 } from "@/hooks/use-members";
@@ -21,6 +22,7 @@ import { useNnakMe } from "@/hooks/use-auth";
 import { nnakCan } from "@/lib/rbac";
 import { filterOptions, type ListingMeta } from "@/lib/available-filters";
 import { ModalShell } from "@/components/common/Modal";
+import ImportProgress from "@/components/members/ImportProgress";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 import { SearchableSelect } from "@/components/common/SearchableSelect";
 
@@ -170,6 +172,23 @@ export default function MembersPage() {
   const [importBranch, setImportBranch] = useState("");
   const [importCategory, setImportCategory] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
+  // The upload only queues the job, so hold the returned id and swap the
+  // modal over to a live status panel instead of closing on success.
+  const [activeImportId, setActiveImportId] = useState<string | null>(null);
+
+  // Only fetched while the dialog is open, and only on the form view.
+  const { data: recentImports } = useMemberImports(
+    { per_page: 5 },
+    { enabled: showImport && !activeImportId },
+  );
+
+  const closeImport = () => {
+    setShowImport(false);
+    setActiveImportId(null);
+    setImportFile(null);
+    setImportBranch("");
+    setImportCategory("");
+  };
 
   const submitImport = () => {
     if (!importFile) return;
@@ -181,11 +200,10 @@ export default function MembersPage() {
         member_category_code: importCategory || undefined,
       },
       {
-        onSuccess: () => {
-          setShowImport(false);
+        onSuccess: (ticket) => {
           setImportFile(null);
-          setImportBranch("");
-          setImportCategory("");
+          if (ticket?.import_id) setActiveImportId(ticket.import_id);
+          else closeImport();
         },
       },
     );
@@ -626,7 +644,10 @@ export default function MembersPage() {
         </div>
       </ModalShell>
 
-      <ModalShell isOpen={showImport} onClose={() => setShowImport(false)}>
+      <ModalShell isOpen={showImport} onClose={closeImport}>
+        {activeImportId ? (
+          <ImportProgress importId={activeImportId} onDone={closeImport} />
+        ) : (
         <div className="p-5 space-y-4 w-full max-w-md">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">
@@ -711,9 +732,37 @@ export default function MembersPage() {
             </p>
           </div>
 
+          {(recentImports?.data?.length ?? 0) > 0 && (
+            <div>
+              <div className="text-xs font-medium text-slate-600 mb-1">
+                Recent imports
+              </div>
+              <ul className="border border-slate-200 rounded-md divide-y divide-slate-100">
+                {recentImports!.data.slice(0, 5).map((run) => (
+                  <li key={run.id}>
+                    {/* Reopens the same status panel, so the skip reasons from
+                        an earlier run stay reachable after closing. */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveImportId(run.id)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between gap-2"
+                    >
+                      <span className="min-w-0 truncate text-[11px] text-slate-600">
+                        {run.file_name || "Import"}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-slate-500">
+                        {run.created}/{run.total_rows || "?"} · {run.status}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-1">
             <button
-              onClick={() => setShowImport(false)}
+              onClick={closeImport}
               className="px-3 py-2 border border-slate-300 rounded-md text-sm"
             >
               Cancel
@@ -723,10 +772,11 @@ export default function MembersPage() {
               disabled={!importFile || importMembers.isPending}
               className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
-              {importMembers.isPending ? "Importing…" : "Import"}
+              {importMembers.isPending ? "Uploading…" : "Import"}
             </button>
           </div>
         </div>
+        )}
       </ModalShell>
     </div>
   );
