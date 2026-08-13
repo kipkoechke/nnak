@@ -7,6 +7,7 @@ import {
   Text,
   Image,
   StyleSheet,
+  Font,
   pdf,
 } from "@react-pdf/renderer";
 import QRCodeLib from "qrcode";
@@ -36,6 +37,20 @@ const coverageEndOf = (
   member.current_coverage_end_date ??
   member.profile.subscription_expires_at ??
   null;
+
+/**
+ * react-pdf hyphenates long words by default, which broke surnames across
+ * lines as "Og-wang". Returning the word whole disables it.
+ */
+Font.registerHyphenationCallback((word) => [word]);
+
+/** Long names step down a size or two rather than wrapping into the details. */
+const nameFontSize = (name: string, base: number): number => {
+  const n = name.trim().length;
+  if (n > 34) return Math.round(base * 0.7);
+  if (n > 26) return Math.round(base * 0.82);
+  return base;
+};
 
 const initialsOf = (name: string): string => {
   const parts = name.trim().split(/\s+/);
@@ -183,13 +198,19 @@ const pdfStyles = StyleSheet.create({
     position: "absolute",
     top: 94,
     left: 106,
-    right: 80,
+    // Full width: the QR sits low on the right, so the top of that column is
+    // free for the name. The rows below reserve room for it individually.
+    right: 18,
   },
   name: {
     fontSize: 16,
     fontWeight: 700,
     color: TEXT,
     marginBottom: 8,
+  },
+  /** Detail rows stop short of the QR block. */
+  detail: {
+    paddingRight: 62,
   },
   label: {
     fontSize: 8,
@@ -278,11 +299,15 @@ function DigitalIdPdf({
           )}
 
           <View style={pdfStyles.info}>
-            <Text style={pdfStyles.name}>{member.name}</Text>
-            <Text style={pdfStyles.label}>Member ID</Text>
-            <Text style={pdfStyles.value}>{(member.profile.membership_number || member.profile.account_number)}</Text>
-            <Text style={pdfStyles.label}>NCK Registration Number</Text>
-            <Text style={pdfStyles.value}>{member.profile.nck_number || "—"}</Text>
+            <Text style={[pdfStyles.name, { fontSize: nameFontSize(member.name, 16) }]}>
+              {member.name}
+            </Text>
+            <View style={pdfStyles.detail}>
+              <Text style={pdfStyles.label}>Member ID</Text>
+              <Text style={pdfStyles.value}>{(member.profile.membership_number || member.profile.account_number)}</Text>
+              <Text style={pdfStyles.label}>NCK Registration Number</Text>
+              <Text style={pdfStyles.value}>{member.profile.nck_number || "—"}</Text>
+            </View>
           </View>
 
           {qrDataUrl && (
@@ -380,14 +405,19 @@ export default function DigitalIdCard({ member, showDownload = true, validUntil 
           )}
         </div>
 
-        <div style={{ position: "absolute", top: 92, left: 100, right: 60, lineHeight: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.25, color: TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 6 }}>
+        {/* Full width — the QR hangs low on the right, leaving the top of that
+            column free, so the name no longer has to squeeze past it. */}
+        <div style={{ position: "absolute", top: 92, left: 100, right: 16, lineHeight: 1 }}>
+          <div style={{ fontSize: nameFontSize(member.name, 16), fontWeight: 700, lineHeight: 1.25, color: TEXT, marginBottom: 6, overflowWrap: "break-word" }}>
             {member.name}
           </div>
-          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4 }}>Member ID</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{(member.profile.membership_number || member.profile.account_number)}</div>
-          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK Registration Number</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.nck_number || "—"}</div>
+          {/* Detail rows stop short of the QR block. */}
+          <div style={{ paddingRight: 44 }}>
+            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4 }}>Member ID</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{(member.profile.membership_number || member.profile.account_number)}</div>
+            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6, lineHeight: 1.4, marginTop: 4 }}>NCK Registration Number</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TEXT, letterSpacing: 0.4, lineHeight: 1.2 }}>{member.profile.nck_number || "—"}</div>
+          </div>
         </div>
 
         {qrDataUrl && (
