@@ -3,7 +3,6 @@ import { categoryLabel } from "@/lib/member-category";
 import { useMemo, useState } from "react";
 import {
   MdPeople,
-  MdCorporateFare,
   MdSwapHoriz,
   MdUpload,
   MdReceipt,
@@ -49,7 +48,7 @@ const fmtDate = (s?: string | null) =>
 const pct = (n?: number) => (n != null ? `${Number(n).toFixed(1)}%` : "—");
 
 type PrimaryTab = "payments" | "members" | "remittances";
-type DetailTab = "members" | "branches" | "byproducts";
+type DetailTab = "members" | "byproducts";
 
 const CHART_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#dc2626", "#0891b2"];
 
@@ -350,7 +349,6 @@ export default function FinanceDashboardPage() {
               {(
                 [
                   { key: "members", label: "Recent Members", icon: MdPeople },
-                  { key: "branches", label: "Branches", icon: MdCorporateFare },
                   { key: "byproducts", label: "By-Product Uploads", icon: MdUpload },
                 ] as { key: DetailTab; label: string; icon: React.ComponentType<{ className?: string }> }[]
               ).map(({ key, label, icon: Icon }) => (
@@ -400,37 +398,6 @@ export default function FinanceDashboardPage() {
                 </div>
               ) : (
                 <div className="px-4 py-8 text-sm text-center text-slate-400">No recent members.</div>
-              )
-            )}
-
-            {detailTab === "branches" && (
-              dash.branches && dash.branches.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-120">
-                    <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Branch</th>
-                        <th className="px-3 py-2 text-left">Type</th>
-                        <th className="px-3 py-2 text-right">Members</th>
-                        <th className="px-3 py-2 text-right">Commission</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {dash.branches.map((b) => (
-                        <tr key={b.id} className="hover:bg-slate-50">
-                          <td className="px-3 py-2 font-medium text-slate-900">{b.name}</td>
-                          <td className="px-3 py-2 text-xs text-slate-600">{b.employer_type}</td>
-                          <td className="px-3 py-2 text-right">{b.members}</td>
-                          <td className="px-3 py-2 text-right text-xs text-slate-600">
-                            {b.commission_type} · {b.commission_value}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="px-4 py-8 text-sm text-center text-slate-400">No branch data.</div>
               )
             )}
 

@@ -999,13 +999,6 @@ export interface AdminDashboardRevenue {
   pending_amount: string | number;
 }
 
-export interface AdminDashboardBranchRow {
-  id: string;
-  name: string;
-  members: number;
-  employer_type: string;
-}
-
 /** One batch reporting window. The API has sent this as `this_month` and as
  *  `last_month`; the shape is identical, only the label differs. */
 export interface AdminBatchPeriod {
@@ -1032,7 +1025,6 @@ export interface AdminDashboardData {
   members: AdminDashboardMembers;
   revenue: AdminDashboardRevenue;
   categories: AdminDashboardCategoryRow[];
-  branches: AdminDashboardBranchRow[];
   chapters: AdminDashboardChapterRow[];
   /** Which windows are reported varies; render whichever arrive. */
   batches?: {
@@ -1556,14 +1548,6 @@ export interface FinanceDashboardData {
     buckets: Record<string, number>;
     total_pending_amount: number;
   };
-  branches?: {
-    id: string;
-    name: string;
-    members: number;
-    employer_type: string;
-    commission_type: string;
-    commission_value: string;
-  }[];
   recent_members?: {
     id: string;
     name: string;

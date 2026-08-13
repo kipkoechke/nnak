@@ -469,49 +469,6 @@ export default function AdminDashboard({
             </section>
           )}
 
-          {/* Branches table */}
-          <section className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Branches
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-2">Branch</th>
-                    <th className="px-4 py-2">Employer Type</th>
-                    <th className="px-4 py-2 text-right">Members</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(data.branches ?? []).length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="px-4 py-6 text-center text-slate-400"
-                      >
-                        No branches.
-                      </td>
-                    </tr>
-                  ) : (
-                    data.branches.map((b) => (
-                      <tr key={b.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">
-                          {b.name}
-                        </td>
-                        <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
-                          {b.employer_type}
-                        </td>
-                        <td className="px-4 py-2 text-right text-slate-900">
-                          {b.members}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
 
           {/* Pending members table — omitted entirely when the API does not
               send the list, so an empty table cannot imply "none pending". */}
