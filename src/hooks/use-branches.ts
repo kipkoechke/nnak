@@ -10,6 +10,8 @@ import type {
   UpdateBranchInput,
 } from "@/types/nnak";
 import { useMembers } from "@/hooks/use-members";
+import { membersService } from "@/services/members.service";
+import { collectAllPages } from "@/lib/export-excel";
 
 /** A create result with no pending_token is a branch made without a manager. */
 export const isPendingBranch = (
@@ -92,6 +94,24 @@ export const useBranch = (id: string | undefined) =>
 
 export const useAdminBranchMembers = (branchId: string | undefined) =>
   useMembers({ branch_id: branchId, per_page: 200 }, { enabled: !!branchId });
+
+/**
+ * Every member of a branch, across all pages.
+ *
+ * The manager picker searches this list client-side, so a paged read would
+ * quietly hide candidates past the first page — you would type a name that
+ * exists and get "no results". Only fetched while the picker is open.
+ */
+export const useAllBranchMembers = (branchId: string | undefined) =>
+  useQuery({
+    queryKey: [...nqk.members.list({ branch_id: branchId }), "all"] as const,
+    queryFn: () =>
+      collectAllPages((page) =>
+        membersService.list({ branch_id: branchId, page, per_page: 200 }),
+      ),
+    enabled: !!branchId,
+    staleTime: 60_000,
+  });
 
 export const useChangeBranchManager = () => {
   const qc = useQueryClient();

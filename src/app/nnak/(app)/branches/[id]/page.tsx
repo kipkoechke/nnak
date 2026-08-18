@@ -1,14 +1,15 @@
 "use client";
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
 import {
   useBranch,
-  useAdminBranchMembers,
+  useAllBranchMembers,
   useChangeBranchManager,
   useRemoveBranchMember,
 } from "@/hooks/use-branches";
 import { ModalShell } from "@/components/common/Modal";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
 import { MdClose, MdPersonRemove, MdSwapHoriz } from "react-icons/md";
 
 export default function BranchDetailPage({
@@ -21,11 +22,22 @@ export default function BranchDetailPage({
   const { data: branch, isLoading } = useBranch(id);
   const [showChangeManager, setShowChangeManager] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const { data: membersData, isLoading: membersLoading } = useAdminBranchMembers(
-    showChangeManager ? id : undefined,
-  );
+  // Every page of the branch's members: the picker filters client-side, so a
+  // paged read would hide candidates the user can see in the table below.
+  const { data: branchMembers = [], isLoading: membersLoading } =
+    useAllBranchMembers(showChangeManager ? id : undefined);
   const changeManager = useChangeBranchManager();
-  const managerCandidates = membersData?.data ?? [];
+  const managerOptions = useMemo(
+    () =>
+      branchMembers.map((m) => ({
+        value: m.id,
+        label: m.name,
+        description:
+          [m.email, m.profile?.membership_number].filter(Boolean).join(" · ") ||
+          undefined,
+      })),
+    [branchMembers],
+  );
 
   // Removing a member detaches them from the branch and emails them the
   // reason, so it is confirmed and the reason is required.
@@ -209,22 +221,18 @@ export default function BranchDetailPage({
               </label>
               {membersLoading ? (
                 <div className="text-xs text-slate-400 py-2">Loading branch members…</div>
-              ) : managerCandidates.length === 0 ? (
+              ) : managerOptions.length === 0 ? (
                 <div className="text-xs text-slate-400 py-2">No members found in this branch.</div>
               ) : (
-                <select
+                /* No `pagination` prop: the whole branch is already loaded, so
+                   the search box filters all of it in one list. */
+                <SearchableSelect
+                  options={managerOptions}
                   value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                >
-                  <option value="">— select a member —</option>
-                  {managerCandidates.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} {m.email ? `(${m.email})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedUserId}
+                  placeholder="Select a member"
+                  searchPlaceholder="Search by name, email or membership no…"
+                />
               )}
             </div>
 

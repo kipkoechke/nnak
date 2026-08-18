@@ -114,12 +114,18 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     }
   }, [isOpen, onSearchChange]);
 
-  // Filter options based on search query (client-side or backend)
+  // Filter options based on search query (client-side or backend).
+  // The description is rendered under each option, so it is searched too —
+  // otherwise typing something plainly visible in the list returns nothing.
   const filteredOptions = onSearchChange
     ? options // Backend search: use options as-is
-    : options.filter((option) =>
-        option?.label?.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
+    : options.filter((option) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          option?.label?.toLowerCase().includes(q) ||
+          option?.description?.toLowerCase().includes(q)
+        );
+      });
 
   // Get selected option label
   const selectedOption = options.find((opt) => opt?.value === value);
