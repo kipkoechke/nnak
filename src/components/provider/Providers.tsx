@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import ThemeProvider from "./ThemeProvider";
 import { clearNnakSession } from "@/lib/auth";
+import { isPublicPath } from "@/lib/public-routes";
 import { useTokenRefresh } from "@/hooks/use-token-refresh";
 
 export default function Providers({
@@ -29,7 +30,9 @@ export default function Providers({
   useEffect(() => {
     const handler = () => {
       if (typeof window === "undefined") return;
-      if (window.location.pathname.includes("/login")) return;
+      // A public page needs no session, so a 401 from one of its reads must
+      // not throw a guest out to the login screen.
+      if (isPublicPath(window.location.pathname)) return;
       clearNnakSession();
       window.location.href = "/nnak/login";
     };

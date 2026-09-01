@@ -68,11 +68,20 @@ export default function NnakLoginPage() {
           </Link>
         </div>
       </form>
-      <div className="border-t border-slate-100 pt-4 text-xs text-slate-600 text-center">
-        Existing member migrated by NNAK?{" "}
-        <Link href="/nnak/onboarding" className="text-primary font-medium hover:underline">
-          Claim your account
-        </Link>
+      <div className="border-t border-slate-100 pt-4 text-xs text-slate-600 text-center space-y-2">
+        <div>
+          Existing member migrated by NNAK?{" "}
+          <Link href="/nnak/onboarding" className="text-primary font-medium hover:underline">
+            Claim your account
+          </Link>
+        </div>
+        {/* Events are open to everyone, so say so before the sign-in wall. */}
+        <div>
+          Just here for an event?{" "}
+          <Link href="/events" className="text-primary font-medium hover:underline">
+            Browse upcoming events
+          </Link>
+        </div>
       </div>
     </div>
   );

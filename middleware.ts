@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isPublicPath } from "@/lib/public-routes";
 
-const PUBLIC_ROUTES = [
-  "/nnak/login",
-  "/nnak/register",
-  "/nnak/verify-otp",
-  "/nnak/forgot-password",
-  "/nnak/reset-password",
-  "/unauthorized",
-  "/nnak/register/student",
-  "/nnak/onboarding",
-  "/nnak/privacy",
-];
 
 const NNAK_ROLE_GUARDS: { prefix: string; allow: string[] }[] = [
   { prefix: "/nnak/admins", allow: ["super_admin"] },
@@ -84,9 +74,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const authed = isAuthed(request);
 
-  const isPublic = PUBLIC_ROUTES.some(
-    (r) => pathname === r || pathname.startsWith(`${r}/`),
-  );
+  const isPublic = isPublicPath(pathname);
 
   if (isPublic) {
     if (pathname === "/nnak/login" && authed) {
