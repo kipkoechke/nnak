@@ -194,12 +194,12 @@ const STAFF_ITEMS: MenuItem[] = [
   //   href: "/nnak/ilm/exports",
   //   show: nnakCan.approveDataExport,
   // },
-  {
-    name: "Erasure",
-    icon: MdShield,
-    href: "/nnak/ilm/erasure",
-    show: nnakCan.manageILM,
-  },
+  // {
+  //   name: "Erasure",
+  //   icon: MdShield,
+  //   href: "/nnak/ilm/erasure",
+  //   show: nnakCan.manageILM,
+  // },
 ];
 
 const FINANCE_ITEMS: MenuItem[] = [
