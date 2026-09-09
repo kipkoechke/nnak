@@ -51,6 +51,9 @@ export interface MemberListQuery {
   aging?: string;
   /** Filter by approval state. */
   approved?: boolean;
+  /** "true" keeps only members who have activated their pre-loaded account,
+   *  "false" only those who have not. Advertised in available_filters. */
+  claimed?: boolean | "true" | "false";
   page?: number;
   per_page?: number;
 }
@@ -113,6 +116,24 @@ const EMPTY_CONTRIBUTIONS: MemberContributions = {
   lifetime_paid: 0,
   lifetime_pending: 0,
   history: [],
+};
+
+/**
+ * Has this member activated their pre-loaded account?
+ *
+ * The listing advertises a `claimed` filter, so prefer whatever explicit flag
+ * the row carries. Older payloads send none, in which case a verified email is
+ * the signal — claiming an account is what verifies it.
+ */
+const claimedOf = (row: Record<string, unknown>): boolean | undefined => {
+  for (const key of ["claimed", "is_claimed", "has_claimed"]) {
+    const v = row[key];
+    if (typeof v === "boolean") return v;
+    if (v === "true" || v === "false") return v === "true";
+  }
+  if (row.claimed_at !== undefined) return !!row.claimed_at;
+  if (row.email_verified_at !== undefined) return !!row.email_verified_at;
+  return undefined;
 };
 
 /**
@@ -191,6 +212,7 @@ const normalizeMember = (raw: unknown): MemberRecord => {
     email: (val("email") ?? "") as string,
     role: (val("role") ?? "member") as NnakUser["role"],
     email_verified_at: val("email_verified_at") ?? null,
+    claimed: claimedOf(row),
     // Only disclosed to admins; left undefined otherwise so the toggle can
     // tell "not an executive" from "the API did not say".
     is_executive: val<boolean>("is_executive"),

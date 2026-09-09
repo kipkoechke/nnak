@@ -44,6 +44,17 @@ const AGING_FALLBACK = [
   { value: "12+", label: "Over 12 months", description: "Long overdue" },
 ];
 
+/** Account claim state. The route advertises ["true", "false"]. */
+const CLAIMED_FALLBACK = [
+  { value: "", label: "All accounts" },
+  { value: "true", label: "Claimed", description: "Signed up and activated" },
+  { value: "false", label: "Not claimed", description: "Never activated" },
+];
+
+/** "true" → "Claimed"; "false" → "Not claimed". */
+const claimedLabel = (value: string) =>
+  value === "true" ? "Claimed" : value === "false" ? "Not claimed" : value;
+
 /** "0-3" → "0 – 3 months"; "12+" → "Over 12 months". */
 const agingLabel = (value: string) =>
   value.endsWith("+")
@@ -57,6 +68,7 @@ export default function MembersPage() {
   const [categoryId, setCategoryId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [aging, setAging] = useState("");
+  const [claimed, setClaimed] = useState("");
 
   const { data: me } = useNnakMe();
   const isBranchManager =
@@ -78,6 +90,7 @@ export default function MembersPage() {
       member_category_id: categoryId || undefined,
       branch_id: branchId || undefined,
       aging: aging || undefined,
+      claimed: (claimed || undefined) as "true" | "false" | undefined,
       page,
       per_page: 15,
     },
@@ -104,6 +117,13 @@ export default function MembersPage() {
     agingLabel,
   );
   const { data: cats = [] } = useCategories();
+  const claimedOptions = filterOptions(
+    listingMeta?.available_filters?.claimed,
+    CLAIMED_FALLBACK,
+    "All accounts",
+    claimedLabel,
+  );
+
   const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
   const importMembers = useImportMembers();
@@ -259,6 +279,11 @@ export default function MembersPage() {
         "",
     },
     {
+      header: "Claimed",
+      value: (m) =>
+        m.claimed === undefined ? "" : m.claimed ? "Yes" : "No",
+    },
+    {
       header: "Subscription",
       value: (m) => (m.profile?.subscription_active ? "Active" : "Inactive"),
     },
@@ -287,6 +312,7 @@ export default function MembersPage() {
             member_category_id: categoryId || undefined,
             branch_id: branchId || undefined,
             aging: aging || undefined,
+            claimed: (claimed || undefined) as "true" | "false" | undefined,
           }),
     );
 
@@ -300,7 +326,13 @@ export default function MembersPage() {
             {/* Branch managers do not export the register. */}
             {!isBranchManager && (
               <DownloadButton
-                filename="members"
+                filename={
+                  claimed === "true"
+                    ? "members-claimed"
+                    : claimed === "false"
+                      ? "members-unclaimed"
+                      : "members"
+                }
                 sheetName="Members"
                 columns={exportColumns}
                 fetchRows={fetchExportRows}
@@ -398,6 +430,16 @@ export default function MembersPage() {
               }}
               placeholder="All ages"
               searchPlaceholder="Search aging…"
+            />
+            <SearchableSelect
+              options={claimedOptions}
+              value={claimed}
+              onChange={(v) => {
+                setClaimed(v);
+                setPage(1);
+              }}
+              placeholder="All accounts"
+              searchPlaceholder="Search…"
             />
           </>
         )}
