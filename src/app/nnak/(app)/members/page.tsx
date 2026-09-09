@@ -44,6 +44,17 @@ const AGING_FALLBACK = [
   { value: "12+", label: "Over 12 months", description: "Long overdue" },
 ];
 
+/** Account claim state. The route advertises ["true", "false"]. */
+const CLAIMED_FALLBACK = [
+  { value: "", label: "All accounts" },
+  { value: "true", label: "Claimed", description: "Signed up and activated" },
+  { value: "false", label: "Not claimed", description: "Never activated" },
+];
+
+/** "true" → "Claimed"; "false" → "Not claimed". */
+const claimedLabel = (value: string) =>
+  value === "true" ? "Claimed" : value === "false" ? "Not claimed" : value;
+
 /** "0-3" → "0 – 3 months"; "12+" → "Over 12 months". */
 const agingLabel = (value: string) =>
   value.endsWith("+")
@@ -57,6 +68,7 @@ export default function MembersPage() {
   const [categoryId, setCategoryId] = useState("");
   const [branchId, setBranchId] = useState("");
   const [aging, setAging] = useState("");
+  const [claimed, setClaimed] = useState("");
 
   const { data: me } = useNnakMe();
   const isBranchManager =
@@ -78,6 +90,7 @@ export default function MembersPage() {
       member_category_id: categoryId || undefined,
       branch_id: branchId || undefined,
       aging: aging || undefined,
+      claimed: (claimed || undefined) as "true" | "false" | undefined,
       page,
       per_page: 15,
     },
@@ -104,6 +117,13 @@ export default function MembersPage() {
     agingLabel,
   );
   const { data: cats = [] } = useCategories();
+  const claimedOptions = filterOptions(
+    listingMeta?.available_filters?.claimed,
+    CLAIMED_FALLBACK,
+    "All accounts",
+    claimedLabel,
+  );
+
   const { data: branches = [] } = useNnakBranches({ enabled: !isBranchManager });
   const setStatusM = useSetMemberStatus();
   const importMembers = useImportMembers();
@@ -259,6 +279,11 @@ export default function MembersPage() {
         "",
     },
     {
+      header: "Claimed",
+      value: (m) =>
+        m.claimed === undefined ? "" : m.claimed ? "Yes" : "No",
+    },
+    {
       header: "Subscription",
       value: (m) => (m.profile?.subscription_active ? "Active" : "Inactive"),
     },
@@ -271,24 +296,50 @@ export default function MembersPage() {
     },
   ];
 
-  const fetchExportRows = () =>
-    collectAllPages<MemberRow>((p) =>
-      isBranchManager
-        ? branchManagerService.listMembers({
-            page: p,
-            per_page: 100,
-            search: search || undefined,
-          })
-        : membersService.list({
-            page: p,
-            per_page: 100,
-            search: search || undefined,
-            status: status || undefined,
-            member_category_id: categoryId || undefined,
-            branch_id: branchId || undefined,
-            aging: aging || undefined,
-          }),
-    );
+  /**
+   * Walks every page of the current filter.
+   *
+   * The rows carry no claim flag — only the listing's `claimed` filter knows —
+   * so when no claim filter is set the export runs one pass per side and tags
+   * each row from the side it came back on. That is the same total number of
+   * rows, and the Claimed column ends up being the server's answer rather than
+   * something inferred from a blank email.
+   */
+  const fetchExportRows = async (): Promise<MemberRow[]> => {
+    if (isBranchManager)
+      return collectAllPages<MemberRow>((p) =>
+        branchManagerService.listMembers({
+          page: p,
+          per_page: 100,
+          search: search || undefined,
+        }),
+      );
+
+    const pass = async (claimState: "true" | "false" | undefined) => {
+      const rows = await collectAllPages<MemberRow>((p) =>
+        membersService.list({
+          page: p,
+          per_page: 100,
+          search: search || undefined,
+          status: status || undefined,
+          member_category_id: categoryId || undefined,
+          branch_id: branchId || undefined,
+          aging: aging || undefined,
+          claimed: claimState,
+        }),
+      );
+      return claimState === undefined
+        ? rows
+        : rows.map((m) => ({ ...m, claimed: claimState === "true" }));
+    };
+
+    if (claimed === "true" || claimed === "false") return pass(claimed);
+    const [claimedRows, unclaimedRows] = await Promise.all([
+      pass("true"),
+      pass("false"),
+    ]);
+    return [...claimedRows, ...unclaimedRows];
+  };
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">
@@ -300,7 +351,13 @@ export default function MembersPage() {
             {/* Branch managers do not export the register. */}
             {!isBranchManager && (
               <DownloadButton
-                filename="members"
+                filename={
+                  claimed === "true"
+                    ? "members-claimed"
+                    : claimed === "false"
+                      ? "members-unclaimed"
+                      : "members"
+                }
                 sheetName="Members"
                 columns={exportColumns}
                 fetchRows={fetchExportRows}
@@ -398,6 +455,16 @@ export default function MembersPage() {
               }}
               placeholder="All ages"
               searchPlaceholder="Search aging…"
+            />
+            <SearchableSelect
+              options={claimedOptions}
+              value={claimed}
+              onChange={(v) => {
+                setClaimed(v);
+                setPage(1);
+              }}
+              placeholder="All accounts"
+              searchPlaceholder="Search…"
             />
           </>
         )}

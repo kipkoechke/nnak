@@ -60,6 +60,9 @@ export interface NnakUser {
    * disclosed", not "false".
    */
   is_executive?: boolean;
+  /** True once the member has activated their pre-loaded account. Present on
+   *  admin listings; undefined when the payload does not say. */
+  claimed?: boolean;
   /** Null for accounts with no membership record — staff, typically. */
   profile?: NnakProfile | null;
   /** Subscription lifecycle — surfaced on GET /profile. `current_subscription`
