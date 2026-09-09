@@ -296,25 +296,50 @@ export default function MembersPage() {
     },
   ];
 
-  const fetchExportRows = () =>
-    collectAllPages<MemberRow>((p) =>
-      isBranchManager
-        ? branchManagerService.listMembers({
-            page: p,
-            per_page: 100,
-            search: search || undefined,
-          })
-        : membersService.list({
-            page: p,
-            per_page: 100,
-            search: search || undefined,
-            status: status || undefined,
-            member_category_id: categoryId || undefined,
-            branch_id: branchId || undefined,
-            aging: aging || undefined,
-            claimed: (claimed || undefined) as "true" | "false" | undefined,
-          }),
-    );
+  /**
+   * Walks every page of the current filter.
+   *
+   * The rows carry no claim flag — only the listing's `claimed` filter knows —
+   * so when no claim filter is set the export runs one pass per side and tags
+   * each row from the side it came back on. That is the same total number of
+   * rows, and the Claimed column ends up being the server's answer rather than
+   * something inferred from a blank email.
+   */
+  const fetchExportRows = async (): Promise<MemberRow[]> => {
+    if (isBranchManager)
+      return collectAllPages<MemberRow>((p) =>
+        branchManagerService.listMembers({
+          page: p,
+          per_page: 100,
+          search: search || undefined,
+        }),
+      );
+
+    const pass = async (claimState: "true" | "false" | undefined) => {
+      const rows = await collectAllPages<MemberRow>((p) =>
+        membersService.list({
+          page: p,
+          per_page: 100,
+          search: search || undefined,
+          status: status || undefined,
+          member_category_id: categoryId || undefined,
+          branch_id: branchId || undefined,
+          aging: aging || undefined,
+          claimed: claimState,
+        }),
+      );
+      return claimState === undefined
+        ? rows
+        : rows.map((m) => ({ ...m, claimed: claimState === "true" }));
+    };
+
+    if (claimed === "true" || claimed === "false") return pass(claimed);
+    const [claimedRows, unclaimedRows] = await Promise.all([
+      pass("true"),
+      pass("false"),
+    ]);
+    return [...claimedRows, ...unclaimedRows];
+  };
 
   return (
     <div className="absolute inset-0 flex flex-col px-4 py-4 gap-3 overflow-hidden">

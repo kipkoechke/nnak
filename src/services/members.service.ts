@@ -121,9 +121,11 @@ const EMPTY_CONTRIBUTIONS: MemberContributions = {
 /**
  * Has this member activated their pre-loaded account?
  *
- * The listing advertises a `claimed` filter, so prefer whatever explicit flag
- * the row carries. Older payloads send none, in which case a verified email is
- * the signal — claiming an account is what verifies it.
+ * The admin listing does not put a claim flag on the row — only a `claimed`
+ * filter in `meta` — so this reads whatever explicit field a future payload
+ * might add and otherwise returns undefined. Callers that need the value for
+ * every row ask the server for each side of the filter instead of guessing;
+ * see `listByClaimState`.
  */
 const claimedOf = (row: Record<string, unknown>): boolean | undefined => {
   for (const key of ["claimed", "is_claimed", "has_claimed"]) {
@@ -132,7 +134,6 @@ const claimedOf = (row: Record<string, unknown>): boolean | undefined => {
     if (v === "true" || v === "false") return v === "true";
   }
   if (row.claimed_at !== undefined) return !!row.claimed_at;
-  if (row.email_verified_at !== undefined) return !!row.email_verified_at;
   return undefined;
 };
 
